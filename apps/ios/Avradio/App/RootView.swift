@@ -115,7 +115,7 @@ struct MissingConfigurationView: View {
                     .scaledToFit()
                     .frame(width: 56, height: 56)
                     .padding(14)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .stroke(AvradioTheme.borderSubtle, lineWidth: 1)

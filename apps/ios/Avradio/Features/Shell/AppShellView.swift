@@ -19,6 +19,7 @@ struct AppShellView: View {
     @State private var homeStations: [Station] = []
     @State private var homeIsLoading = false
     @State private var homeErrorMessage: String?
+    @State private var selectedStation: Station?
     @State private var didBootstrap = false
 
     private let stationService = StationService()
@@ -62,6 +63,17 @@ struct AppShellView: View {
                 .environmentObject(audioPlayer)
                 .environmentObject(libraryStore)
         }
+        .sheet(item: $selectedStation) { station in
+            StationDetailSheet(
+                station: station,
+                isFavorite: favoriteStationIDs.contains(station.id),
+                isPlaying: audioPlayer.isCurrent(station) && audioPlayer.isPlaying,
+                playAction: { playStation(station) },
+                toggleFavorite: { libraryStore.toggleFavorite(for: station) }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
         .task {
             await bootstrapIfNeeded()
         }
@@ -98,7 +110,8 @@ struct AppShellView: View {
                 favoriteStationIDs: favoriteStationIDs,
                 toggleTag: toggleHomeTag,
                 playStation: playStation,
-                toggleFavorite: libraryStore.toggleFavorite(for:)
+                toggleFavorite: libraryStore.toggleFavorite(for:),
+                showStationDetails: { selectedStation = $0 }
             )
         case .search:
             SearchScreen(
@@ -111,7 +124,8 @@ struct AppShellView: View {
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
                 playStation: playStation,
-                toggleFavorite: libraryStore.toggleFavorite(for:)
+                toggleFavorite: libraryStore.toggleFavorite(for:),
+                showStationDetails: { selectedStation = $0 }
             )
         case .library:
             LibraryScreen(
@@ -120,7 +134,8 @@ struct AppShellView: View {
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
                 playStation: playStation,
-                toggleFavorite: libraryStore.toggleFavorite(for:)
+                toggleFavorite: libraryStore.toggleFavorite(for:),
+                showStationDetails: { selectedStation = $0 }
             )
         case .profile:
             ProfileScreen(
@@ -238,7 +253,10 @@ struct AppShellView: View {
 
     private func loadSearchResults() async {
         let queryText = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !queryText.isEmpty || searchTag != nil else {
+        let tagText = searchTag?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let requestKey = "\(queryText)|\(tagText ?? "")"
+
+        guard !queryText.isEmpty || tagText != nil else {
             searchResults = []
             searchErrorMessage = nil
             searchIsLoading = false
@@ -249,13 +267,22 @@ struct AppShellView: View {
         searchErrorMessage = nil
 
         do {
-            searchResults = try await stationService.searchStations(
-                filters: .init(query: queryText, tag: searchTag ?? "", limit: queryText.isEmpty ? 12 : 24)
+            try await Task.sleep(for: .milliseconds(300))
+            try Task.checkCancellation()
+
+            let results = try await stationService.searchStations(
+                filters: .init(query: queryText, tag: tagText ?? "", limit: queryText.isEmpty ? 12 : 24)
             )
+            guard requestKey == searchRequestKey else { return }
+
+            searchResults = results
+            searchErrorMessage = nil
             searchIsLoading = false
         } catch is CancellationError {
+            guard requestKey == searchRequestKey else { return }
             searchIsLoading = false
         } catch {
+            guard requestKey == searchRequestKey else { return }
             searchResults = []
             searchErrorMessage = L10n.string("shell.error.search")
             searchIsLoading = false
@@ -313,7 +340,7 @@ private struct AppShellScaffold<Content: View, FooterPlayer: View>: View {
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .overlay(alignment: .bottom) {
             footer
         }
     }
@@ -322,8 +349,8 @@ private struct AppShellScaffold<Content: View, FooterPlayer: View>: View {
         VStack(spacing: 10) {
             footerPlayer()
 
-            HStack(spacing: 12) {
-                HStack(spacing: 4) {
+            HStack(spacing: 18) {
+                HStack {
                     AppShellFooterTabButton(
                         title: L10n.string("tab.home"),
                         systemImage: "house.fill",
@@ -351,27 +378,30 @@ private struct AppShellScaffold<Content: View, FooterPlayer: View>: View {
                         selectTab(.profile)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 8)
+                .padding(.leading, 14)
+                .padding(.trailing, 14)
+                .padding(.vertical, 7)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(AvradioTheme.brandWhite.opacity(0.92))
-                        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                        .fill(AvradioTheme.footerGlass)
+                        .background(.ultraThinMaterial.opacity(0.95), in: Capsule(style: .continuous))
                         .overlay {
                             Capsule(style: .continuous)
-                                .stroke(.black.opacity(0.08), lineWidth: 1)
+                                .stroke(AvradioTheme.glassStroke, lineWidth: 1)
                         }
                 }
-                .shadow(color: .black.opacity(0.08), radius: 16, y: 8)
+                .shadow(color: AvradioTheme.glassShadow, radius: 18, y: 10)
 
                 AppShellFooterSearchButton(isSelected: selectedTab == .search) {
                     searchAction()
                 }
-                .shadow(color: .black.opacity(0.08), radius: 16, y: 8)
+                .shadow(color: AvradioTheme.glassShadow, radius: 18, y: 10)
             }
+            .frame(maxWidth: 372)
         }
         .padding(.horizontal, 18)
-        .padding(.bottom, 10)
+        .padding(.bottom, -8)
+        .ignoresSafeArea(edges: .bottom)
     }
 }
 
@@ -386,26 +416,31 @@ private struct AppShellFooterTabButton: View {
         Button(action: action) {
             ZStack {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(AvradioTheme.brandWhite.opacity(0.98))
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(AvradioTheme.footerGlassSelected)
                         .matchedGeometryEffect(id: "footerSelection", in: selectionNamespace)
-                        .shadow(color: .black.opacity(0.08), radius: 10, y: 3)
                         .overlay {
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(.black.opacity(0.05), lineWidth: 0.75)
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(AvradioTheme.glassStroke, lineWidth: 0.8)
                         }
                 }
 
-                Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .semibold))
+                Image(systemName: displayedSystemImage)
+                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
                     .frame(width: 20, height: 20)
+                    .symbolRenderingMode(.monochrome)
             }
-            .foregroundStyle(isSelected ? AvradioTheme.highlight : AvradioTheme.brandGraphite.opacity(0.86))
-            .frame(width: 74, height: 50)
+            .foregroundStyle(isSelected ? AvradioTheme.highlight : AvradioTheme.textSecondary)
+            .frame(width: 82, height: 46)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+    }
+
+    private var displayedSystemImage: String {
+        guard !isSelected else { return systemImage }
+        return systemImage.replacingOccurrences(of: ".fill", with: "")
     }
 }
 
@@ -417,24 +452,24 @@ private struct AppShellFooterSearchButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(AvradioTheme.brandWhite.opacity(0.92))
-                    .background(.ultraThinMaterial, in: Circle())
+                    .fill(AvradioTheme.footerGlass)
+                    .background(.ultraThinMaterial.opacity(0.95), in: Circle())
                     .overlay {
                         Circle()
-                            .stroke(.black.opacity(0.08), lineWidth: 1)
+                            .stroke(AvradioTheme.glassStroke, lineWidth: 1)
                     }
 
                 if isSelected {
                     Circle()
-                        .fill(AvradioTheme.brandWhite.opacity(0.98))
+                        .fill(AvradioTheme.footerGlassSelected)
                         .padding(4)
                 }
 
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(isSelected ? AvradioTheme.highlight : AvradioTheme.brandGraphite.opacity(0.9))
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(isSelected ? AvradioTheme.highlight : AvradioTheme.textSecondary)
             }
-            .frame(width: 50, height: 50)
+            .frame(width: 62, height: 62)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -456,6 +491,7 @@ private struct HomeScreen: View {
     let toggleTag: (String) -> Void
     let playStation: (Station) -> Void
     let toggleFavorite: (Station) -> Void
+    let showStationDetails: (Station) -> Void
 
     var body: some View {
         ScrollView {
@@ -490,7 +526,8 @@ private struct HomeScreen: View {
                         subtitle: stationDeck(for: featuredStation),
                         isFavorite: favoriteStationIDs.contains(featuredStation.id),
                         playAction: { playStation(featuredStation) },
-                        favoriteAction: { toggleFavorite(featuredStation) }
+                        favoriteAction: { toggleFavorite(featuredStation) },
+                        detailsAction: { showStationDetails(featuredStation) }
                     )
 
                     if stations.count > 1 {
@@ -507,7 +544,8 @@ private struct HomeScreen: View {
                                     station: station,
                                     isFavorite: favoriteStationIDs.contains(station.id),
                                     toggleFavorite: { toggleFavorite(station) },
-                                    playAction: { playStation(station) }
+                                    playAction: { playStation(station) },
+                                    detailsAction: { showStationDetails(station) }
                                 )
                             }
                         }
@@ -526,7 +564,8 @@ private struct HomeScreen: View {
                                 station: station,
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) }
+                                playAction: { playStation(station) },
+                                detailsAction: { showStationDetails(station) }
                             )
                         }
                     }
@@ -557,6 +596,7 @@ private struct SearchScreen: View {
     let favoriteStationIDs: Set<String>
     let playStation: (Station) -> Void
     let toggleFavorite: (Station) -> Void
+    let showStationDetails: (Station) -> Void
 
     var body: some View {
         ScrollView {
@@ -588,8 +628,22 @@ private struct SearchScreen: View {
                             queryText
                         )
                 ) {
-                    if isLoading && results.isEmpty {
-                        StationCardSkeletonGroup()
+                    if !results.isEmpty {
+                        if isLoading {
+                            SearchLoadingCard()
+                        }
+
+                        ForEach(results) { station in
+                            StationRowCard(
+                                station: station,
+                                isFavorite: favoriteStationIDs.contains(station.id),
+                                toggleFavorite: { toggleFavorite(station) },
+                                playAction: { playStation(station) },
+                                detailsAction: { showStationDetails(station) }
+                            )
+                        }
+                    } else if isLoading {
+                        SearchLoadingCard()
                     } else if let errorMessage {
                         EmptyLibraryState(
                             title: L10n.string("shell.search.error.title"),
@@ -602,15 +656,6 @@ private struct SearchScreen: View {
                                 ? L10n.string("shell.search.empty.detail.initial")
                                 : L10n.string("shell.search.empty.detail.retry")
                         )
-                    } else {
-                        ForEach(results) { station in
-                            StationRowCard(
-                                station: station,
-                                isFavorite: favoriteStationIDs.contains(station.id),
-                                toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) }
-                            )
-                        }
                     }
                 }
             }
@@ -639,6 +684,7 @@ private struct LibraryScreen: View {
     let favoriteStationIDs: Set<String>
     let playStation: (Station) -> Void
     let toggleFavorite: (Station) -> Void
+    let showStationDetails: (Station) -> Void
 
     var body: some View {
         ScrollView {
@@ -680,7 +726,8 @@ private struct LibraryScreen: View {
                                 station: station,
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) }
+                                playAction: { playStation(station) },
+                                detailsAction: { showStationDetails(station) }
                             )
                         }
                     }
@@ -693,7 +740,8 @@ private struct LibraryScreen: View {
                                 station: station,
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) }
+                                playAction: { playStation(station) },
+                                detailsAction: { showStationDetails(station) }
                             )
                         }
                     }
@@ -797,20 +845,20 @@ private struct MiniPlayerView: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AvradioTheme.brandWhite.opacity(0.94))
+                .fill(AvradioTheme.elevatedSurface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(
                     LinearGradient(
-                        colors: [.white.opacity(0.2), AvradioTheme.highlight.opacity(0.1)],
+                        colors: [AvradioTheme.glassStroke, AvradioTheme.highlight.opacity(0.12)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
                     lineWidth: 1
                 )
         }
-        .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
+        .shadow(color: AvradioTheme.glassShadow.opacity(0.7), radius: 8, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .onTapGesture(perform: openPlayer)
         .accessibilityElement(children: .contain)
@@ -841,7 +889,7 @@ struct ShellBrandHeader: View {
                 .scaledToFit()
                 .frame(width: 26, height: 26)
                 .padding(10)
-                .background(AvradioTheme.brandWhite, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
@@ -930,7 +978,7 @@ private struct LiveNowPanel: View {
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(AvradioTheme.borderSubtle.opacity(0.55), lineWidth: 1)
                 }
         )
         .shadow(color: AvradioTheme.softShadow, radius: 30, y: 16)
@@ -956,11 +1004,11 @@ private struct GenreTagStrip: View {
                             .padding(.vertical, 10)
                             .background(
                                 Capsule(style: .continuous)
-                                    .fill(activeTag == tag ? AvradioTheme.highlight.opacity(0.1) : AvradioTheme.brandWhite.opacity(0.92))
+                                    .fill(activeTag == tag ? AvradioTheme.highlight.opacity(0.1) : AvradioTheme.cardSurface)
                             )
                             .overlay {
                                 Capsule(style: .continuous)
-                                    .stroke(activeTag == tag ? AvradioTheme.highlight.opacity(0.22) : .black.opacity(0.06), lineWidth: 1)
+                                    .stroke(activeTag == tag ? AvradioTheme.highlight.opacity(0.22) : AvradioTheme.borderSubtle, lineWidth: 1)
                             }
                     }
                     .buttonStyle(.plain)
@@ -978,6 +1026,7 @@ private struct FeaturedStationCard: View {
     let isFavorite: Bool
     let playAction: () -> Void
     let favoriteAction: () -> Void
+    let detailsAction: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -1021,7 +1070,7 @@ private struct FeaturedStationCard: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
                         .frame(width: 48, height: 48)
-                        .background(AvradioTheme.brandWhite.opacity(0.94), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
@@ -1039,6 +1088,8 @@ private struct FeaturedStationCard: View {
                         .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
                 }
         )
+        .contentShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+        .onTapGesture(perform: detailsAction)
     }
 }
 
@@ -1067,6 +1118,12 @@ private struct StationSection<Content: View>: View {
     }
 }
 
+private enum StationRowMetrics {
+    static let artworkSize: CGFloat = 58
+    static let favoriteButtonSize: CGFloat = 34
+    static let playButtonSize: CGFloat = 38
+}
+
 private struct StationRowCard: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerService
 
@@ -1074,10 +1131,15 @@ private struct StationRowCard: View {
     let isFavorite: Bool
     let toggleFavorite: () -> Void
     let playAction: () -> Void
+    let detailsAction: () -> Void
+
+    private var isPlayingCurrentStation: Bool {
+        audioPlayer.isCurrent(station) && audioPlayer.isPlaying
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            StationArtworkView(station: station, size: 58)
+            StationArtworkView(station: station, size: StationRowMetrics.artworkSize)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(station.name)
@@ -1099,7 +1161,7 @@ private struct StationRowCard: View {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textSecondary)
-                    .frame(width: 34, height: 34)
+                    .frame(width: StationRowMetrics.favoriteButtonSize, height: StationRowMetrics.favoriteButtonSize)
                     .background(AvradioTheme.mutedSurface, in: Circle())
             }
             .buttonStyle(.plain)
@@ -1111,11 +1173,14 @@ private struct StationRowCard: View {
                     playAction()
                 }
             } label: {
-                Image(systemName: audioPlayer.isCurrent(station) && audioPlayer.isPlaying ? "pause.fill" : "play.fill")
+                Image(systemName: isPlayingCurrentStation ? "pause.fill" : "play.fill")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .background(AvradioTheme.highlight, in: Circle())
+                    .foregroundStyle(isPlayingCurrentStation ? .white : AvradioTheme.textSecondary)
+                    .frame(width: StationRowMetrics.playButtonSize, height: StationRowMetrics.playButtonSize)
+                    .background(
+                        isPlayingCurrentStation ? AnyShapeStyle(AvradioTheme.highlight) : AnyShapeStyle(AvradioTheme.mutedSurface),
+                        in: Circle()
+                    )
             }
             .buttonStyle(.plain)
         }
@@ -1128,22 +1193,371 @@ private struct StationRowCard: View {
                         .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
                 }
         )
+        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .onTapGesture(perform: detailsAction)
+    }
+}
+
+private struct StationDetailSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+
+    let station: Station
+    let isFavorite: Bool
+    let isPlaying: Bool
+    let playAction: () -> Void
+    let toggleFavorite: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .top, spacing: 16) {
+                    StationArtworkView(station: station, size: 92)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(station.name)
+                            .font(.system(size: 28, weight: .black))
+                            .foregroundStyle(AvradioTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if !station.primaryDetailLine.isEmpty {
+                            Text(station.primaryDetailLine)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(AvradioTheme.textSecondary)
+                        }
+
+                        if !station.normalizedTags.isEmpty {
+                            WrapTagsRow(tags: Array(station.normalizedTags.prefix(4)))
+                        }
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        playAction()
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                            Text(isPlaying ? "Playing" : "Play")
+                        }
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: toggleFavorite) {
+                        Image(systemName: isFavorite ? "heart.fill" : "heart")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
+                            .frame(width: 50, height: 50)
+                            .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+
+                    if let homepageURL {
+                        Button {
+                            openURL(homepageURL)
+                        } label: {
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(AvradioTheme.textPrimary)
+                                .frame(width: 50, height: 50)
+                                .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if !station.technicalBadges.isEmpty {
+                    DetailSection(title: "Technical") {
+                        WrapTagsRow(tags: station.technicalBadges, highlighted: true)
+                    }
+                }
+
+                if !station.popularityBadges.isEmpty {
+                    DetailSection(title: "Signals") {
+                        WrapTagsRow(tags: station.popularityBadges)
+                    }
+                }
+
+                DetailSection(title: "About") {
+                    VStack(spacing: 12) {
+                        DetailInfoRow(title: "Country", value: station.country)
+                        DetailInfoRow(title: "Language", value: station.language)
+                        if let state = station.state, !state.isEmpty {
+                            DetailInfoRow(title: "State", value: state)
+                        }
+                        if let countryCode = station.countryCode, !countryCode.isEmpty {
+                            DetailInfoRow(title: "Code", value: countryCode)
+                        }
+                        if let lastCheckOKAt = formattedLastCheck {
+                            DetailInfoRow(title: "Last check", value: lastCheckOKAt)
+                        }
+                        if let homepageHost, !homepageHost.isEmpty {
+                            DetailInfoRow(title: "Website", value: homepageHost)
+                        }
+                    }
+                }
+            }
+            .padding(24)
+            .padding(.bottom, 16)
+        }
+        .background(AvradioTheme.shellBackground.ignoresSafeArea())
+    }
+
+    private var homepageURL: URL? {
+        guard let homepage = station.homepageURL else { return nil }
+        return URL(string: homepage)
+    }
+
+    private var homepageHost: String? {
+        homepageURL?.host()
+    }
+
+    private var formattedLastCheck: String? {
+        guard let lastCheckOKAt = station.lastCheckOKAt, !lastCheckOKAt.isEmpty else { return nil }
+        guard let date = ISO8601DateFormatter().date(from: lastCheckOKAt) else { return lastCheckOKAt }
+        return date.formatted(date: .abbreviated, time: .shortened)
+    }
+}
+
+private struct DetailSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(AvradioTheme.textPrimary)
+
+            content()
+        }
+    }
+}
+
+private struct DetailInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AvradioTheme.textSecondary)
+                .frame(width: 88, alignment: .leading)
+
+            Text(value)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(AvradioTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct WrapTagsRow: View {
+    let tags: [String]
+    var highlighted = false
+
+    var body: some View {
+        FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+            ForEach(tags, id: \.self) { tag in
+                Text(tag)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(highlighted ? AvradioTheme.highlight : AvradioTheme.textPrimary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(highlighted ? AvradioTheme.highlight.opacity(0.1) : AvradioTheme.cardSurface)
+                    )
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .stroke(highlighted ? AvradioTheme.highlight.opacity(0.18) : AvradioTheme.borderSubtle, lineWidth: 1)
+                    }
+            }
+        }
+    }
+}
+
+private struct FlowLayout: Layout {
+    var horizontalSpacing: CGFloat = 8
+    var verticalSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var lineWidth: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var totalHeight: CGFloat = 0
+        var maxLineWidth: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if lineWidth > 0, lineWidth + horizontalSpacing + size.width > maxWidth {
+                totalHeight += lineHeight + verticalSpacing
+                maxLineWidth = max(maxLineWidth, lineWidth)
+                lineWidth = size.width
+                lineHeight = size.height
+            } else {
+                lineWidth += lineWidth == 0 ? size.width : horizontalSpacing + size.width
+                lineHeight = max(lineHeight, size.height)
+            }
+        }
+
+        maxLineWidth = max(maxLineWidth, lineWidth)
+        totalHeight += lineHeight
+
+        return CGSize(width: maxLineWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var origin = CGPoint(x: bounds.minX, y: bounds.minY)
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if origin.x > bounds.minX, origin.x + size.width > bounds.maxX {
+                origin.x = bounds.minX
+                origin.y += lineHeight + verticalSpacing
+                lineHeight = 0
+            }
+
+            subview.place(
+                at: origin,
+                proposal: ProposedViewSize(width: size.width, height: size.height)
+            )
+
+            origin.x += size.width + horizontalSpacing
+            lineHeight = max(lineHeight, size.height)
+        }
     }
 }
 
 private struct StationCardSkeletonGroup: View {
+    var count: Int = 4
+
     var body: some View {
         VStack(spacing: 12) {
-            ForEach(0..<3, id: \.self) { _ in
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(AvradioTheme.mutedSurface)
-                    .frame(height: 90)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                    }
+            ForEach(0..<count, id: \.self) { index in
+                StationRowSkeletonCard(accentWidth: index == 0 ? 152 : 124)
             }
         }
+    }
+}
+
+private struct SearchLoadingCard: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+                .tint(AvradioTheme.highlight)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Searching stations")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+
+                Text("Refreshing results without shifting the page.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(AvradioTheme.textSecondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(AvradioTheme.cardSurface)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+        )
+    }
+}
+
+private struct StationRowSkeletonCard: View {
+    let accentWidth: CGFloat
+    @State private var isAnimating = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            SkeletonBlock(cornerRadius: 18)
+                .frame(width: StationRowMetrics.artworkSize, height: StationRowMetrics.artworkSize)
+
+            VStack(alignment: .leading, spacing: 10) {
+                SkeletonBlock(cornerRadius: 8)
+                    .frame(width: accentWidth, height: 16)
+
+                SkeletonBlock(cornerRadius: 7)
+                    .frame(width: 116, height: 12)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 10) {
+                SkeletonBlock(cornerRadius: 17)
+                    .frame(width: StationRowMetrics.favoriteButtonSize, height: StationRowMetrics.favoriteButtonSize)
+                    .clipShape(Circle())
+
+                SkeletonBlock(cornerRadius: 19)
+                    .frame(width: StationRowMetrics.playButtonSize, height: StationRowMetrics.playButtonSize)
+                    .clipShape(Circle())
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(AvradioTheme.cardSurface)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+        )
+        .opacity(isAnimating ? 1 : 0.72)
+        .animation(.easeInOut(duration: 1.05).repeatForever(autoreverses: true), value: isAnimating)
+        .onAppear {
+            isAnimating = true
+        }
+    }
+}
+
+private struct SkeletonBlock: View {
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        AvradioTheme.mutedSurface.opacity(0.9),
+                        AvradioTheme.skeletonHighlight,
+                        AvradioTheme.mutedSurface.opacity(0.92)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(AvradioTheme.glassStroke, lineWidth: 0.8)
+            }
     }
 }
 

@@ -27,11 +27,12 @@ docs/
 
 ## Local Setup
 
-1. Copy `apps/ios/Config/Local.xcconfig.example` to `apps/ios/Config/Local.xcconfig`.
-2. Fill in the client-side values needed for your build.
+1. Resolve the local iOS config from Infisical:
+   `./scripts/generate-local-xcconfig.sh local`
+2. This writes `apps/ios/Config/Local.xcconfig` with the client-side values needed for your build.
 3. Open `apps/ios/Avradio.xcodeproj` in Xcode and run the `Avradio` scheme.
 
-For internal builds, keep the real bundle identifier and production-facing client values in your local, non-versioned `Local.xcconfig`.
+For internal builds, keep the real values out of git and regenerate `Local.xcconfig` from Infisical when needed.
 
 ## Local Secrets
 

@@ -93,6 +93,11 @@
 "profile.local.recents.count.other" = "%d recently played stations on this device.";
 "profile.preferences.language.detail" = "Choose the language used by the AV Radio interface.";
 "profile.preferences.language.title" = "App language";
+"profile.preferences.theme.dark" = "Dark";
+"profile.preferences.theme.detail" = "Choose whether AV Radio follows the system appearance or always uses a fixed theme on this device.";
+"profile.preferences.theme.light" = "Light";
+"profile.preferences.theme.system" = "System";
+"profile.preferences.theme.title" = "Appearance";
 "profile.preferences.accountPerk.title" = "Connected account perk";
 "profile.preferences.accountPerk.detail" = "Connect an account to save a preferred Home genre locally and stop repeated account prompts while you stay signed in.";
 "profile.preferences.preferredGenre.detail" = "Home opens around %@ while this account stays connected on this device.";

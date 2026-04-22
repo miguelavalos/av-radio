@@ -5,6 +5,7 @@ struct ProfileScreen: View {
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var accessController: AccessController
     @EnvironmentObject private var languageController: AppLanguageController
+    @EnvironmentObject private var themeController: AppThemeController
     @EnvironmentObject private var libraryStore: LibraryStore
 
     let startSignInFlow: (Bool) -> Void
@@ -315,6 +316,20 @@ struct ProfileScreen: View {
                 }
                 .pickerStyle(.menu)
             }
+
+            ShellRow(
+                systemImage: "circle.lefthalf.filled",
+                title: L10n.string("profile.preferences.theme.title"),
+                detail: L10n.string("profile.preferences.theme.detail")
+            )
+
+            Picker(L10n.string("profile.preferences.theme.title"), selection: themeSelection) {
+                ForEach(AppTheme.allCases) { theme in
+                    Text(themeLabel(for: theme))
+                        .tag(theme)
+                }
+            }
+            .pickerStyle(.segmented)
         }
         .padding(22)
         .background(profileCardBackground)
@@ -527,6 +542,13 @@ struct ProfileScreen: View {
         )
     }
 
+    private var themeSelection: Binding<AppTheme> {
+        Binding(
+            get: { themeController.currentTheme },
+            set: { themeController.select($0) }
+        )
+    }
+
     private var preferredGenreLabel: String {
         let preferredTag = libraryStore.settings.preferredTag
         guard !preferredTag.isEmpty else {
@@ -534,6 +556,17 @@ struct ProfileScreen: View {
         }
 
         return L10n.genreLabel(for: preferredTag)
+    }
+
+    private func themeLabel(for theme: AppTheme) -> String {
+        switch theme {
+        case .system:
+            L10n.string("profile.preferences.theme.system")
+        case .light:
+            L10n.string("profile.preferences.theme.light")
+        case .dark:
+            L10n.string("profile.preferences.theme.dark")
+        }
     }
 
     private func open(_ url: URL?) {
@@ -742,7 +775,7 @@ private struct ProfileActionRow: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(AvradioTheme.shellBackground)
+                    .fill(AvradioTheme.mutedSurface)
                     .overlay {
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
                             .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
@@ -775,16 +808,16 @@ private struct SubscriptionOfferCard: View {
 
                 if isLoading {
                     ProgressView()
-                        .tint(AvradioTheme.brandBlack)
+                        .tint(AvradioTheme.textPrimary)
                 } else {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text(product.displayPrice)
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(AvradioTheme.brandBlack)
+                            .foregroundStyle(AvradioTheme.textPrimary)
 
                         Text(L10n.string("profile.subscription.subscribe"))
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(AvradioTheme.brandBlack.opacity(0.72))
+                            .foregroundStyle(AvradioTheme.textSecondary)
                     }
                 }
             }

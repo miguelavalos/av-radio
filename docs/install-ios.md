@@ -18,9 +18,22 @@ Current note:
 1. Xcode 26.4.1 or later installed
 2. An Apple account available in `Xcode > Settings > Accounts`
 3. Command line tools selected from that Xcode
-4. `apps/ios/Config/Local.xcconfig` created from `apps/ios/Config/Local.xcconfig.example`
+4. `infisical` CLI available locally
+5. `apps/ios/Config/Local.xcconfig` generated from Infisical
 
-For internal distribution or App Store preparation, point `AVRADIO_BUNDLE_IDENTIFIER` and the other client-side values in `Local.xcconfig` to your real configuration. Keep those values out of git.
+Generate the local config:
+
+```bash
+./scripts/generate-local-xcconfig.sh local
+```
+
+For production/App Store preparation:
+
+```bash
+./scripts/generate-local-xcconfig.sh production
+```
+
+`Local.xcconfig` is gitignored and should be regenerated locally instead of hand-maintained.
 
 ## Run on simulator
 

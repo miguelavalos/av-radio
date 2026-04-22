@@ -6,6 +6,7 @@ struct AvradioApp: App {
     private let persistenceController: PersistenceController
     @StateObject private var audioPlayer = AudioPlayerService()
     @StateObject private var languageController = AppLanguageController()
+    @StateObject private var themeController = AppThemeController()
     @StateObject private var libraryStore: LibraryStore
     @StateObject private var accessController: AccessController
 
@@ -23,9 +24,11 @@ struct AvradioApp: App {
                 RootView()
                     .environmentObject(accessController)
                     .environmentObject(languageController)
+                    .environmentObject(themeController)
                     .environment(\.locale, languageController.locale)
                     .environmentObject(audioPlayer)
                     .environmentObject(libraryStore)
+                    .preferredColorScheme(themeController.currentTheme.preferredColorScheme)
             }
         }
         .modelContainer(persistenceController.container)

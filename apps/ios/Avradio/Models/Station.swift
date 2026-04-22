@@ -5,13 +5,73 @@ struct Station: Identifiable, Hashable {
     let id: String
     let name: String
     let country: String
+    let countryCode: String?
+    let state: String?
     let language: String
+    let languageCodes: String?
     let tags: String
     let streamURL: String
     let faviconURL: String?
     let bitrate: Int?
     let codec: String?
     let homepageURL: String?
+    let votes: Int?
+    let clickCount: Int?
+    let clickTrend: Int?
+    let isHLS: Bool?
+    let hasExtendedInfo: Bool?
+    let hasSSLError: Bool?
+    let lastCheckOKAt: String?
+    let geoLatitude: Double?
+    let geoLongitude: Double?
+
+    init(
+        id: String,
+        name: String,
+        country: String,
+        countryCode: String? = nil,
+        state: String? = nil,
+        language: String,
+        languageCodes: String? = nil,
+        tags: String,
+        streamURL: String,
+        faviconURL: String? = nil,
+        bitrate: Int? = nil,
+        codec: String? = nil,
+        homepageURL: String? = nil,
+        votes: Int? = nil,
+        clickCount: Int? = nil,
+        clickTrend: Int? = nil,
+        isHLS: Bool? = nil,
+        hasExtendedInfo: Bool? = nil,
+        hasSSLError: Bool? = nil,
+        lastCheckOKAt: String? = nil,
+        geoLatitude: Double? = nil,
+        geoLongitude: Double? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.country = country
+        self.countryCode = countryCode
+        self.state = state
+        self.language = language
+        self.languageCodes = languageCodes
+        self.tags = tags
+        self.streamURL = streamURL
+        self.faviconURL = faviconURL
+        self.bitrate = bitrate
+        self.codec = codec
+        self.homepageURL = homepageURL
+        self.votes = votes
+        self.clickCount = clickCount
+        self.clickTrend = clickTrend
+        self.isHLS = isHLS
+        self.hasExtendedInfo = hasExtendedInfo
+        self.hasSSLError = hasSSLError
+        self.lastCheckOKAt = lastCheckOKAt
+        self.geoLatitude = geoLatitude
+        self.geoLongitude = geoLongitude
+    }
 }
 
 extension Station {
@@ -20,13 +80,25 @@ extension Station {
             id: favorite.stationID,
             name: favorite.name,
             country: favorite.country,
+            countryCode: favorite.countryCode,
+            state: favorite.state,
             language: favorite.language,
+            languageCodes: favorite.languageCodes,
             tags: favorite.tags,
             streamURL: favorite.streamURL,
             faviconURL: favorite.faviconURL,
             bitrate: favorite.bitrate,
             codec: favorite.codec,
-            homepageURL: favorite.homepageURL
+            homepageURL: favorite.homepageURL,
+            votes: favorite.votes,
+            clickCount: favorite.clickCount,
+            clickTrend: favorite.clickTrend,
+            isHLS: favorite.isHLS,
+            hasExtendedInfo: favorite.hasExtendedInfo,
+            hasSSLError: favorite.hasSSLError,
+            lastCheckOKAt: favorite.lastCheckOKAt,
+            geoLatitude: favorite.geoLatitude,
+            geoLongitude: favorite.geoLongitude
         )
     }
 
@@ -35,13 +107,25 @@ extension Station {
             id: recent.stationID,
             name: recent.name,
             country: recent.country,
+            countryCode: recent.countryCode,
+            state: recent.state,
             language: recent.language,
+            languageCodes: recent.languageCodes,
             tags: recent.tags,
             streamURL: recent.streamURL,
             faviconURL: recent.faviconURL,
             bitrate: recent.bitrate,
             codec: recent.codec,
-            homepageURL: recent.homepageURL
+            homepageURL: recent.homepageURL,
+            votes: recent.votes,
+            clickCount: recent.clickCount,
+            clickTrend: recent.clickTrend,
+            isHLS: recent.isHLS,
+            hasExtendedInfo: recent.hasExtendedInfo,
+            hasSSLError: recent.hasSSLError,
+            lastCheckOKAt: recent.lastCheckOKAt,
+            geoLatitude: recent.geoLatitude,
+            geoLongitude: recent.geoLongitude
         )
     }
 }
@@ -92,6 +176,47 @@ extension Station {
             .joined(separator: " · ")
     }
 
+    var primaryDetailLine: String {
+        [state, country, language]
+            .compactMap { value in
+                guard let value else { return nil }
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? nil : trimmed
+            }
+            .joined(separator: " · ")
+    }
+
+    var normalizedTags: [String] {
+        tags
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    var technicalBadges: [String] {
+        var badges: [String] = []
+        if let codec, !codec.isEmpty { badges.append(codec) }
+        if let bitrate, bitrate > 0 { badges.append("\(bitrate) kbps") }
+        if isHLS == true { badges.append("HLS") }
+        if hasExtendedInfo == true { badges.append("Extended info") }
+        return badges
+    }
+
+    var popularityBadges: [String] {
+        var badges: [String] = []
+        if let votes, votes > 0 { badges.append("\(votes) votes") }
+        if let clickCount, clickCount > 0 { badges.append("\(clickCount) clicks") }
+        if let clickTrend, clickTrend > 0 { badges.append("+\(clickTrend) trend") }
+        return badges
+    }
+
+    var statusBadges: [String] {
+        var badges: [String] = []
+        if hasSSLError == true { badges.append("SSL issue") }
+        if let lastCheckOKAt, !lastCheckOKAt.isEmpty { badges.append("Checked") }
+        return badges
+    }
+
     var initials: String {
         let parts = name
             .split(separator: " ")
@@ -127,26 +252,50 @@ final class FavoriteStation {
     @Attribute(.unique) var stationID: String
     var name: String
     var country: String
+    var countryCode: String?
+    var state: String?
     var language: String
+    var languageCodes: String?
     var tags: String
     var streamURL: String
     var faviconURL: String?
     var bitrate: Int?
     var codec: String?
     var homepageURL: String?
+    var votes: Int?
+    var clickCount: Int?
+    var clickTrend: Int?
+    var isHLS: Bool?
+    var hasExtendedInfo: Bool?
+    var hasSSLError: Bool?
+    var lastCheckOKAt: String?
+    var geoLatitude: Double?
+    var geoLongitude: Double?
     var createdAt: Date
 
     init(station: Station, createdAt: Date = .now) {
         self.stationID = station.id
         self.name = station.name
         self.country = station.country
+        self.countryCode = station.countryCode
+        self.state = station.state
         self.language = station.language
+        self.languageCodes = station.languageCodes
         self.tags = station.tags
         self.streamURL = station.streamURL
         self.faviconURL = station.faviconURL
         self.bitrate = station.bitrate
         self.codec = station.codec
         self.homepageURL = station.homepageURL
+        self.votes = station.votes
+        self.clickCount = station.clickCount
+        self.clickTrend = station.clickTrend
+        self.isHLS = station.isHLS
+        self.hasExtendedInfo = station.hasExtendedInfo
+        self.hasSSLError = station.hasSSLError
+        self.lastCheckOKAt = station.lastCheckOKAt
+        self.geoLatitude = station.geoLatitude
+        self.geoLongitude = station.geoLongitude
         self.createdAt = createdAt
     }
 }
@@ -156,26 +305,50 @@ final class RecentStation {
     @Attribute(.unique) var stationID: String
     var name: String
     var country: String
+    var countryCode: String?
+    var state: String?
     var language: String
+    var languageCodes: String?
     var tags: String
     var streamURL: String
     var faviconURL: String?
     var bitrate: Int?
     var codec: String?
     var homepageURL: String?
+    var votes: Int?
+    var clickCount: Int?
+    var clickTrend: Int?
+    var isHLS: Bool?
+    var hasExtendedInfo: Bool?
+    var hasSSLError: Bool?
+    var lastCheckOKAt: String?
+    var geoLatitude: Double?
+    var geoLongitude: Double?
     var lastPlayedAt: Date
 
     init(station: Station, lastPlayedAt: Date = .now) {
         self.stationID = station.id
         self.name = station.name
         self.country = station.country
+        self.countryCode = station.countryCode
+        self.state = station.state
         self.language = station.language
+        self.languageCodes = station.languageCodes
         self.tags = station.tags
         self.streamURL = station.streamURL
         self.faviconURL = station.faviconURL
         self.bitrate = station.bitrate
         self.codec = station.codec
         self.homepageURL = station.homepageURL
+        self.votes = station.votes
+        self.clickCount = station.clickCount
+        self.clickTrend = station.clickTrend
+        self.isHLS = station.isHLS
+        self.hasExtendedInfo = station.hasExtendedInfo
+        self.hasSSLError = station.hasSSLError
+        self.lastCheckOKAt = station.lastCheckOKAt
+        self.geoLatitude = station.geoLatitude
+        self.geoLongitude = station.geoLongitude
         self.lastPlayedAt = lastPlayedAt
     }
 }

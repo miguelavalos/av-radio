@@ -93,6 +93,11 @@
 "profile.local.recents.count.other" = "%d emisoras reproducidas recientemente en este dispositivo.";
 "profile.preferences.language.detail" = "Elige el idioma que usa la interfaz de AV Radio.";
 "profile.preferences.language.title" = "Idioma de la app";
+"profile.preferences.theme.dark" = "Oscuro";
+"profile.preferences.theme.detail" = "Elige si AV Radio sigue la apariencia del sistema o usa siempre un tema fijo en este dispositivo.";
+"profile.preferences.theme.light" = "Claro";
+"profile.preferences.theme.system" = "Sistema";
+"profile.preferences.theme.title" = "Apariencia";
 "profile.preferences.accountPerk.title" = "Ventaja de cuenta conectada";
 "profile.preferences.accountPerk.detail" = "Conecta una cuenta para guardar localmente un género preferido en Inicio y dejar de ver recordatorios repetidos mientras sigas conectado.";
 "profile.preferences.preferredGenre.detail" = "Inicio se abrirá alrededor de %@ mientras esta cuenta siga conectada en este dispositivo.";

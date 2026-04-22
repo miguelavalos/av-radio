@@ -105,7 +105,10 @@ private struct RadioBrowserStationDTO: Decodable {
     let stationuuid: String
     let name: String
     let country: String?
+    let countrycode: String?
+    let state: String?
     let language: String?
+    let languagecodes: String?
     let tags: String?
     let url: String?
     let url_resolved: String?
@@ -113,6 +116,15 @@ private struct RadioBrowserStationDTO: Decodable {
     let bitrate: Int?
     let codec: String?
     let homepage: String?
+    let votes: Int?
+    let clickcount: Int?
+    let clicktrend: Int?
+    let hls: Int?
+    let has_extended_info: Bool?
+    let ssl_error: Int?
+    let lastcheckoktime_iso8601: String?
+    let geo_lat: Double?
+    let geo_long: Double?
     let lastcheckok: Int?
 
     var station: Station? {
@@ -124,13 +136,25 @@ private struct RadioBrowserStationDTO: Decodable {
             id: stationuuid,
             name: normalized(name, fallback: L10n.string("stationService.fallback.unnamed")),
             country: normalized(country, fallback: L10n.string("stationService.fallback.unknownCountry")),
+            countryCode: normalizedOptional(countrycode),
+            state: normalizedOptional(state),
             language: normalized(language, fallback: L10n.string("stationService.fallback.unknownLanguage")),
+            languageCodes: normalizedOptional(languagecodes),
             tags: normalized(tags, fallback: L10n.string("stationService.fallback.noTags")),
             streamURL: stream,
             faviconURL: normalizedOptionalURL(favicon),
             bitrate: bitrate,
             codec: normalizedOptional(codec),
-            homepageURL: normalizedOptionalURL(homepage)
+            homepageURL: normalizedOptionalURL(homepage),
+            votes: votes,
+            clickCount: clickcount,
+            clickTrend: clicktrend,
+            isHLS: hls.map { $0 == 1 },
+            hasExtendedInfo: has_extended_info,
+            hasSSLError: ssl_error.map { $0 == 1 },
+            lastCheckOKAt: normalizedOptional(lastcheckoktime_iso8601),
+            geoLatitude: geo_lat,
+            geoLongitude: geo_long
         )
     }
 

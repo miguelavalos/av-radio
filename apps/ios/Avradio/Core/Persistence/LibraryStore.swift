@@ -58,13 +58,25 @@ final class LibraryStore: ObservableObject {
         if let existing = recents.first(where: { $0.stationID == station.id }) {
             existing.name = station.name
             existing.country = station.country
+            existing.countryCode = station.countryCode
+            existing.state = station.state
             existing.language = station.language
+            existing.languageCodes = station.languageCodes
             existing.tags = station.tags
             existing.streamURL = station.streamURL
             existing.faviconURL = station.faviconURL
             existing.bitrate = station.bitrate
             existing.codec = station.codec
             existing.homepageURL = station.homepageURL
+            existing.votes = station.votes
+            existing.clickCount = station.clickCount
+            existing.clickTrend = station.clickTrend
+            existing.isHLS = station.isHLS
+            existing.hasExtendedInfo = station.hasExtendedInfo
+            existing.hasSSLError = station.hasSSLError
+            existing.lastCheckOKAt = station.lastCheckOKAt
+            existing.geoLatitude = station.geoLatitude
+            existing.geoLongitude = station.geoLongitude
             existing.lastPlayedAt = .now
         } else {
             context.insert(RecentStation(station: station))
