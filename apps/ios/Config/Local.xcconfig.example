@@ -1,0 +1,6 @@
+CLERK_PUBLISHABLE_KEY = pk_test_your_publishable_key_here
+AVRADIO_PREMIUM_PRODUCT_IDS = com.example.avradio.pro.monthly,com.example.avradio.pro.yearly
+AVRADIO_SUPPORT_EMAIL = support@example.com
+AVRADIO_ACCOUNT_MANAGEMENT_URL = https:/$()/example.com/account
+AVRADIO_TERMS_URL = https:/$()/example.com/terms
+AVRADIO_PRIVACY_URL = https:/$()/example.com/privacy

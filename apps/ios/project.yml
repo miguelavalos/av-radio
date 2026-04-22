@@ -1,0 +1,65 @@
+name: Avradio
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    DEVELOPMENT_LANGUAGE: en
+    PRODUCT_NAME: Avradio
+    SWIFT_VERSION: "6.0"
+
+packages:
+  Clerk:
+    url: https://github.com/clerk/clerk-ios
+    from: 1.0.0
+
+fileGroups:
+  - Config/StoreKit/LocalSubscriptions.storekit
+
+schemes:
+  Avradio:
+    build:
+      targets:
+        Avradio: all
+    run:
+      config: Debug
+      executable: Avradio
+      storeKitConfiguration: Config/StoreKit/LocalSubscriptions.storekit
+    test:
+      config: Debug
+    analyze:
+      config: Debug
+    profile:
+      config: Release
+    archive:
+      config: Release
+    management:
+      shared: true
+
+targets:
+  Avradio:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - path: Avradio
+    dependencies:
+      - package: Clerk
+        product: ClerkKit
+      - package: Clerk
+        product: ClerkKitUI
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: Avradio/App/Avradio.entitlements
+        DEVELOPMENT_TEAM: ""
+        INFOPLIST_FILE: Avradio/App/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        PRODUCT_BUNDLE_IDENTIFIER: "$(PRODUCT_BUNDLE_IDENTIFIER)"
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO

@@ -1,0 +1,5 @@
+#include? "Local.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = com.example.avradio.dev
+AVRADIO_DISPLAY_NAME = AV Radio
+CLERK_PUBLISHABLE_KEY = $(inherited)

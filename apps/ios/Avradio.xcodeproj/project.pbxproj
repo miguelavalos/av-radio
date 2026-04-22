@@ -1,0 +1,591 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		06F16846E351934585748EFC /* EntitlementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE6F2F79ED94B45EA7DA7D12 /* EntitlementService.swift */; };
+		09D875E93270F39DD13FFF68 /* AudioPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C2CA340D36ED0E45D9E5DD4 /* AudioPlayerService.swift */; };
+		0C799CBD3726544A4D341687 /* AvradioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F77065AA29100C9F1C79A16 /* AvradioApp.swift */; };
+		180F8E48A3E6675B2AFA0129 /* LaunchContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */; };
+		1F7CEF563A71B7B47F161E97 /* StationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8B90DE206EB81665E13922 /* StationService.swift */; };
+		2283DE9C92A3EFCE44E1631C /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = F17C3145DAD23B00F9300C1B /* ClerkKit */; };
+		28F365CC26C9AA05C559EAB9 /* AccessMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31A3125C9DDEE5B453F6A1EF /* AccessMode.swift */; };
+		328AA80E680681C056D5C1C8 /* NowPlayingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E81974F9073EE03756AAA42 /* NowPlayingService.swift */; };
+		36B0C9480D52616C1E761C3C /* AuthOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB441C7FFA5D9D6094E8A8 /* AuthOnboardingView.swift */; };
+		36CE732939A106FAF37965EB /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08ADAC84C439464C73FD306E /* PersistenceController.swift */; };
+		51CE379CFC22F600026763D4 /* AVAppsAccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */; };
+		5643A09C70B5B09760A9EF0A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A81D2EE988CE3B964C6E2E1 /* RootView.swift */; };
+		731447638947886F19425B60 /* ClerkKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = E1F052422F5AB9B037F306BF /* ClerkKitUI */; };
+		7AEAEF5CE8E9E4837D9552E8 /* AvradioSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92EF66FF0B954E444248B80 /* AvradioSplashView.swift */; };
+		7DF7D854F244258532E4AA78 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6532FECDD1FED2117D65F45 /* AppConfig.swift */; };
+		8A3890458DEB15E61E43CCA0 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 660122FCDABDC467AF9E4B75 /* Localizable.strings */; };
+		916DCB42EFFE8833CE087CCB /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1599C4A37FF6F3C0CD8402FD /* LibraryStore.swift */; };
+		A0F80C9A9AAD44CEEAD4D9C9 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9963A1C1E14528B4564B0429 /* AppShellView.swift */; };
+		A3544B62F7BBD9430B8C1B1A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DCE0A0330B23768F9B796D89 /* Assets.xcassets */; };
+		AF4C9BB353A832A74E9620AB /* AccessController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850B0F51DE8B45597DDA0079 /* AccessController.swift */; };
+		B0F4EF08F471979C55B127CE /* StationArtworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD59F5C58CDA836BE0C2F465 /* StationArtworkView.swift */; };
+		B5DD991407F22700885E9BDB /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399FF821B26BEC48DCA0C37E /* NowPlayingView.swift */; };
+		C6C8E5544E478350A479BA51 /* TrackArtworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6F367B3C242F23358C3481 /* TrackArtworkService.swift */; };
+		D9BD317D031267C3579E1AB0 /* AvradioTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C016C1DBED538A066A92DC60 /* AvradioTheme.swift */; };
+		DD3AC279849D5316CC602250 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = D574F10DE15A78E8B706AC58 /* L10n.swift */; };
+		E395E769F7F68011264A88A1 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D896B7DFEF73E858D65B8D /* Station.swift */; };
+		EA05A24B2F7AFF93E7534B7D /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1068AF59C71A5453058D86 /* ProfileScreen.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		08ADAC84C439464C73FD306E /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		1599C4A37FF6F3C0CD8402FD /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		288A6542E099CBD9A4FC8BFF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2A81D2EE988CE3B964C6E2E1 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		2B1068AF59C71A5453058D86 /* ProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileScreen.swift; sourceTree = "<group>"; };
+		31A3125C9DDEE5B453F6A1EF /* AccessMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessMode.swift; sourceTree = "<group>"; };
+		389739796CF8BA5B93D8E7D7 /* Avradio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Avradio.entitlements; sourceTree = "<group>"; };
+		399FF821B26BEC48DCA0C37E /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
+		3C2CA340D36ED0E45D9E5DD4 /* AudioPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerService.swift; sourceTree = "<group>"; };
+		3CCB441C7FFA5D9D6094E8A8 /* AuthOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthOnboardingView.swift; sourceTree = "<group>"; };
+		4F77065AA29100C9F1C79A16 /* AvradioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioApp.swift; sourceTree = "<group>"; };
+		5E6F367B3C242F23358C3481 /* TrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackArtworkService.swift; sourceTree = "<group>"; };
+		5F8142B9602D1D389AD8DA75 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		850B0F51DE8B45597DDA0079 /* AccessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessController.swift; sourceTree = "<group>"; };
+		863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAppsAccountService.swift; sourceTree = "<group>"; };
+		8ED913084AC8D906119907F2 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		92FD5B14198ADF365BEB0533 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		9963A1C1E14528B4564B0429 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
+		9E81974F9073EE03756AAA42 /* NowPlayingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingService.swift; sourceTree = "<group>"; };
+		A4D0BF09BB2D82A4D0BEF5CC /* Avradio.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Avradio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B361FC5C1555EDA475F83459 /* LocalSubscriptions.storekit */ = {isa = PBXFileReference; path = LocalSubscriptions.storekit; sourceTree = "<group>"; };
+		B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchContext.swift; sourceTree = "<group>"; };
+		C016C1DBED538A066A92DC60 /* AvradioTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioTheme.swift; sourceTree = "<group>"; };
+		C92EF66FF0B954E444248B80 /* AvradioSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioSplashView.swift; sourceTree = "<group>"; };
+		CF9C84B8884B01BF507AA9BC /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D2D896B7DFEF73E858D65B8D /* Station.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
+		D574F10DE15A78E8B706AC58 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		DCE0A0330B23768F9B796D89 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DD59F5C58CDA836BE0C2F465 /* StationArtworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationArtworkView.swift; sourceTree = "<group>"; };
+		EE6F2F79ED94B45EA7DA7D12 /* EntitlementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementService.swift; sourceTree = "<group>"; };
+		F6532FECDD1FED2117D65F45 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		FE8B90DE206EB81665E13922 /* StationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DCDF036F76F88BB0C425E0D8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2283DE9C92A3EFCE44E1631C /* ClerkKit in Frameworks */,
+				731447638947886F19425B60 /* ClerkKitUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1A5FCA50FDAAA9C9BBDAEF52 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				947A7262AD65DCE264194288 /* Audio */,
+				F9C414506AF407B6C874268A /* Networking */,
+				57148D191C5FB9825126C6A8 /* Persistence */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		1B3C05F2D687BB42B06E2BA6 = {
+			isa = PBXGroup;
+			children = (
+				E9127CBA8FDE165DCE335372 /* Avradio */,
+				DE91B6B91AE823825E34B0B1 /* Config */,
+				914E3563049F5B47748CE5F3 /* StoreKit */,
+				3EAA71F0FB3D7C7B3382234A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1CFC6B4C9A5D3621E19F7697 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				3CCB441C7FFA5D9D6094E8A8 /* AuthOnboardingView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		2B37C1A75AE500EB1EBE24B1 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				850B0F51DE8B45597DDA0079 /* AccessController.swift */,
+				31A3125C9DDEE5B453F6A1EF /* AccessMode.swift */,
+				F6532FECDD1FED2117D65F45 /* AppConfig.swift */,
+				DCE0A0330B23768F9B796D89 /* Assets.xcassets */,
+				863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */,
+				389739796CF8BA5B93D8E7D7 /* Avradio.entitlements */,
+				4F77065AA29100C9F1C79A16 /* AvradioApp.swift */,
+				C92EF66FF0B954E444248B80 /* AvradioSplashView.swift */,
+				EE6F2F79ED94B45EA7DA7D12 /* EntitlementService.swift */,
+				288A6542E099CBD9A4FC8BFF /* Info.plist */,
+				D574F10DE15A78E8B706AC58 /* L10n.swift */,
+				B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */,
+				2A81D2EE988CE3B964C6E2E1 /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		2E66B892D2CF33FA2DB2337A /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				1CFC6B4C9A5D3621E19F7697 /* Auth */,
+				8184585047CC2AC285B0B303 /* Player */,
+				4E15C90503C4D43243D32139 /* Profile */,
+				B0148E0A5928D1732774200B /* Shell */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		3EAA71F0FB3D7C7B3382234A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A4D0BF09BB2D82A4D0BEF5CC /* Avradio.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4E15C90503C4D43243D32139 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				2B1068AF59C71A5453058D86 /* ProfileScreen.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		57148D191C5FB9825126C6A8 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				1599C4A37FF6F3C0CD8402FD /* LibraryStore.swift */,
+				08ADAC84C439464C73FD306E /* PersistenceController.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		8184585047CC2AC285B0B303 /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				399FF821B26BEC48DCA0C37E /* NowPlayingView.swift */,
+			);
+			path = Player;
+			sourceTree = "<group>";
+		};
+		914E3563049F5B47748CE5F3 /* StoreKit */ = {
+			isa = PBXGroup;
+			children = (
+				B361FC5C1555EDA475F83459 /* LocalSubscriptions.storekit */,
+			);
+			name = StoreKit;
+			path = Config/StoreKit;
+			sourceTree = "<group>";
+		};
+		947A7262AD65DCE264194288 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				3C2CA340D36ED0E45D9E5DD4 /* AudioPlayerService.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		B0148E0A5928D1732774200B /* Shell */ = {
+			isa = PBXGroup;
+			children = (
+				9963A1C1E14528B4564B0429 /* AppShellView.swift */,
+			);
+			path = Shell;
+			sourceTree = "<group>";
+		};
+		B8F3E1AA94B0B65707E90305 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				C016C1DBED538A066A92DC60 /* AvradioTheme.swift */,
+				DD59F5C58CDA836BE0C2F465 /* StationArtworkView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		DDAD8FCBC9B44AA762650D6A /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				D2D896B7DFEF73E858D65B8D /* Station.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		DE91B6B91AE823825E34B0B1 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				8ED913084AC8D906119907F2 /* Debug.xcconfig */,
+				92FD5B14198ADF365BEB0533 /* Release.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		E49A99E52F057B6600BBE762 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				660122FCDABDC467AF9E4B75 /* Localizable.strings */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		E9127CBA8FDE165DCE335372 /* Avradio */ = {
+			isa = PBXGroup;
+			children = (
+				2B37C1A75AE500EB1EBE24B1 /* App */,
+				1A5FCA50FDAAA9C9BBDAEF52 /* Core */,
+				2E66B892D2CF33FA2DB2337A /* Features */,
+				DDAD8FCBC9B44AA762650D6A /* Models */,
+				E49A99E52F057B6600BBE762 /* Resources */,
+				B8F3E1AA94B0B65707E90305 /* UI */,
+			);
+			path = Avradio;
+			sourceTree = "<group>";
+		};
+		F9C414506AF407B6C874268A /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				9E81974F9073EE03756AAA42 /* NowPlayingService.swift */,
+				FE8B90DE206EB81665E13922 /* StationService.swift */,
+				5E6F367B3C242F23358C3481 /* TrackArtworkService.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D01DB292991CE2CFDF807431 /* Avradio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 32AC54319A1641139B4C5E7D /* Build configuration list for PBXNativeTarget "Avradio" */;
+			buildPhases = (
+				A040FD1F19EBB457E50D9988 /* Sources */,
+				855C64277E1304973C7626C5 /* Resources */,
+				DCDF036F76F88BB0C425E0D8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Avradio;
+			packageProductDependencies = (
+				F17C3145DAD23B00F9300C1B /* ClerkKit */,
+				E1F052422F5AB9B037F306BF /* ClerkKitUI */,
+			);
+			productName = Avradio;
+			productReference = A4D0BF09BB2D82A4D0BEF5CC /* Avradio.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1E50635D2629DAD7374CBFDE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					D01DB292991CE2CFDF807431 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = 56D8D81B3628E529B9FFF143 /* Build configuration list for PBXProject "Avradio" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+				es,
+			);
+			mainGroup = 1B3C05F2D687BB42B06E2BA6;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F03196058124CFCE3AD8CDF6 /* XCRemoteSwiftPackageReference "clerk-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3EAA71F0FB3D7C7B3382234A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D01DB292991CE2CFDF807431 /* Avradio */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		855C64277E1304973C7626C5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3544B62F7BBD9430B8C1B1A /* Assets.xcassets in Resources */,
+				8A3890458DEB15E61E43CCA0 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A040FD1F19EBB457E50D9988 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				51CE379CFC22F600026763D4 /* AVAppsAccountService.swift in Sources */,
+				AF4C9BB353A832A74E9620AB /* AccessController.swift in Sources */,
+				28F365CC26C9AA05C559EAB9 /* AccessMode.swift in Sources */,
+				7DF7D854F244258532E4AA78 /* AppConfig.swift in Sources */,
+				A0F80C9A9AAD44CEEAD4D9C9 /* AppShellView.swift in Sources */,
+				09D875E93270F39DD13FFF68 /* AudioPlayerService.swift in Sources */,
+				36B0C9480D52616C1E761C3C /* AuthOnboardingView.swift in Sources */,
+				0C799CBD3726544A4D341687 /* AvradioApp.swift in Sources */,
+				7AEAEF5CE8E9E4837D9552E8 /* AvradioSplashView.swift in Sources */,
+				D9BD317D031267C3579E1AB0 /* AvradioTheme.swift in Sources */,
+				06F16846E351934585748EFC /* EntitlementService.swift in Sources */,
+				DD3AC279849D5316CC602250 /* L10n.swift in Sources */,
+				180F8E48A3E6675B2AFA0129 /* LaunchContext.swift in Sources */,
+				916DCB42EFFE8833CE087CCB /* LibraryStore.swift in Sources */,
+				328AA80E680681C056D5C1C8 /* NowPlayingService.swift in Sources */,
+				B5DD991407F22700885E9BDB /* NowPlayingView.swift in Sources */,
+				36CE732939A106FAF37965EB /* PersistenceController.swift in Sources */,
+				EA05A24B2F7AFF93E7534B7D /* ProfileScreen.swift in Sources */,
+				5643A09C70B5B09760A9EF0A /* RootView.swift in Sources */,
+				E395E769F7F68011264A88A1 /* Station.swift in Sources */,
+				B0F4EF08F471979C55B127CE /* StationArtworkView.swift in Sources */,
+				1F7CEF563A71B7B47F161E97 /* StationService.swift in Sources */,
+				C6C8E5544E478350A479BA51 /* TrackArtworkService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		660122FCDABDC467AF9E4B75 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				5F8142B9602D1D389AD8DA75 /* en */,
+				CF9C84B8884B01BF507AA9BC /* es */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		678E5DA35342986F7FF0DEF5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_LANGUAGE = en;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = Avradio;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		944CEC68B82D0246DD301986 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8ED913084AC8D906119907F2 /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Avradio/App/Avradio.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Avradio/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C14A0234EA4920A38E0129EE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_LANGUAGE = en;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = Avradio;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		EEAD5103A90E803E469E0CE8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 92FD5B14198ADF365BEB0533 /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Avradio/App/Avradio.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Avradio/App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		32AC54319A1641139B4C5E7D /* Build configuration list for PBXNativeTarget "Avradio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				944CEC68B82D0246DD301986 /* Debug */,
+				EEAD5103A90E803E469E0CE8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		56D8D81B3628E529B9FFF143 /* Build configuration list for PBXProject "Avradio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				678E5DA35342986F7FF0DEF5 /* Debug */,
+				C14A0234EA4920A38E0129EE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F03196058124CFCE3AD8CDF6 /* XCRemoteSwiftPackageReference "clerk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/clerk/clerk-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E1F052422F5AB9B037F306BF /* ClerkKitUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F03196058124CFCE3AD8CDF6 /* XCRemoteSwiftPackageReference "clerk-ios" */;
+			productName = ClerkKitUI;
+		};
+		F17C3145DAD23B00F9300C1B /* ClerkKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F03196058124CFCE3AD8CDF6 /* XCRemoteSwiftPackageReference "clerk-ios" */;
+			productName = ClerkKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 1E50635D2629DAD7374CBFDE /* Project object */;
+}

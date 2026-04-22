@@ -1,0 +1,20 @@
+.DS_Store
+.idea/
+.vscode/
+.infisical/
+
+# Xcode
+DerivedData/
+build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcuserdatad/
+*.xcuserstate
+
+# Local secrets
+apps/ios/Config/Local.xcconfig
+
+# Override global ignore rules so iOS app sources remain trackable.
+!/apps/ios/
+!/apps/ios/Avradio/
+!/apps/ios/Avradio/**
