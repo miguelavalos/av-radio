@@ -67,9 +67,16 @@ final class AppLanguageController: ObservableObject {
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
         let storedLanguage = userDefaults.string(forKey: userDefaultsKey)
-        currentLanguage = AppLanguage.resolved(
+        let resolvedLanguage = AppLanguage.resolved(
             from: storedLanguage ?? Locale.preferredLanguages.first
         )
+        currentLanguage = resolvedLanguage
+
+        // Persist the first resolved language so L10n.bundle uses the same locale
+        // from the app's first launch onward.
+        if storedLanguage == nil {
+            userDefaults.set(resolvedLanguage.rawValue, forKey: userDefaultsKey)
+        }
     }
 
     func select(_ language: AppLanguage) {
