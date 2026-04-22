@@ -66,7 +66,10 @@ final class AppLanguageController: ObservableObject {
 
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
-        currentLanguage = AppLanguage.resolved(from: userDefaults.string(forKey: userDefaultsKey))
+        let storedLanguage = userDefaults.string(forKey: userDefaultsKey)
+        currentLanguage = AppLanguage.resolved(
+            from: storedLanguage ?? Locale.preferredLanguages.first
+        )
     }
 
     func select(_ language: AppLanguage) {
