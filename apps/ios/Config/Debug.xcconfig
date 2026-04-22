@@ -1,6 +1,11 @@
-#include? "Local.xcconfig"
-
 AVRADIO_BUNDLE_IDENTIFIER = com.example.avradio.dev
 PRODUCT_BUNDLE_IDENTIFIER = $(AVRADIO_BUNDLE_IDENTIFIER)
 AVRADIO_DISPLAY_NAME = AV Radio
 CLERK_PUBLISHABLE_KEY = $(inherited)
+AVRADIO_PREMIUM_PRODUCT_IDS = $(inherited)
+AVRADIO_SUPPORT_EMAIL = $(inherited)
+AVRADIO_ACCOUNT_MANAGEMENT_URL = $(inherited)
+AVRADIO_TERMS_URL = $(inherited)
+AVRADIO_PRIVACY_URL = $(inherited)
+
+#include? "Local.xcconfig"
