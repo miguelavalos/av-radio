@@ -1,3 +1,4 @@
+AVRADIO_BUNDLE_IDENTIFIER = com.example.avradio.dev
 CLERK_PUBLISHABLE_KEY = pk_test_your_publishable_key_here
 AVRADIO_PREMIUM_PRODUCT_IDS = com.example.avradio.pro.monthly,com.example.avradio.pro.yearly
 AVRADIO_SUPPORT_EMAIL = support@example.com

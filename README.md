@@ -31,6 +31,8 @@ docs/
 2. Fill in the client-side values needed for your build.
 3. Open `apps/ios/Avradio.xcodeproj` in Xcode and run the `Avradio` scheme.
 
+For internal builds, keep the real bundle identifier and production-facing client values in your local, non-versioned `Local.xcconfig`.
+
 ## Local Secrets
 
 This project may use local Infisical bootstrap files during development, but nothing inside `.infisical/` is versioned in git.

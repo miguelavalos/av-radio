@@ -8,6 +8,8 @@ SwiftUI iOS app for AV Radio.
 2. Set the client-side values you want to use for local development.
 3. Open `Avradio.xcodeproj` in Xcode.
 
+The public repository ships with neutral defaults. Internal builds can override `AVRADIO_BUNDLE_IDENTIFIER` and the other client-facing values in the local, non-versioned `Config/Local.xcconfig`.
+
 Optional local subscription config:
 
 - set `AVRADIO_PREMIUM_PRODUCT_IDS` in `Config/Local.xcconfig`

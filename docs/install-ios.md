@@ -7,7 +7,7 @@ This guide is for local simulator runs and for installing `AV Radio` on a connec
 - Xcode project: `apps/ios/Avradio.xcodeproj`
 - scheme: `Avradio`
 - development team: use your own Apple Developer team when signing for device installs
-- device bundle identifier: use a development bundle identifier that belongs to your team
+- device bundle identifier: set `AVRADIO_BUNDLE_IDENTIFIER` in `apps/ios/Config/Local.xcconfig` to a development bundle identifier that belongs to your team
 
 Current note:
 
@@ -19,6 +19,8 @@ Current note:
 2. An Apple account available in `Xcode > Settings > Accounts`
 3. Command line tools selected from that Xcode
 4. `apps/ios/Config/Local.xcconfig` created from `apps/ios/Config/Local.xcconfig.example`
+
+For internal distribution or App Store preparation, point `AVRADIO_BUNDLE_IDENTIFIER` and the other client-side values in `Local.xcconfig` to your real configuration. Keep those values out of git.
 
 ## Run on simulator
 
