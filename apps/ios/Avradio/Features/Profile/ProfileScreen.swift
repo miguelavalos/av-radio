@@ -284,7 +284,7 @@ struct ProfileScreen: View {
                         .tag(language)
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
 
             if accessController.accessMode == .guest {
                 ShellRow(

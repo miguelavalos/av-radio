@@ -32,6 +32,11 @@
 "genre.news" = "News";
 "genre.pop" = "Pop";
 "genre.rock" = "Rock";
+"language.english" = "English";
+"language.spanish" = "Spanish";
+"language.french" = "French";
+"language.german" = "German";
+"language.catalan" = "Catalan";
 "player.close.accessibility.hint" = "Closes this screen";
 "player.close.accessibility.label" = "Close player";
 "player.control.pause" = "Pause";
@@ -211,6 +216,8 @@
 "shell.search.error.title" = "We couldn't load stations";
 "shell.search.field.clear" = "Clear";
 "shell.search.field.defaultPrompt" = "Search stations, countries, languages";
+"shell.search.loading.detail" = "Refreshing results without shifting the page.";
+"shell.search.loading.title" = "Searching stations";
 "shell.search.results.count.one" = "%d match for \"%@\".";
 "shell.search.results.count.other" = "%d matches for \"%@\".";
 "shell.search.section.browse.subtitle" = "Choose a lane above or type a station name to search the live directory.";
@@ -221,6 +228,15 @@
 "shell.search.subtitle" = "Search live radio by station, country, language, or genre.";
 "shell.search.title" = "Search";
 "shell.station.codec.live" = "Live";
+"shell.stationDetail.field.code" = "Code";
+"shell.stationDetail.field.country" = "Country";
+"shell.stationDetail.field.language" = "Language";
+"shell.stationDetail.field.lastCheck" = "Last check";
+"shell.stationDetail.field.state" = "State";
+"shell.stationDetail.field.website" = "Website";
+"shell.stationDetail.section.about" = "About";
+"shell.stationDetail.section.signals" = "Signals";
+"shell.stationDetail.section.technical" = "Technical";
 "shell.status.live" = "Live";
 "shell.status.refreshing" = "Refreshing";
 "splash.status" = "Streaming stations from around the world";

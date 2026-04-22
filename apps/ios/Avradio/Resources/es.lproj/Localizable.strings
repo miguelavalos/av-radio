@@ -32,6 +32,11 @@
 "genre.news" = "Noticias";
 "genre.pop" = "Pop";
 "genre.rock" = "Rock";
+"language.english" = "Inglés";
+"language.spanish" = "Español";
+"language.french" = "Francés";
+"language.german" = "Alemán";
+"language.catalan" = "Catalán";
 "player.close.accessibility.hint" = "Cierra esta pantalla";
 "player.close.accessibility.label" = "Cerrar reproductor";
 "player.control.pause" = "Pausar";
@@ -134,7 +139,7 @@
 "profile.status.free" = "Cuenta conectada";
 "profile.status.guest" = "Modo local";
 "profile.status.pro" = "Pro";
-"profile.statusTitle.account" = "Account";
+"profile.statusTitle.account" = "Cuenta";
 "profile.subscription.connect" = "Conectar cuenta";
 "profile.subscription.loading.detail" = "Cargando los planes del App Store para esta cuenta.";
 "profile.subscription.loading.title" = "Cargando planes";
@@ -211,6 +216,8 @@
 "shell.search.error.title" = "No hemos podido cargar emisoras";
 "shell.search.field.clear" = "Borrar";
 "shell.search.field.defaultPrompt" = "Buscar emisoras, países e idiomas";
+"shell.search.loading.detail" = "Actualizando resultados sin mover la página.";
+"shell.search.loading.title" = "Buscando emisoras";
 "shell.search.results.count.one" = "%d resultado para \"%@\".";
 "shell.search.results.count.other" = "%d resultados para \"%@\".";
 "shell.search.section.browse.subtitle" = "Elige una categoría arriba o escribe el nombre de una emisora para buscar en el directorio en directo.";
@@ -221,6 +228,15 @@
 "shell.search.subtitle" = "Busca radio en directo por emisora, país, idioma o género.";
 "shell.search.title" = "Buscar";
 "shell.station.codec.live" = "Directo";
+"shell.stationDetail.field.code" = "Código";
+"shell.stationDetail.field.country" = "País";
+"shell.stationDetail.field.language" = "Idioma";
+"shell.stationDetail.field.lastCheck" = "Última comprobación";
+"shell.stationDetail.field.state" = "Estado";
+"shell.stationDetail.field.website" = "Sitio web";
+"shell.stationDetail.section.about" = "Información";
+"shell.stationDetail.section.signals" = "Señales";
+"shell.stationDetail.section.technical" = "Técnico";
 "shell.status.live" = "Directo";
 "shell.status.refreshing" = "Actualizando";
 "splash.status" = "Emitiendo emisoras de todo el mundo";

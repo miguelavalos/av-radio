@@ -4,15 +4,24 @@ import Foundation
 enum AppLanguage: String, CaseIterable, Identifiable {
     case english = "en"
     case spanish = "es"
+    case french = "fr"
+    case german = "de"
+    case catalan = "ca"
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .english:
-            "English"
+            L10n.string("language.english")
         case .spanish:
-            "Espanol"
+            L10n.string("language.spanish")
+        case .french:
+            L10n.string("language.french")
+        case .german:
+            L10n.string("language.german")
+        case .catalan:
+            L10n.string("language.catalan")
         }
     }
 
@@ -30,6 +39,15 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         let normalized = rawValue.lowercased()
         if normalized.hasPrefix("es") {
             return .spanish
+        }
+        if normalized.hasPrefix("fr") {
+            return .french
+        }
+        if normalized.hasPrefix("de") {
+            return .german
+        }
+        if normalized.hasPrefix("ca") {
+            return .catalan
         }
 
         return .english

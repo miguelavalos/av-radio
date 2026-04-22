@@ -1239,7 +1239,7 @@ private struct StationDetailSheet: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                            Text(isPlaying ? "Playing" : "Play")
+                            Text(isPlaying ? L10n.string("audio.status.playing") : L10n.string("player.control.play"))
                         }
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(.white)
@@ -1281,32 +1281,32 @@ private struct StationDetailSheet: View {
                 }
 
                 if !station.technicalBadges.isEmpty {
-                    DetailSection(title: "Technical") {
+                    DetailSection(title: L10n.string("shell.stationDetail.section.technical")) {
                         WrapTagsRow(tags: station.technicalBadges, highlighted: true)
                     }
                 }
 
                 if !station.popularityBadges.isEmpty {
-                    DetailSection(title: "Signals") {
+                    DetailSection(title: L10n.string("shell.stationDetail.section.signals")) {
                         WrapTagsRow(tags: station.popularityBadges)
                     }
                 }
 
-                DetailSection(title: "About") {
+                DetailSection(title: L10n.string("shell.stationDetail.section.about")) {
                     VStack(spacing: 12) {
-                        DetailInfoRow(title: "Country", value: station.country)
-                        DetailInfoRow(title: "Language", value: station.language)
+                        DetailInfoRow(title: L10n.string("shell.stationDetail.field.country"), value: station.country)
+                        DetailInfoRow(title: L10n.string("shell.stationDetail.field.language"), value: station.language)
                         if let state = station.state, !state.isEmpty {
-                            DetailInfoRow(title: "State", value: state)
+                            DetailInfoRow(title: L10n.string("shell.stationDetail.field.state"), value: state)
                         }
                         if let countryCode = station.countryCode, !countryCode.isEmpty {
-                            DetailInfoRow(title: "Code", value: countryCode)
+                            DetailInfoRow(title: L10n.string("shell.stationDetail.field.code"), value: countryCode)
                         }
                         if let lastCheckOKAt = formattedLastCheck {
-                            DetailInfoRow(title: "Last check", value: lastCheckOKAt)
+                            DetailInfoRow(title: L10n.string("shell.stationDetail.field.lastCheck"), value: lastCheckOKAt)
                         }
                         if let homepageHost, !homepageHost.isEmpty {
-                            DetailInfoRow(title: "Website", value: homepageHost)
+                            DetailInfoRow(title: L10n.string("shell.stationDetail.field.website"), value: homepageHost)
                         }
                     }
                 }
@@ -1466,11 +1466,11 @@ private struct SearchLoadingCard: View {
                 .tint(AvradioTheme.highlight)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Searching stations")
+                Text(L10n.string("shell.search.loading.title"))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(AvradioTheme.textPrimary)
 
-                Text("Refreshing results without shifting the page.")
+                Text(L10n.string("shell.search.loading.detail"))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(AvradioTheme.textSecondary)
             }

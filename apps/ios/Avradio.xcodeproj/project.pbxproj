@@ -50,6 +50,7 @@
 		4F77065AA29100C9F1C79A16 /* AvradioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioApp.swift; sourceTree = "<group>"; };
 		5E6F367B3C242F23358C3481 /* TrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackArtworkService.swift; sourceTree = "<group>"; };
 		5F8142B9602D1D389AD8DA75 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		76C5BCB6BB44F53EAA0C9911 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		850B0F51DE8B45597DDA0079 /* AccessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessController.swift; sourceTree = "<group>"; };
 		863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAppsAccountService.swift; sourceTree = "<group>"; };
 		8ED913084AC8D906119907F2 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
@@ -60,7 +61,9 @@
 		B361FC5C1555EDA475F83459 /* LocalSubscriptions.storekit */ = {isa = PBXFileReference; path = LocalSubscriptions.storekit; sourceTree = "<group>"; };
 		B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchContext.swift; sourceTree = "<group>"; };
 		C016C1DBED538A066A92DC60 /* AvradioTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioTheme.swift; sourceTree = "<group>"; };
+		C7D662D041B38B47AE1E4876 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		C92EF66FF0B954E444248B80 /* AvradioSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioSplashView.swift; sourceTree = "<group>"; };
+		CBB4DB8B5E0A1A83CA7648D0 /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CF9C84B8884B01BF507AA9BC /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D2D896B7DFEF73E858D65B8D /* Station.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
 		D574F10DE15A78E8B706AC58 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
@@ -301,8 +304,11 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
+				ca,
+				de,
 				en,
 				es,
+				fr,
 			);
 			mainGroup = 1B3C05F2D687BB42B06E2BA6;
 			minimizedProjectReferenceProxies = 1;
@@ -368,8 +374,11 @@
 		660122FCDABDC467AF9E4B75 /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
+				CBB4DB8B5E0A1A83CA7648D0 /* ca */,
+				C7D662D041B38B47AE1E4876 /* de */,
 				5F8142B9602D1D389AD8DA75 /* en */,
 				CF9C84B8884B01BF507AA9BC /* es */,
+				76C5BCB6BB44F53EAA0C9911 /* fr */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
