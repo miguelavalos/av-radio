@@ -1,15 +1,9 @@
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
   <rect width="1024" height="1024" rx="204.8" fill="#0D0D0D"/>
-  <g transform="translate(155.78 696.32)">
-    <path d="M184.2-430.2H245.7L411.6 0H350.1L312-99H117.9L79.8 0H18.3L184.2-430.2ZM215.1-350.1L141.3-160.5H288.3L215.1-350.1Z" fill="#FFFFFF"/>
-  </g>
-  <g transform="translate(432.26 696.32)">
-    <path d="M252 0H184.2L18.3-430.2H84.3L218.1-76.2L352.2-430.2H417.9L252 0Z" fill="#39B54A"/>
-  </g>
-  <g aria-label="radio-cue" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M348 486C362 472 382 472 396 486" stroke="#C8D1CB" stroke-width="10"/>
-    <path d="M326 458C352 432 392 432 418 458" stroke="#C8D1CB" stroke-width="12"/>
-    <path d="M298 424C340 382 404 382 446 424" stroke="#39B54A" stroke-width="12"/>
-    <circle cx="372" cy="506" r="10" fill="#39B54A" stroke="none"/>
-  </g>
+  <circle cx="512" cy="512" r="352" stroke="#C8D1CB" stroke-width="34"/>
+  <circle cx="512" cy="512" r="228" stroke="#5F6862" stroke-width="28"/>
+  <path d="M512 512L755 313" stroke="#39B54A" stroke-width="42" stroke-linecap="round"/>
+  <circle cx="512" cy="512" r="42" fill="#39B54A"/>
+  <path d="M290 765L388 467H451L549 765H488L466 706H373L351 765H290ZM375 649H468L422 521L375 649Z" fill="#FFFFFF"/>
+  <path d="M573 406L674 765H792L891 359H765L677 677L635 406H573Z" fill="#39B54A"/>
 </svg>

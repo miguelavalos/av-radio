@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="300" viewBox="0 0 1400 300" fill="none">
+  <rect width="1400" height="300" fill="transparent"/>
+  <g transform="translate(32 38)">
+    <circle cx="112" cy="112" r="92" stroke="#C8D1CB" stroke-width="10"/>
+    <circle cx="112" cy="112" r="60" stroke="#5F6862" stroke-width="8"/>
+    <path d="M112 112L176 60" stroke="#39B54A" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="112" cy="112" r="12" fill="#39B54A"/>
+    <path d="M54 178L80 99H97L123 178H107L101 163H76L70 178H54ZM77 148H102L90 113L77 148Z" fill="#0D0D0D"/>
+    <path d="M130 83L156 178H188L214 71H181L158 155L147 83H130Z" fill="#39B54A"/>
+  </g>
+  <line x1="288" y1="48" x2="288" y2="252" stroke="#C8D1CB" stroke-width="3"/>
+  <text x="360" y="178" fill="#0D0D0D" font-family="Sora, Arial, sans-serif" font-size="108" font-weight="700" letter-spacing="-3">AV</text>
+  <text x="540" y="178" fill="#39B54A" font-family="Manrope, Arial, sans-serif" font-size="100" font-weight="800" letter-spacing="-1.5">Radio</text>
+</svg>
