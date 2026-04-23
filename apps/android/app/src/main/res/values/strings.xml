@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">AV Radio</string>
+    <string name="shell_home">Home</string>
+    <string name="shell_search">Search</string>
+    <string name="shell_library">Library</string>
+    <string name="shell_profile">Profile</string>
+    <string name="home_title">Discover live radio</string>
+    <string name="home_subtitle">Popular stations and quick genre jumps for the Android build.</string>
+    <string name="home_popular_title">Popular worldwide</string>
+    <string name="home_popular_subtitle">Live stations sorted by activity from Radio Browser.</string>
+    <string name="home_genres_title">Browse by genre</string>
+    <string name="home_error_title">Could not load stations</string>
+    <string name="search_title">Search stations</string>
+    <string name="search_subtitle">Search by name, genre, or browse a popular tag.</string>
+    <string name="search_field_hint">Search for a station</string>
+    <string name="search_empty_title">No stations yet</string>
+    <string name="search_empty_detail">Try a different term or browse by one of the featured tags.</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="now_playing">Now playing</string>
+    <string name="idle_player_title">Playback idle</string>
+    <string name="idle_player_subtitle">Pick a station from Home or Search.</string>
+    <string name="station_detail_fallback">Live radio</string>
+</resources>
