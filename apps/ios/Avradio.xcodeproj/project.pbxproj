@@ -10,6 +10,7 @@
 		06F16846E351934585748EFC /* EntitlementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE6F2F79ED94B45EA7DA7D12 /* EntitlementService.swift */; };
 		09D875E93270F39DD13FFF68 /* AudioPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C2CA340D36ED0E45D9E5DD4 /* AudioPlayerService.swift */; };
 		0C799CBD3726544A4D341687 /* AvradioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F77065AA29100C9F1C79A16 /* AvradioApp.swift */; };
+		0EA536E51B9C6A55C13DF752 /* SearchQueueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC094A093EFF7ABFF788955E /* SearchQueueUITests.swift */; };
 		180F8E48A3E6675B2AFA0129 /* LaunchContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */; };
 		1F7CEF563A71B7B47F161E97 /* StationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8B90DE206EB81665E13922 /* StationService.swift */; };
 		2283DE9C92A3EFCE44E1631C /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = F17C3145DAD23B00F9300C1B /* ClerkKit */; };
@@ -17,7 +18,9 @@
 		328AA80E680681C056D5C1C8 /* NowPlayingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E81974F9073EE03756AAA42 /* NowPlayingService.swift */; };
 		36B0C9480D52616C1E761C3C /* AuthOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB441C7FFA5D9D6094E8A8 /* AuthOnboardingView.swift */; };
 		36CE732939A106FAF37965EB /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08ADAC84C439464C73FD306E /* PersistenceController.swift */; };
+		39582C64371A315F8CAAB495 /* HomeRefreshUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D557ED627719061DAC1D0085 /* HomeRefreshUITests.swift */; };
 		51CE379CFC22F600026763D4 /* AVAppsAccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */; };
+		52E8BFEB422EA8213DDA85CB /* AvradioUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5975BBCAC364A805BA73B41F /* AvradioUITestCase.swift */; };
 		5643A09C70B5B09760A9EF0A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A81D2EE988CE3B964C6E2E1 /* RootView.swift */; };
 		731447638947886F19425B60 /* ClerkKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = E1F052422F5AB9B037F306BF /* ClerkKitUI */; };
 		7AEAEF5CE8E9E4837D9552E8 /* AvradioSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92EF66FF0B954E444248B80 /* AvradioSplashView.swift */; };
@@ -26,6 +29,7 @@
 		916DCB42EFFE8833CE087CCB /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1599C4A37FF6F3C0CD8402FD /* LibraryStore.swift */; };
 		A0F80C9A9AAD44CEEAD4D9C9 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9963A1C1E14528B4564B0429 /* AppShellView.swift */; };
 		A3544B62F7BBD9430B8C1B1A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DCE0A0330B23768F9B796D89 /* Assets.xcassets */; };
+		A63F3687E9933ECC0917A357 /* PlayerQueueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D512F4A2A2C553F8C7DC177 /* PlayerQueueUITests.swift */; };
 		AF4C9BB353A832A74E9620AB /* AccessController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850B0F51DE8B45597DDA0079 /* AccessController.swift */; };
 		B0F4EF08F471979C55B127CE /* StationArtworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD59F5C58CDA836BE0C2F465 /* StationArtworkView.swift */; };
 		B5DD991407F22700885E9BDB /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399FF821B26BEC48DCA0C37E /* NowPlayingView.swift */; };
@@ -34,7 +38,19 @@
 		DD3AC279849D5316CC602250 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = D574F10DE15A78E8B706AC58 /* L10n.swift */; };
 		E395E769F7F68011264A88A1 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D896B7DFEF73E858D65B8D /* Station.swift */; };
 		EA05A24B2F7AFF93E7534B7D /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1068AF59C71A5453058D86 /* ProfileScreen.swift */; };
+		EE0995F84551EFB3C9C412BE /* HomeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1D079A9F075D1A27C4F4EDE /* HomeUITests.swift */; };
+		FD2CB2B4D42D97825E9A929C /* HomeEmptyStateUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6D9CAA15891A8D026894BBB /* HomeEmptyStateUITests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8F3C37C69E089D3A933D62FD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1E50635D2629DAD7374CBFDE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D01DB292991CE2CFDF807431;
+			remoteInfo = Avradio;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		08ADAC84C439464C73FD306E /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
@@ -42,33 +58,40 @@
 		288A6542E099CBD9A4FC8BFF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2A81D2EE988CE3B964C6E2E1 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		2B1068AF59C71A5453058D86 /* ProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileScreen.swift; sourceTree = "<group>"; };
+		2D512F4A2A2C553F8C7DC177 /* PlayerQueueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerQueueUITests.swift; sourceTree = "<group>"; };
 		31A3125C9DDEE5B453F6A1EF /* AccessMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessMode.swift; sourceTree = "<group>"; };
 		389739796CF8BA5B93D8E7D7 /* Avradio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Avradio.entitlements; sourceTree = "<group>"; };
 		399FF821B26BEC48DCA0C37E /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
 		3C2CA340D36ED0E45D9E5DD4 /* AudioPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerService.swift; sourceTree = "<group>"; };
 		3CCB441C7FFA5D9D6094E8A8 /* AuthOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthOnboardingView.swift; sourceTree = "<group>"; };
 		4F77065AA29100C9F1C79A16 /* AvradioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioApp.swift; sourceTree = "<group>"; };
+		5975BBCAC364A805BA73B41F /* AvradioUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioUITestCase.swift; sourceTree = "<group>"; };
 		5E6F367B3C242F23358C3481 /* TrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackArtworkService.swift; sourceTree = "<group>"; };
 		5F8142B9602D1D389AD8DA75 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		76C5BCB6BB44F53EAA0C9911 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		850B0F51DE8B45597DDA0079 /* AccessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessController.swift; sourceTree = "<group>"; };
 		863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAppsAccountService.swift; sourceTree = "<group>"; };
 		8ED913084AC8D906119907F2 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		92FD5B14198ADF365BEB0533 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		972A6787B144C38F8D5CC16B /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/Localizable.strings; sourceTree = "<group>"; };
 		9963A1C1E14528B4564B0429 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		9E81974F9073EE03756AAA42 /* NowPlayingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingService.swift; sourceTree = "<group>"; };
+		A129EFAD7B127FCE4517F754 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		A4D0BF09BB2D82A4D0BEF5CC /* Avradio.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Avradio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A98A6A4C267847AE735CFD3D /* AvradioUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AvradioUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B361FC5C1555EDA475F83459 /* LocalSubscriptions.storekit */ = {isa = PBXFileReference; path = LocalSubscriptions.storekit; sourceTree = "<group>"; };
+		B6D9CAA15891A8D026894BBB /* HomeEmptyStateUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeEmptyStateUITests.swift; sourceTree = "<group>"; };
 		B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchContext.swift; sourceTree = "<group>"; };
+		BC094A093EFF7ABFF788955E /* SearchQueueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchQueueUITests.swift; sourceTree = "<group>"; };
 		C016C1DBED538A066A92DC60 /* AvradioTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioTheme.swift; sourceTree = "<group>"; };
-		C7D662D041B38B47AE1E4876 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		C92EF66FF0B954E444248B80 /* AvradioSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioSplashView.swift; sourceTree = "<group>"; };
-		CBB4DB8B5E0A1A83CA7648D0 /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CF9C84B8884B01BF507AA9BC /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D2D896B7DFEF73E858D65B8D /* Station.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
+		D557ED627719061DAC1D0085 /* HomeRefreshUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeRefreshUITests.swift; sourceTree = "<group>"; };
 		D574F10DE15A78E8B706AC58 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		D72108AFC70F116E11B6B990 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		DCE0A0330B23768F9B796D89 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DD59F5C58CDA836BE0C2F465 /* StationArtworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationArtworkView.swift; sourceTree = "<group>"; };
+		E1D079A9F075D1A27C4F4EDE /* HomeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeUITests.swift; sourceTree = "<group>"; };
 		EE6F2F79ED94B45EA7DA7D12 /* EntitlementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementService.swift; sourceTree = "<group>"; };
 		F6532FECDD1FED2117D65F45 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		FE8B90DE206EB81665E13922 /* StationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationService.swift; sourceTree = "<group>"; };
@@ -87,6 +110,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1640AE856B2CCF633577E3F7 /* AvradioUITests */ = {
+			isa = PBXGroup;
+			children = (
+				5975BBCAC364A805BA73B41F /* AvradioUITestCase.swift */,
+				B6D9CAA15891A8D026894BBB /* HomeEmptyStateUITests.swift */,
+				D557ED627719061DAC1D0085 /* HomeRefreshUITests.swift */,
+				E1D079A9F075D1A27C4F4EDE /* HomeUITests.swift */,
+				2D512F4A2A2C553F8C7DC177 /* PlayerQueueUITests.swift */,
+				BC094A093EFF7ABFF788955E /* SearchQueueUITests.swift */,
+			);
+			path = AvradioUITests;
+			sourceTree = "<group>";
+		};
 		1A5FCA50FDAAA9C9BBDAEF52 /* Core */ = {
 			isa = PBXGroup;
 			children = (
@@ -101,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				E9127CBA8FDE165DCE335372 /* Avradio */,
+				1640AE856B2CCF633577E3F7 /* AvradioUITests */,
 				DE91B6B91AE823825E34B0B1 /* Config */,
 				914E3563049F5B47748CE5F3 /* StoreKit */,
 				3EAA71F0FB3D7C7B3382234A /* Products */,
@@ -150,6 +187,7 @@
 			isa = PBXGroup;
 			children = (
 				A4D0BF09BB2D82A4D0BEF5CC /* Avradio.app */,
+				A98A6A4C267847AE735CFD3D /* AvradioUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -264,6 +302,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		7BB45ABB8BA9554531085FD8 /* AvradioUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2E782EDDC7A78EF2F37543A8 /* Build configuration list for PBXNativeTarget "AvradioUITests" */;
+			buildPhases = (
+				AFAB2C3B7372D4417036A7FB /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F01A8328F49CF6FCAA5BEAE1 /* PBXTargetDependency */,
+			);
+			name = AvradioUITests;
+			packageProductDependencies = (
+			);
+			productName = AvradioUITests;
+			productReference = A98A6A4C267847AE735CFD3D /* AvradioUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		D01DB292991CE2CFDF807431 /* Avradio */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 32AC54319A1641139B4C5E7D /* Build configuration list for PBXNativeTarget "Avradio" */;
@@ -294,6 +350,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					7BB45ABB8BA9554531085FD8 = {
+						TestTargetID = D01DB292991CE2CFDF807431;
+					};
 					D01DB292991CE2CFDF807431 = {
 						DevelopmentTeam = "";
 					};
@@ -321,6 +380,7 @@
 			projectRoot = "";
 			targets = (
 				D01DB292991CE2CFDF807431 /* Avradio */,
+				7BB45ABB8BA9554531085FD8 /* AvradioUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -368,17 +428,38 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AFAB2C3B7372D4417036A7FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				52E8BFEB422EA8213DDA85CB /* AvradioUITestCase.swift in Sources */,
+				FD2CB2B4D42D97825E9A929C /* HomeEmptyStateUITests.swift in Sources */,
+				39582C64371A315F8CAAB495 /* HomeRefreshUITests.swift in Sources */,
+				EE0995F84551EFB3C9C412BE /* HomeUITests.swift in Sources */,
+				A63F3687E9933ECC0917A357 /* PlayerQueueUITests.swift in Sources */,
+				0EA536E51B9C6A55C13DF752 /* SearchQueueUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F01A8328F49CF6FCAA5BEAE1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D01DB292991CE2CFDF807431 /* Avradio */;
+			targetProxy = 8F3C37C69E089D3A933D62FD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		660122FCDABDC467AF9E4B75 /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
-				CBB4DB8B5E0A1A83CA7648D0 /* ca */,
-				C7D662D041B38B47AE1E4876 /* de */,
+				972A6787B144C38F8D5CC16B /* ca */,
+				A129EFAD7B127FCE4517F754 /* de */,
 				5F8142B9602D1D389AD8DA75 /* en */,
 				CF9C84B8884B01BF507AA9BC /* es */,
-				76C5BCB6BB44F53EAA0C9911 /* fr */,
+				D72108AFC70F116E11B6B990 /* fr */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -447,6 +528,24 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		8B85F0CF29678A0AFE7247BB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).uitests";
+				PRODUCT_MODULE_NAME = AvradioUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Avradio;
 			};
 			name = Debug;
 		};
@@ -528,6 +627,24 @@
 			};
 			name = Release;
 		};
+		D8EA32595B8A0F7E0BEB6389 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).uitests";
+				PRODUCT_MODULE_NAME = AvradioUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Avradio;
+			};
+			name = Release;
+		};
 		EEAD5103A90E803E469E0CE8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 92FD5B14198ADF365BEB0533 /* Release.xcconfig */;
@@ -552,6 +669,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2E782EDDC7A78EF2F37543A8 /* Build configuration list for PBXNativeTarget "AvradioUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8B85F0CF29678A0AFE7247BB /* Debug */,
+				D8EA32595B8A0F7E0BEB6389 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		32AC54319A1641139B4C5E7D /* Build configuration list for PBXNativeTarget "Avradio" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

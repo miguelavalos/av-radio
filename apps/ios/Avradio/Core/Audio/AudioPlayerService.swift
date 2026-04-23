@@ -4,6 +4,21 @@ import MediaPlayer
 
 @MainActor
 final class AudioPlayerService: NSObject, ObservableObject {
+    struct PlaybackQueue: Equatable {
+        enum Source: Equatable {
+            case homeRecents
+            case homeFavorites
+            case homeDiscovery
+            case searchResults
+            case libraryRecents
+            case libraryFavorites
+            case singleStation
+        }
+
+        let source: Source
+        let stations: [Station]
+    }
+
     enum PlaybackStatus: Equatable {
         case idle
         case loading
@@ -35,6 +50,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
     @Published private(set) var currentTrackArtist: String?
     @Published private(set) var currentTrackAlbumTitle: String?
     @Published private(set) var currentTrackArtworkURL: URL?
+    @Published private(set) var playbackQueue: PlaybackQueue = .init(source: .singleStation, stations: [])
 
     var isPlaying: Bool {
         if case .playing = status {
@@ -102,9 +118,13 @@ final class AudioPlayerService: NSObject, ObservableObject {
         observeAudioSessionNotifications()
     }
 
-    func play(station: Station) {
+    func play(station: Station, queue: PlaybackQueue? = nil) {
         if case .loading = status, currentStation?.id == station.id {
             return
+        }
+
+        if let queue {
+            playbackQueue = sanitizedPlaybackQueue(queue, currentStationID: station.id)
         }
 
         guard let url = URL(string: station.streamURL) else {
@@ -198,6 +218,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
         currentTrackArtist = nil
         currentTrackAlbumTitle = nil
         currentTrackArtworkURL = nil
+        playbackQueue = .init(source: .singleStation, stations: [])
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
@@ -206,31 +227,25 @@ final class AudioPlayerService: NSObject, ObservableObject {
         play(station: currentStation)
     }
 
-    func playNext(from stations: [Station]) {
-        guard !stations.isEmpty else { return }
-
-        guard let currentStation,
-              let currentIndex = stations.firstIndex(where: { $0.id == currentStation.id }) else {
-            play(station: stations[0])
-            return
-        }
-
-        let nextIndex = stations.index(after: currentIndex)
-        let resolvedIndex = nextIndex < stations.endIndex ? nextIndex : stations.startIndex
-        play(station: stations[resolvedIndex])
+    var canCyclePlaybackQueue: Bool {
+        playbackQueueStations.count > 1
     }
 
-    func playPrevious(from stations: [Station]) {
-        guard !stations.isEmpty else { return }
+    func playNextInQueue() {
+        guard let resolvedQueue = resolvedPlaybackQueue() else { return }
 
-        guard let currentStation,
-              let currentIndex = stations.firstIndex(where: { $0.id == currentStation.id }) else {
-            play(station: stations[0])
-            return
-        }
+        let nextIndex = resolvedQueue.stations.index(after: resolvedQueue.currentIndex)
+        let resolvedIndex = nextIndex < resolvedQueue.stations.endIndex ? nextIndex : resolvedQueue.stations.startIndex
+        play(station: resolvedQueue.stations[resolvedIndex], queue: playbackQueue)
+    }
 
-        let previousIndex = currentIndex == stations.startIndex ? stations.index(before: stations.endIndex) : stations.index(before: currentIndex)
-        play(station: stations[previousIndex])
+    func playPreviousInQueue() {
+        guard let resolvedQueue = resolvedPlaybackQueue() else { return }
+
+        let previousIndex = resolvedQueue.currentIndex == resolvedQueue.stations.startIndex
+            ? resolvedQueue.stations.index(before: resolvedQueue.stations.endIndex)
+            : resolvedQueue.stations.index(before: resolvedQueue.currentIndex)
+        play(station: resolvedQueue.stations[previousIndex], queue: playbackQueue)
     }
 
     func setSleepTimer(minutes: Int?) {
@@ -259,6 +274,40 @@ final class AudioPlayerService: NSObject, ObservableObject {
 
     func isCurrent(_ station: Station) -> Bool {
         currentStation?.id == station.id
+    }
+
+    private var playbackQueueStations: [Station] {
+        guard let currentStation else { return [] }
+        return sanitizedPlaybackQueue(playbackQueue, currentStationID: currentStation.id).stations
+    }
+
+    private struct ResolvedPlaybackQueue {
+        let stations: [Station]
+        let currentIndex: Int
+    }
+
+    private func resolvedPlaybackQueue() -> ResolvedPlaybackQueue? {
+        guard let currentStation else { return nil }
+        let stations = playbackQueueStations
+        guard stations.count > 1,
+              let currentIndex = stations.firstIndex(where: { $0.id == currentStation.id }) else {
+            return nil
+        }
+
+        return ResolvedPlaybackQueue(stations: stations, currentIndex: currentIndex)
+    }
+
+    private func sanitizedPlaybackQueue(_ queue: PlaybackQueue, currentStationID: String) -> PlaybackQueue {
+        var seenStationIDs = Set<String>()
+        var stations = queue.stations.filter { station in
+            seenStationIDs.insert(station.id).inserted
+        }
+
+        if let currentStation, seenStationIDs.insert(currentStation.id).inserted, currentStation.id == currentStationID {
+            stations.insert(currentStation, at: 0)
+        }
+
+        return PlaybackQueue(source: queue.source, stations: stations)
     }
 
     private func configureAudioSession() {

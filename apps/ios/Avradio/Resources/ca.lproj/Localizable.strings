@@ -185,6 +185,7 @@
 "shell.home.favorites.subtitle" = "Les emissores que tens a prop, llestes per tornar a sonar.";
 "shell.home.favorites.title" = "Les teves favorites";
 "shell.home.featured.frontPage" = "Per a tu";
+"shell.home.featured.frontPage.subtitle" = "Un accés ràpid segons el que més escoltes.";
 "shell.home.featured.popular" = "Populars";
 "shell.home.recents.subtitle" = "Recupera el que vas escoltar fa poc.";
 "shell.home.recents.title" = "Recents";
@@ -233,6 +234,7 @@
 "shell.search.status.search" = "Cerca";
 "shell.search.status.searching" = "Cercant";
 "shell.search.subtitle" = "Cerca ràdio en directe per emissora, país, idioma o gènere.";
+"shell.station.row.defaultDetail" = "Ràdio global";
 "shell.search.title" = "Cerca";
 "shell.station.codec.live" = "Directe";
 "shell.stationDetail.field.code" = "Codi";

@@ -30,6 +30,8 @@ schemes:
       storeKitConfiguration: Config/StoreKit/LocalSubscriptions.storekit
     test:
       config: Debug
+      targets:
+        - AvradioUITests
     analyze:
       config: Debug
     profile:
@@ -63,3 +65,17 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: "$(PRODUCT_BUNDLE_IDENTIFIER)"
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: NO
+
+  AvradioUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: AvradioUITests
+    dependencies:
+      - target: Avradio
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_MODULE_NAME: AvradioUITests
+        PRODUCT_BUNDLE_IDENTIFIER: "$(PRODUCT_BUNDLE_IDENTIFIER).uitests"
+        TARGETED_DEVICE_FAMILY: "1"

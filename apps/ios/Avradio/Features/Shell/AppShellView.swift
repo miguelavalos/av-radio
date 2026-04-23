@@ -20,6 +20,7 @@ struct AppShellView: View {
     @State private var homeIsLoading = false
     @State private var homeErrorMessage: String?
     @State private var homeFeedContext: HomeFeedContext = .popularWorldwide
+    @State private var homeSnapshot = HomeSnapshot()
     @State private var selectedStation: Station?
     @State private var didBootstrap = false
 
@@ -79,10 +80,17 @@ struct AppShellView: View {
             await bootstrapIfNeeded()
         }
         .task {
+            refreshHomePresentation()
+        }
+        .task {
             await refreshHomeFeed()
         }
         .task(id: searchRequestKey) {
             await loadSearchResults()
+        }
+        .onChange(of: selectedTab) { _, newValue in
+            guard newValue == .home else { return }
+            refreshHomePresentation()
         }
         .onChange(of: audioPlayer.currentStation?.id) { _, stationID in
             guard stationID != nil, let station = audioPlayer.currentStation else { return }
@@ -95,14 +103,15 @@ struct AppShellView: View {
         switch selectedTab {
         case .home:
             HomeScreen(
-                stations: homeStations,
+                stations: homeSnapshot.stations,
                 isLoading: homeIsLoading,
                 errorMessage: homeErrorMessage,
-                recentStations: recentStations,
-                favoriteStations: favoriteStations,
-                feedContext: homeFeedContext,
+                recentStations: homeSnapshot.recentStations,
+                favoriteStations: homeSnapshot.favoriteStations,
+                feedContext: homeSnapshot.feedContext,
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
+                refreshHome: refreshHomePresentationAndFeed,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
                 showStationDetails: { selectedStation = $0 }
@@ -167,6 +176,7 @@ struct AppShellView: View {
         didBootstrap = true
 
         audioPlayer.setSleepTimer(minutes: libraryStore.settings.sleepTimerMinutes)
+        seedUITestDataIfNeeded()
 
         if let preferredTab = launchContext.preferredTab {
             switch preferredTab {
@@ -196,14 +206,47 @@ struct AppShellView: View {
         }
     }
 
-    private func playStation(_ station: Station) {
-        audioPlayer.play(station: station)
+    private func seedUITestDataIfNeeded() {
+        guard launchContext.isUITesting else { return }
+        guard launchContext.shouldSeedUITestLibrary else { return }
+        guard libraryStore.favorites.isEmpty, libraryStore.recents.isEmpty else { return }
+
+        let samples = Array(Station.samples.prefix(3))
+        guard !samples.isEmpty else { return }
+
+        for station in samples.prefix(2) {
+            libraryStore.toggleFavorite(for: station)
+        }
+
+        for station in samples {
+            libraryStore.recordPlayback(of: station)
+        }
+    }
+
+    private func playStation(
+        _ station: Station,
+        queueSource: AudioPlayerService.PlaybackQueue.Source = .singleStation,
+        queue: [Station]? = nil
+    ) {
+        let playbackQueue = AudioPlayerService.PlaybackQueue(
+            source: queueSource,
+            stations: queue ?? [station]
+        )
+        audioPlayer.play(station: station, queue: playbackQueue)
         libraryStore.recordPlayback(of: station)
     }
 
     private func refreshHomeFeed() async {
         homeIsLoading = true
         homeErrorMessage = nil
+
+        if launchContext.isUITesting && launchContext.shouldUseLocalUITestDiscovery {
+            homeStations = Array(Station.samples.prefix(8))
+            homeFeedContext = .popularWorldwide
+            refreshHomePresentation()
+            homeIsLoading = false
+            return
+        }
 
         do {
             let regionCode = resolvedDeviceCountryCode()
@@ -220,6 +263,7 @@ struct AppShellView: View {
             } else {
                 homeFeedContext = .popularWorldwide
             }
+            refreshHomePresentation()
             homeIsLoading = false
         } catch is CancellationError {
             homeIsLoading = false
@@ -227,8 +271,23 @@ struct AppShellView: View {
             homeStations = defaultEditorialStations
             homeFeedContext = .popularWorldwide
             homeErrorMessage = defaultEditorialStations.isEmpty ? L10n.string("shell.error.home") : nil
+            refreshHomePresentation()
             homeIsLoading = false
         }
+    }
+
+    private func refreshHomePresentation() {
+        homeSnapshot = HomeSnapshot(
+            stations: homeStations,
+            recentStations: recentStations,
+            favoriteStations: favoriteStations,
+            feedContext: homeFeedContext
+        )
+    }
+
+    private func refreshHomePresentationAndFeed() async {
+        refreshHomePresentation()
+        await refreshHomeFeed()
     }
 
     private func loadSearchResults() async {
@@ -240,14 +299,26 @@ struct AppShellView: View {
         searchIsLoading = true
         searchErrorMessage = nil
 
+        if launchContext.isUITesting && launchContext.shouldUseLocalUITestSearch {
+            let results = localUITestSearchResults(
+                queryText: queryText,
+                tagText: tagText,
+                countryCode: countryCode
+            )
+            searchResults = results
+            searchErrorMessage = nil
+            searchIsLoading = false
+            return
+        }
+
         do {
             try await Task.sleep(for: .milliseconds(300))
             try Task.checkCancellation()
 
             let results: [Station]
 
-            if queryText.isEmpty && (tagText?.isEmpty != false) && (countryCode?.isEmpty != false) {
-                results = try await loadWorldwideDiscoveryStations(limit: 12)
+            if queryText.isEmpty && (countryCode?.isEmpty != false) {
+                results = try await loadWorldwideDiscoveryStations(limit: 12, tag: tagText)
             } else {
                 results = try await stationService.searchStations(
                     filters: .init(
@@ -272,6 +343,30 @@ struct AppShellView: View {
             searchResults = []
             searchErrorMessage = L10n.string("shell.error.search")
             searchIsLoading = false
+        }
+    }
+
+    private func localUITestSearchResults(
+        queryText: String,
+        tagText: String?,
+        countryCode: String?
+    ) -> [Station] {
+        Station.samples.filter { station in
+            let matchesQuery =
+                queryText.isEmpty
+                || station.name.localizedCaseInsensitiveContains(queryText)
+                || station.country.localizedCaseInsensitiveContains(queryText)
+                || station.tags.localizedCaseInsensitiveContains(queryText)
+
+            let matchesTag =
+                tagText?.isEmpty != false
+                || station.tags.localizedCaseInsensitiveContains(tagText ?? "")
+
+            let matchesCountry =
+                countryCode?.isEmpty != false
+                || station.countryCode?.caseInsensitiveCompare(countryCode ?? "") == .orderedSame
+
+            return matchesQuery && matchesTag && matchesCountry
         }
     }
 
@@ -313,7 +408,7 @@ struct AppShellView: View {
         return merged
     }
 
-    private func loadWorldwideDiscoveryStations(limit: Int) async throws -> [Station] {
+    private func loadWorldwideDiscoveryStations(limit: Int, tag: String? = nil) async throws -> [Station] {
         let seedCountryCodes =
             [resolvedDeviceCountryCode()] +
             recentStations.compactMap(\.countryCode) +
@@ -329,7 +424,13 @@ struct AppShellView: View {
         var merged: [Station] = []
         for code in orderedCodes {
             let stations = try await stationService.searchStations(
-                filters: .init(query: "", countryCode: code, limit: 4, allowsEmptySearch: true)
+                filters: .init(
+                    query: "",
+                    countryCode: code,
+                    tag: tag ?? "",
+                    limit: tag == nil ? 4 : 6,
+                    allowsEmptySearch: true
+                )
             )
             merged = mergeUniqueStations(
                 primary: merged,
@@ -372,6 +473,13 @@ struct AppShellView: View {
 
         return !unknownCountryTokens.contains(normalizedCountry)
     }
+}
+
+private struct HomeSnapshot {
+    var stations: [Station] = []
+    var recentStations: [Station] = []
+    var favoriteStations: [Station] = []
+    var feedContext: HomeFeedContext = .popularWorldwide
 }
 
 private enum HomeFeedContext: Equatable {
@@ -431,7 +539,8 @@ private struct AppShellScaffold<Content: View, FooterPlayer: View>: View {
                         title: L10n.string("tab.home"),
                         systemImage: "house.fill",
                         isSelected: selectedTab == .home,
-                        selectionNamespace: footerSelectionAnimation
+                        selectionNamespace: footerSelectionAnimation,
+                        accessibilityIdentifier: "tab.home"
                     ) {
                         selectTab(.home)
                     }
@@ -440,7 +549,8 @@ private struct AppShellScaffold<Content: View, FooterPlayer: View>: View {
                         title: L10n.string("tab.library"),
                         systemImage: "heart.fill",
                         isSelected: selectedTab == .library,
-                        selectionNamespace: footerSelectionAnimation
+                        selectionNamespace: footerSelectionAnimation,
+                        accessibilityIdentifier: "tab.library"
                     ) {
                         selectTab(.library)
                     }
@@ -449,7 +559,8 @@ private struct AppShellScaffold<Content: View, FooterPlayer: View>: View {
                         title: L10n.string("tab.profile"),
                         systemImage: "person.crop.circle.fill",
                         isSelected: selectedTab == .profile,
-                        selectionNamespace: footerSelectionAnimation
+                        selectionNamespace: footerSelectionAnimation,
+                        accessibilityIdentifier: "tab.profile"
                     ) {
                         selectTab(.profile)
                     }
@@ -486,6 +597,7 @@ private struct AppShellFooterTabButton: View {
     let systemImage: String
     let isSelected: Bool
     let selectionNamespace: Namespace.ID
+    let accessibilityIdentifier: String
     let action: () -> Void
 
     var body: some View {
@@ -512,6 +624,7 @@ private struct AppShellFooterTabButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 
     private var displayedSystemImage: String {
@@ -550,6 +663,7 @@ private struct AppShellFooterSearchButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(L10n.string("tab.search"))
+        .accessibilityIdentifier("tab.search")
     }
 }
 
@@ -564,9 +678,16 @@ private struct HomeScreen: View {
     let feedContext: HomeFeedContext
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
-    let playStation: (Station) -> Void
+    let refreshHome: () async -> Void
+    let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
     let showStationDetails: (Station) -> Void
+
+    private enum FeaturedSource {
+        case recent
+        case favorite
+        case popular
+    }
 
     var body: some View {
         ScrollView {
@@ -583,37 +704,84 @@ private struct HomeScreen: View {
                         .foregroundStyle(AvradioTheme.textSecondary)
                 }
 
-                LiveNowPanel(currentStation: audioPlayer.currentStation, status: audioPlayer.status.label)
+                if shouldShowLiveNowPanel {
+                    LiveNowPanel(currentStation: audioPlayer.currentStation, status: audioPlayer.status.label)
+                }
 
-                if isLoading && stations.isEmpty {
+                if !displayedRecentStations.isEmpty {
+                    StationSection(title: L10n.string("shell.home.recents.title"), subtitle: L10n.string("shell.home.recents.subtitle"), accessibilityIdentifier: "home.section.recents") {
+                        ForEach(displayedRecentStations) { station in
+                            StationRowCard(
+                                station: station,
+                                isFavorite: favoriteStationIDs.contains(station.id),
+                                toggleFavorite: { toggleFavorite(station) },
+                                playAction: { playStation(station, .homeRecents, recentStations) },
+                                detailsAction: { showStationDetails(station) }
+                            )
+                        }
+                    }
+                }
+
+                if !displayedFavoriteStations.isEmpty {
+                    StationSection(title: L10n.string("shell.home.favorites.title"), subtitle: L10n.string("shell.home.favorites.subtitle"), accessibilityIdentifier: "home.section.favorites") {
+                        ForEach(displayedFavoriteStations) { station in
+                            StationRowCard(
+                                station: station,
+                                isFavorite: favoriteStationIDs.contains(station.id),
+                                toggleFavorite: { toggleFavorite(station) },
+                                playAction: { playStation(station, .homeFavorites, favoriteStations) },
+                                detailsAction: { showStationDetails(station) }
+                            )
+                        }
+                    }
+                }
+
+                if isLoading && featuredStation == nil && displayedPopularStations.isEmpty {
                     StationCardSkeletonGroup()
                 } else if let errorMessage {
                     EmptyLibraryState(
                         title: L10n.string("shell.home.error.title"),
                         detail: errorMessage
                     )
-                } else if let featuredStation = stations.first {
-                    FeaturedStationCard(
-                        station: featuredStation,
-                        label: featuredLabel,
-                        subtitle: stationDeck(for: featuredStation),
-                        isFavorite: favoriteStationIDs.contains(featuredStation.id),
-                        playAction: { playStation(featuredStation) },
-                        favoriteAction: { toggleFavorite(featuredStation) },
-                        detailsAction: { showStationDetails(featuredStation) }
-                    )
+                } else if let featuredStation {
+                    if usesCompactFeaturedSection {
+                        StationSection(
+                            title: L10n.string("shell.home.featured.frontPage"),
+                            subtitle: L10n.string("shell.home.featured.frontPage.subtitle"),
+                            accessibilityIdentifier: "home.section.featured"
+                        ) {
+                            StationRowCard(
+                                station: featuredStation,
+                                isFavorite: favoriteStationIDs.contains(featuredStation.id),
+                                toggleFavorite: { toggleFavorite(featuredStation) },
+                                playAction: { playStation(featuredStation, featuredQueueSource, featuredQueueStations) },
+                                detailsAction: { showStationDetails(featuredStation) }
+                            )
+                        }
+                    } else {
+                        FeaturedStationCard(
+                            station: featuredStation,
+                            label: featuredLabel,
+                            subtitle: stationDeck(for: featuredStation),
+                            isFavorite: favoriteStationIDs.contains(featuredStation.id),
+                            playAction: { playStation(featuredStation, featuredQueueSource, featuredQueueStations) },
+                            favoriteAction: { toggleFavorite(featuredStation) },
+                            detailsAction: { showStationDetails(featuredStation) }
+                        )
+                    }
 
-                    if stations.count > 1 {
+                    if !displayedPopularStations.isEmpty {
                         StationSection(
                             title: sectionTitle,
-                            subtitle: sectionSubtitle
+                            subtitle: sectionSubtitle,
+                            accessibilityIdentifier: "home.section.discovery"
                         ) {
-                            ForEach(Array(stations.dropFirst())) { station in
+                            ForEach(displayedPopularStations) { station in
                                 StationRowCard(
                                     station: station,
                                     isFavorite: favoriteStationIDs.contains(station.id),
                                     toggleFavorite: { toggleFavorite(station) },
-                                    playAction: { playStation(station) },
+                                    playAction: { playStation(station, .homeDiscovery, displayedPopularStations) },
                                     detailsAction: { showStationDetails(station) }
                                 )
                             }
@@ -625,40 +793,15 @@ private struct HomeScreen: View {
                         detail: L10n.string("shell.home.empty.detail")
                     )
                 }
-
-                if !recentStations.isEmpty {
-                    StationSection(title: L10n.string("shell.home.recents.title"), subtitle: L10n.string("shell.home.recents.subtitle")) {
-                        ForEach(recentStations) { station in
-                            StationRowCard(
-                                station: station,
-                                isFavorite: favoriteStationIDs.contains(station.id),
-                                toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) },
-                                detailsAction: { showStationDetails(station) }
-                            )
-                        }
-                    }
-                }
-
-                if !favoriteStations.isEmpty {
-                    StationSection(title: L10n.string("shell.home.favorites.title"), subtitle: L10n.string("shell.home.favorites.subtitle")) {
-                        ForEach(Array(favoriteStations.prefix(6))) { station in
-                            StationRowCard(
-                                station: station,
-                                isFavorite: favoriteStationIDs.contains(station.id),
-                                toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) },
-                                detailsAction: { showStationDetails(station) }
-                            )
-                        }
-                    }
-                }
             }
             .padding(24)
             .padding(.bottom, bottomContentPadding)
         }
         .scrollIndicators(.hidden)
         .background(AvradioTheme.shellBackground.ignoresSafeArea())
+        .refreshable {
+            await refreshHome()
+        }
     }
 
     private func stationDeck(for station: Station) -> String {
@@ -721,7 +864,97 @@ private struct HomeScreen: View {
         return blocked.contains(normalized) ? nil : trimmed
     }
 
+    private var hasPersonalActivity: Bool {
+        !recentStations.isEmpty || !favoriteStations.isEmpty
+    }
+
+    private var shouldShowLiveNowPanel: Bool {
+        audioPlayer.currentStation != nil || !hasPersonalActivity
+    }
+
+    private var usesCompactFeaturedSection: Bool {
+        hasPersonalActivity
+    }
+
+    private var featuredSource: FeaturedSource? {
+        if !recentStations.isEmpty {
+            return .recent
+        }
+        if !favoriteStations.isEmpty {
+            return .favorite
+        }
+        if !stations.isEmpty {
+            return .popular
+        }
+        return nil
+    }
+
+    private var featuredStation: Station? {
+        switch featuredSource {
+        case .recent:
+            return recentStations.first
+        case .favorite:
+            return favoriteStations.first
+        case .popular:
+            return stations.first
+        case .none:
+            return nil
+        }
+    }
+
+    private var featuredStationID: String? {
+        featuredStation?.id
+    }
+
+    private var displayedRecentStations: [Station] {
+        filteredStationsExcludingFeatured(from: recentStations)
+    }
+
+    private var displayedFavoriteStations: [Station] {
+        Array(filteredStationsExcludingFeatured(from: favoriteStations).prefix(6))
+    }
+
+    private var displayedPopularStations: [Station] {
+        let excludedIDs = Set(displayedRecentStations.map(\.id) + displayedFavoriteStations.map(\.id))
+        return filteredStationsExcludingFeatured(from: stations)
+            .filter { !excludedIDs.contains($0.id) }
+    }
+
+    private var featuredQueueSource: AudioPlayerService.PlaybackQueue.Source {
+        switch featuredSource {
+        case .recent:
+            return .homeRecents
+        case .favorite:
+            return .homeFavorites
+        case .popular, .none:
+            return .homeDiscovery
+        }
+    }
+
+    private var featuredQueueStations: [Station] {
+        switch featuredSource {
+        case .recent:
+            return recentStations
+        case .favorite:
+            return favoriteStations
+        case .popular, .none:
+            return stations
+        }
+    }
+
+    private func filteredStationsExcludingFeatured(from stations: [Station]) -> [Station] {
+        guard let featuredStationID else { return stations }
+        return stations.filter { $0.id != featuredStationID }
+    }
+
     private var featuredLabel: String {
+        switch featuredSource {
+        case .recent, .favorite:
+            return L10n.string("shell.home.featured.frontPage").uppercased(with: .current)
+        case .popular, .none:
+            break
+        }
+
         switch feedContext {
         case .popularInCountry(let countryName):
             return countryName.uppercased(with: .current)
@@ -760,7 +993,7 @@ private struct SearchScreen: View {
     let tags: [String]
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
-    let playStation: (Station) -> Void
+    let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
     let showStationDetails: (Station) -> Void
 
@@ -808,7 +1041,8 @@ private struct SearchScreen: View {
                             count: results.count,
                             results.count,
                             queryText
-                        )
+                        ),
+                    accessibilityIdentifier: "search.section.results"
                 ) {
                     if !results.isEmpty {
                         if isLoading {
@@ -820,7 +1054,7 @@ private struct SearchScreen: View {
                                 station: station,
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) },
+                                playAction: { playStation(station, .searchResults, results) },
                                 detailsAction: { showStationDetails(station) }
                             )
                         }
@@ -901,7 +1135,7 @@ private struct LibraryScreen: View {
     let recents: [Station]
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
-    let playStation: (Station) -> Void
+    let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
     let showStationDetails: (Station) -> Void
 
@@ -931,7 +1165,7 @@ private struct LibraryScreen: View {
 
                 SearchField(query: $query, prompt: L10n.string("shell.library.searchPrompt"))
 
-                StationSection(title: L10n.string("shell.library.favorites.title"), subtitle: L10n.string("shell.library.favorites.subtitle")) {
+                StationSection(title: L10n.string("shell.library.favorites.title"), subtitle: L10n.string("shell.library.favorites.subtitle"), accessibilityIdentifier: "library.section.favorites") {
                     if filteredFavorites.isEmpty {
                         EmptyLibraryState(
                             title: favorites.isEmpty ? L10n.string("shell.library.favorites.empty") : L10n.string("shell.library.favorites.noMatch"),
@@ -945,7 +1179,7 @@ private struct LibraryScreen: View {
                                 station: station,
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) },
+                                playAction: { playStation(station, .libraryFavorites, favorites) },
                                 detailsAction: { showStationDetails(station) }
                             )
                         }
@@ -953,13 +1187,13 @@ private struct LibraryScreen: View {
                 }
 
                 if !filteredRecents.isEmpty {
-                    StationSection(title: L10n.string("shell.library.recents.title"), subtitle: L10n.string("shell.library.recents.subtitle")) {
+                    StationSection(title: L10n.string("shell.library.recents.title"), subtitle: L10n.string("shell.library.recents.subtitle"), accessibilityIdentifier: "library.section.recents") {
                         ForEach(filteredRecents) { station in
                             StationRowCard(
                                 station: station,
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station) },
+                                playAction: { playStation(station, .libraryRecents, recents) },
                                 detailsAction: { showStationDetails(station) }
                             )
                         }
@@ -998,67 +1232,71 @@ private struct LibraryScreen: View {
 
 private struct MiniPlayerView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerService
-    @EnvironmentObject private var libraryStore: LibraryStore
 
     let station: Station
     let openPlayer: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            StationArtworkView(station: station, size: 46)
+            miniArtwork
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(station.name)
                     .font(.subheadline.weight(.bold))
                     .lineLimit(1)
                     .foregroundStyle(AvradioTheme.textPrimary)
 
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(audioPlayer.isPlaying ? AvradioTheme.highlight : AvradioTheme.textSecondary)
-                        .frame(width: 7, height: 7)
+                Text(artistLine)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(trackArtworkExists ? AvradioTheme.highlight : AvradioTheme.textSecondary)
+                    .lineLimit(1)
 
-                    Text(audioPlayer.status.label)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(AvradioTheme.textSecondary)
-                        .lineLimit(1)
-                }
-
-                if let trackLine {
-                    Text(trackLine)
-                        .font(.caption2)
-                        .foregroundStyle(AvradioTheme.textSecondary.opacity(0.88))
-                        .lineLimit(1)
-                }
+                Text(titleLine)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AvradioTheme.textSecondary.opacity(0.88))
+                    .lineLimit(1)
             }
 
             Spacer(minLength: 8)
 
             Button {
-                libraryStore.toggleFavorite(for: station)
-            } label: {
-                Image(systemName: libraryStore.isFavorite(station) ? "heart.fill" : "heart")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(libraryStore.isFavorite(station) ? Color(red: 1.0, green: 0.16, blue: 0.38) : AvradioTheme.textSecondary)
-                    .frame(width: 34, height: 34)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .overlay {
-                        Circle()
-                            .stroke(.white.opacity(0.12), lineWidth: 1)
-                    }
-            }
-            .buttonStyle(.plain)
-
-            Button {
                 audioPlayer.togglePlayback()
             } label: {
-                Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .background(AvradioTheme.highlight, in: Circle())
+                ZStack {
+                    Circle()
+                        .fill(playButtonBackground)
+
+                    if isCurrentStationLoading {
+                        ProgressView()
+                            .tint(playButtonForeground)
+                    } else {
+                        Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(playButtonForeground)
+                    }
+                }
+                .frame(width: 38, height: 38)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("miniPlayer.playPause")
+
+            if audioPlayer.canCyclePlaybackQueue {
+                Button {
+                    audioPlayer.playNextInQueue()
+                } label: {
+                    Image(systemName: "forward.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(AvradioTheme.textSecondary)
+                        .frame(width: 34, height: 34)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(.white.opacity(0.12), lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("miniPlayer.next")
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
@@ -1084,17 +1322,77 @@ private struct MiniPlayerView: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(L10n.string("shell.miniPlayer.accessibility.label", station.name))
         .accessibilityHint(L10n.string("shell.miniPlayer.accessibility.hint"))
+        .accessibilityIdentifier("miniPlayer.container")
     }
 
-    private var trackLine: String? {
-        switch (audioPlayer.currentTrackArtist, audioPlayer.currentTrackTitle) {
-        case let (.some(artist), .some(title)) where !artist.isEmpty && !title.isEmpty:
-            return "\(artist) · \(title)"
-        case let (_, .some(title)) where !title.isEmpty:
-            return title
-        default:
-            return nil
+    @ViewBuilder
+    private var miniArtwork: some View {
+        if let artworkURL = audioPlayer.currentTrackArtworkURL {
+            AsyncImage(url: artworkURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                default:
+                    StationArtworkView(station: station, size: 46)
+                }
+            }
+            .frame(width: 46, height: 46)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(AvradioTheme.borderSubtle.opacity(0.55), lineWidth: 1)
+            }
+        } else {
+            StationArtworkView(station: station, size: 46)
         }
+    }
+
+    private var artistLine: String {
+        if let artist = normalizedMetadata(audioPlayer.currentTrackArtist) {
+            return artist
+        }
+
+        return station.cardDetailText(preferCountryName: station.flagEmoji == nil)
+            ?? L10n.string("shell.station.row.defaultDetail")
+    }
+
+    private var titleLine: String {
+        if let title = normalizedMetadata(audioPlayer.currentTrackTitle) {
+            return title
+        }
+
+        if let albumTitle = normalizedMetadata(audioPlayer.currentTrackAlbumTitle) {
+            return albumTitle
+        }
+
+        return L10n.string("player.track.liveStreamActive")
+    }
+
+    private var trackArtworkExists: Bool {
+        audioPlayer.currentTrackArtworkURL != nil
+    }
+
+    private var isCurrentStationLoading: Bool {
+        audioPlayer.isCurrent(station) && audioPlayer.isLoading
+    }
+
+    private var playButtonBackground: Color {
+        if audioPlayer.isPlaying {
+            return AvradioTheme.brandGraphite
+        }
+        return AvradioTheme.highlight
+    }
+
+    private var playButtonForeground: Color {
+        .white
+    }
+
+    private func normalizedMetadata(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -1652,7 +1950,20 @@ private struct FeaturedStationCard: View {
 private struct StationSection<Content: View>: View {
     let title: String
     let subtitle: String
+    let accessibilityIdentifier: String?
     @ViewBuilder let content: () -> Content
+
+    init(
+        title: String,
+        subtitle: String,
+        accessibilityIdentifier: String? = nil,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.content = content
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1671,6 +1982,8 @@ private struct StationSection<Content: View>: View {
                 content()
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(accessibilityIdentifier ?? "")
     }
 }
 
@@ -1697,6 +2010,14 @@ private struct StationRowCard: View {
         station.cardDetailText(preferCountryName: station.flagEmoji == nil)
     }
 
+    private var resolvedDetailText: String {
+        detailText ?? L10n.string("shell.station.row.defaultDetail")
+    }
+
+    private var leadingDetailSymbol: String? {
+        station.flagEmoji
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             StationArtworkView(station: station, size: StationRowMetrics.artworkSize)
@@ -1708,18 +2029,20 @@ private struct StationRowCard: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if let detailText {
-                    HStack(spacing: 6) {
-                        if let flagEmoji = station.flagEmoji {
-                            Text(flagEmoji)
-                                .font(.system(size: 12))
-                        }
-
-                        Text(detailText)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(AvradioTheme.textSecondary.opacity(0.88))
-                            .lineLimit(1)
+                HStack(spacing: 6) {
+                    if let leadingDetailSymbol {
+                        Text(leadingDetailSymbol)
+                            .font(.system(size: 12))
+                    } else {
+                        Image(systemName: "globe.europe.africa.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(AvradioTheme.textSecondary.opacity(0.72))
                     }
+
+                    Text(resolvedDetailText)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AvradioTheme.textSecondary.opacity(0.88))
+                        .lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1735,6 +2058,7 @@ private struct StationRowCard: View {
                     .background(AvradioTheme.mutedSurface, in: Circle())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("stationRow.favorite.\(station.id)")
 
             Button {
                 if audioPlayer.isCurrent(station) {
@@ -1745,14 +2069,15 @@ private struct StationRowCard: View {
             } label: {
                 Image(systemName: isPlayingCurrentStation ? "pause.fill" : "play.fill")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(isPlayingCurrentStation ? .white : AvradioTheme.textSecondary)
+                    .foregroundStyle(isPlayingCurrentStation ? AvradioTheme.textPrimary : AvradioTheme.textSecondary)
                     .frame(width: StationRowMetrics.playButtonSize, height: StationRowMetrics.playButtonSize)
                     .background(
-                        isPlayingCurrentStation ? AnyShapeStyle(AvradioTheme.highlight) : AnyShapeStyle(AvradioTheme.mutedSurface),
+                        AnyShapeStyle(AvradioTheme.mutedSurface),
                         in: Circle()
                     )
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("stationRow.play.\(station.id)")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 15)
@@ -1767,6 +2092,8 @@ private struct StationRowCard: View {
         .shadow(color: AvradioTheme.softShadow.opacity(0.28), radius: 12, y: 4)
         .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .onTapGesture(perform: detailsAction)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("stationRow.\(station.id)")
     }
 }
 

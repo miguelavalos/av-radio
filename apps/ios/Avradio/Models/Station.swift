@@ -187,9 +187,14 @@ extension Station {
     func cardDetailText(preferCountryName: Bool) -> String? {
         let normalizedLanguage = normalizedCardValue(language)
         let normalizedCountry = normalizedCardValue(country)
+        let normalizedState = normalizedCardValue(state)
 
         if let normalizedLanguage, !normalizedLanguage.isEmpty {
             return normalizedLanguage
+        }
+
+        if let normalizedState, !normalizedState.isEmpty {
+            return normalizedState
         }
 
         if preferCountryName, let normalizedCountry, !normalizedCountry.isEmpty {

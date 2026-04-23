@@ -3,6 +3,7 @@ import SwiftUI
 
 @main
 struct AvradioApp: App {
+    private let launchContext: LaunchContext
     private let persistenceController: PersistenceController
     @StateObject private var audioPlayer = AudioPlayerService()
     @StateObject private var languageController = AppLanguageController()
@@ -11,8 +12,10 @@ struct AvradioApp: App {
     @StateObject private var accessController: AccessController
 
     init() {
+        let launchContext = LaunchContext.current
+        self.launchContext = launchContext
         AppConfig.configureAVAppsAccountIfPossible()
-        let persistenceController = PersistenceController.shared
+        let persistenceController = launchContext.isUITesting ? PersistenceController(inMemory: true) : PersistenceController.shared
         self.persistenceController = persistenceController
         _libraryStore = StateObject(wrappedValue: LibraryStore(container: persistenceController.container))
         _accessController = StateObject(wrappedValue: AccessController())

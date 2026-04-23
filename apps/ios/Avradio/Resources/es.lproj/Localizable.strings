@@ -185,6 +185,7 @@
 "shell.home.favorites.subtitle" = "Las emisoras que guardas cerca, listas para volver a sonar.";
 "shell.home.favorites.title" = "Tus favoritas";
 "shell.home.featured.frontPage" = "Para ti";
+"shell.home.featured.frontPage.subtitle" = "Un acceso rápido según lo que más escuchas.";
 "shell.home.featured.popular" = "Populares";
 "shell.home.recents.subtitle" = "Retoma lo último que escuchaste.";
 "shell.home.recents.title" = "Recientes";
@@ -245,6 +246,7 @@
 "shell.search.status.search" = "Buscar";
 "shell.search.status.searching" = "Buscando";
 "shell.search.subtitle" = "Busca radio en directo por emisora, país, idioma o género.";
+"shell.station.row.defaultDetail" = "Radio global";
 "shell.search.title" = "Buscar";
 "shell.station.codec.live" = "Directo";
 "shell.stationDetail.field.code" = "Código";

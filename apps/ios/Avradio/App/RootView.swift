@@ -6,7 +6,7 @@ struct RootView: View {
     @State private var authOptionsArePresented = false
     @State private var automaticGuestOnboardingIsPresented = false
     @State private var isShowingAccountOnboarding = false
-    @State private var isShowingSplash = true
+    @State private var isShowingSplash = !LaunchContext.current.shouldDisableSplash
 
     private let launchContext = LaunchContext.current
 
@@ -38,6 +38,10 @@ struct RootView: View {
                         }
                     }
                     .task(id: accessController.accessMode) {
+                        guard !launchContext.shouldDisableSplash else {
+                            isShowingSplash = false
+                            return
+                        }
                         isShowingSplash = true
                         try? await Task.sleep(for: .milliseconds(1150))
 
@@ -72,7 +76,8 @@ struct RootView: View {
     }
 
     private var shouldShowOnboarding: Bool {
-        isShowingAccountOnboarding || automaticGuestOnboardingIsPresented
+        guard !launchContext.shouldDisableOnboarding else { return false }
+        return isShowingAccountOnboarding || automaticGuestOnboardingIsPresented
     }
 
     private func startSignInFlow(showAuthOptions: Bool = false) {
@@ -95,6 +100,7 @@ struct RootView: View {
     }
 
     private func presentAutomaticGuestOnboardingIfNeeded() {
+        guard !launchContext.shouldDisableOnboarding else { return }
         guard automaticGuestOnboardingIsPresented == false else { return }
         guard isShowingAccountOnboarding == false else { return }
         guard accessController.shouldAutoShowGuestOnboarding else { return }

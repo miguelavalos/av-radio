@@ -185,6 +185,7 @@
 "shell.home.favorites.subtitle" = "Les stations que vous gardez à portée de main, prêtes à être relancées.";
 "shell.home.favorites.title" = "Vos favoris";
 "shell.home.featured.frontPage" = "Pour vous";
+"shell.home.featured.frontPage.subtitle" = "Un accès rapide selon ce que vous écoutez le plus.";
 "shell.home.featured.popular" = "Populaires";
 "shell.home.recents.subtitle" = "Reprenez ce que vous avez écouté récemment.";
 "shell.home.recents.title" = "Récents";
@@ -233,6 +234,7 @@
 "shell.search.status.search" = "Rechercher";
 "shell.search.status.searching" = "Recherche";
 "shell.search.subtitle" = "Recherchez la radio en direct par station, pays, langue ou genre.";
+"shell.station.row.defaultDetail" = "Radio mondiale";
 "shell.search.title" = "Recherche";
 "shell.station.codec.live" = "Direct";
 "shell.stationDetail.field.code" = "Code";

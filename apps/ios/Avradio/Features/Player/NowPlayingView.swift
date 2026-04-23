@@ -125,6 +125,7 @@ struct NowPlayingView: View {
                         .truncationMode(.tail)
                         .padding(.horizontal, 44)
                         .frame(maxWidth: .infinity, alignment: .center)
+                        .accessibilityIdentifier("player.headerTitle")
 
                     HStack {
                         Color.clear
@@ -161,6 +162,7 @@ struct NowPlayingView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(L10n.string("player.close.accessibility.label"))
         .accessibilityHint(L10n.string("player.close.accessibility.hint"))
+        .accessibilityIdentifier("player.close")
     }
 
     private func artworkShowcase(for station: Station, size: CGFloat) -> some View {
@@ -294,6 +296,7 @@ struct NowPlayingView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(audioPlayer.isPlaying ? L10n.string("player.control.pause") : L10n.string("player.control.play"))
+            .accessibilityIdentifier("player.transport.playPause")
 
             compactTransportButton(systemImage: "forward.fill", action: playNextStation)
                 .disabled(!canCycleStations)
@@ -370,6 +373,7 @@ struct NowPlayingView: View {
                 .background(Color.white.opacity(0.08), in: Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(systemImage.contains("backward") ? "player.transport.previous" : "player.transport.next")
         .overlay {
             Circle()
                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
@@ -450,37 +454,19 @@ struct NowPlayingView: View {
         return URL(string: homepage)
     }
 
-    private var cycleStations: [Station] {
-        let favorites = libraryStore.favoriteStations()
-        if favorites.count > 1,
-           let current = audioPlayer.currentStation,
-           favorites.contains(where: { $0.id == current.id }) {
-            return favorites
-        }
-
-        let recents = libraryStore.recentStations()
-        if recents.count > 1,
-           let current = audioPlayer.currentStation,
-           recents.contains(where: { $0.id == current.id }) {
-            return recents
-        }
-
-        return []
-    }
-
     private var canCycleStations: Bool {
-        cycleStations.count > 1
+        audioPlayer.canCyclePlaybackQueue
     }
 
     private func playNextStation() {
-        guard !cycleStations.isEmpty else { return }
-        audioPlayer.playNext(from: cycleStations)
+        guard canCycleStations else { return }
+        audioPlayer.playNextInQueue()
         recordCurrentPlayback()
     }
 
     private func playPreviousStation() {
-        guard !cycleStations.isEmpty else { return }
-        audioPlayer.playPrevious(from: cycleStations)
+        guard canCycleStations else { return }
+        audioPlayer.playPreviousInQueue()
         recordCurrentPlayback()
     }
 

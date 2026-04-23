@@ -12,10 +12,30 @@ struct LaunchContext {
     let demoStation: Station?
     let seedFavorite: Bool
     let preferredSearchQuery: String?
+    let isUITesting: Bool
+    let shouldDisableSplash: Bool
+    let shouldDisableOnboarding: Bool
+    let shouldSeedUITestLibrary: Bool
+    let shouldUseLocalUITestDiscovery: Bool
+    let shouldUseLocalUITestSearch: Bool
 
     static let current = LaunchContext(environment: ProcessInfo.processInfo.environment)
 
     init(environment: [String: String]) {
+        isUITesting = environment["AVRADIO_UI_TESTS"] == "1"
+            || environment["AIRADIO_UI_TESTS"] == "1"
+        shouldDisableSplash = isUITesting
+            || environment["AVRADIO_DISABLE_SPLASH"] == "1"
+            || environment["AIRADIO_DISABLE_SPLASH"] == "1"
+        shouldDisableOnboarding = isUITesting
+            || environment["AVRADIO_DISABLE_ONBOARDING"] == "1"
+            || environment["AIRADIO_DISABLE_ONBOARDING"] == "1"
+        shouldSeedUITestLibrary = environment["AVRADIO_UI_TESTS_DISABLE_LIBRARY_SEED"] != "1"
+            && environment["AIRADIO_UI_TESTS_DISABLE_LIBRARY_SEED"] != "1"
+        shouldUseLocalUITestDiscovery = environment["AVRADIO_UI_TESTS_LOCAL_DISCOVERY"] == "1"
+            || environment["AIRADIO_UI_TESTS_LOCAL_DISCOVERY"] == "1"
+        shouldUseLocalUITestSearch = environment["AVRADIO_UI_TESTS_LOCAL_SEARCH"] == "1"
+            || environment["AIRADIO_UI_TESTS_LOCAL_SEARCH"] == "1"
         preferredTab = environment["AVRADIO_OPEN_TAB"].flatMap(Tab.init(rawValue:))
             ?? environment["AIRADIO_OPEN_TAB"].flatMap(Tab.init(rawValue:))
         seedFavorite = environment["AVRADIO_SEED_FAVORITE"] == "1" || environment["AIRADIO_SEED_FAVORITE"] == "1"
