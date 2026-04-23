@@ -42,11 +42,7 @@ struct NowPlayingView: View {
                                         statusRow(contentWidth: contentWidth)
                                     }
 
-                                    if audioPlayer.hasFailure {
-                                        Button(L10n.string("player.retry"), action: audioPlayer.retry)
-                                            .buttonStyle(.borderedProminent)
-                                            .tint(AvradioTheme.highlight)
-                                    }
+                                    retrySection
                                 }
                                 .padding(.bottom, 36)
                             } else {
@@ -336,6 +332,15 @@ struct NowPlayingView: View {
                 Capsule()
                     .stroke(Color.white.opacity(0.12), lineWidth: 1)
             }
+    }
+
+    private var retrySection: some View {
+        Button(L10n.string("player.retry"), action: audioPlayer.retry)
+            .buttonStyle(.borderedProminent)
+            .tint(AvradioTheme.highlight)
+            .opacity(audioPlayer.hasFailure ? 1 : 0)
+            .disabled(!audioPlayer.hasFailure)
+            .accessibilityHidden(!audioPlayer.hasFailure)
     }
 
     private func optionsMenu(for station: Station) -> some View {
