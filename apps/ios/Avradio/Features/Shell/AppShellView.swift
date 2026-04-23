@@ -1372,7 +1372,7 @@ private struct MiniPlayerView: View {
                     .stroke(AvradioTheme.borderSubtle.opacity(0.55), lineWidth: 1)
             }
         } else {
-            StationArtworkView(station: station, size: 46)
+            StationThumbnailView(station: station, size: 46)
         }
     }
 
@@ -1476,7 +1476,7 @@ private struct LiveNowPanel: View {
             HStack(spacing: 12) {
                 Group {
                     if let currentStation {
-                        StationArtworkView(station: currentStation, size: 64, surfaceStyle: .dark)
+                        StationThumbnailView(station: currentStation, size: 64, surfaceStyle: .dark)
                     } else {
                         EmptyLiveArtwork(size: 64)
                     }
@@ -1568,6 +1568,81 @@ private struct EmptyLiveArtwork: View {
                 }
             }
             .shadow(color: AvradioTheme.highlight.opacity(0.07), radius: 10, y: 5)
+    }
+}
+
+private struct StationThumbnailView: View {
+    let station: Station
+    let size: CGFloat
+    var surfaceStyle: StationArtworkView.SurfaceStyle = .light
+
+    private var cornerRadius: CGFloat {
+        size * 0.24
+    }
+
+    var body: some View {
+        Group {
+            if let artworkURL = station.displayArtworkURL {
+                AsyncImage(url: artworkURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        StationArtworkView(
+                            station: station,
+                            size: size,
+                            surfaceStyle: surfaceStyle
+                        )
+                    }
+                }
+            } else {
+                StationArtworkView(
+                    station: station,
+                    size: size,
+                    surfaceStyle: surfaceStyle
+                )
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .background(
+            thumbnailBackground,
+            in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(thumbnailBorder, lineWidth: 1)
+        }
+        .shadow(color: thumbnailShadow, radius: size * 0.08, y: size * 0.03)
+    }
+
+    private var thumbnailBackground: Color {
+        switch surfaceStyle {
+        case .light:
+            return Color.white
+        case .dark:
+            return AvradioTheme.darkSurface
+        }
+    }
+
+    private var thumbnailBorder: Color {
+        switch surfaceStyle {
+        case .light:
+            return AvradioTheme.borderSubtle
+        case .dark:
+            return Color.white.opacity(0.08)
+        }
+    }
+
+    private var thumbnailShadow: Color {
+        switch surfaceStyle {
+        case .light:
+            return AvradioTheme.softShadow.opacity(0.08)
+        case .dark:
+            return AvradioTheme.softShadow.opacity(0.18)
+        }
     }
 }
 
@@ -1917,7 +1992,7 @@ private struct FeaturedStationCard: View {
                 .foregroundStyle(AvradioTheme.highlight)
 
             HStack(alignment: .top, spacing: 16) {
-                StationArtworkView(station: station, size: 106)
+                StationThumbnailView(station: station, size: 106)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(station.name)
@@ -2047,7 +2122,7 @@ private struct StationRowCard: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
-            StationArtworkView(station: station, size: StationRowMetrics.artworkSize)
+            StationThumbnailView(station: station, size: StationRowMetrics.artworkSize)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(station.name)
@@ -2138,7 +2213,7 @@ private struct StationDetailSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 HStack(alignment: .top, spacing: 16) {
-                    StationArtworkView(station: station, size: 92)
+                    StationThumbnailView(station: station, size: 92)
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text(station.name)

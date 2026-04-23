@@ -29,4 +29,5 @@ final class PlayerQueueUITests: AvradioUITestCase {
         expectation(for: switched, evaluatedWith: headerTitle)
         waitForExpectations(timeout: 5)
     }
+
 }

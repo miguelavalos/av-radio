@@ -3,6 +3,7 @@ import SwiftUI
 struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @EnvironmentObject private var audioPlayer: AudioPlayerService
     @EnvironmentObject private var libraryStore: LibraryStore
 
@@ -10,52 +11,50 @@ struct NowPlayingView: View {
 
     private let swipeThreshold: CGFloat = 72
     private let playerHorizontalPadding: CGFloat = 16
+    private let playerLandscapeHorizontalPadding: CGFloat = 12
     private let playerMaxContentWidth: CGFloat = 360
+    private let playerMaxLandscapeContentWidth: CGFloat = 860
 
     var body: some View {
         GeometryReader { proxy in
-            let contentWidth = playerContentWidth(in: proxy)
-            let topInset = playerTopInset(in: proxy)
+            let isLandscape = usesLandscapeLayout(in: proxy)
+            let horizontalInsets = playerHorizontalInsets(in: proxy, isLandscape: isLandscape)
+            let contentWidth = playerContentWidth(in: proxy, isLandscape: isLandscape, horizontalInsets: horizontalInsets)
+            let topInset = playerTopInset(in: proxy, isLandscape: isLandscape)
+            let bottomInset = playerBottomInset(
+                in: proxy,
+                isLandscape: isLandscape,
+                horizontalInsets: horizontalInsets,
+                contentWidth: contentWidth
+            )
+            let contentHeight = playerContentHeight(
+                in: proxy,
+                isLandscape: isLandscape,
+                topInset: topInset,
+                bottomInset: bottomInset
+            )
 
             ZStack(alignment: .top) {
                 playerBackdrop
 
                 VStack(spacing: 0) {
-                    dismissBar(contentWidth: contentWidth)
+                    dismissBar()
 
-                        VStack(spacing: 0) {
-                            if let station = audioPlayer.currentStation {
-                                artworkShowcase(for: station, size: contentWidth)
-                                    .offset(x: horizontalDragOffset)
-                                    .gesture(stationSwipeGesture)
-                                    .padding(.top, 18)
-
-                                trackSummary(for: station, contentWidth: contentWidth)
-                                    .padding(.top, 18)
-
-                                Spacer(minLength: 24)
-
-                                VStack(spacing: 14) {
-                                    transportSection(contentWidth: contentWidth)
-
-                                    if shouldShowStatusRow {
-                                        statusRow(contentWidth: contentWidth)
-                                    }
-
-                                    retrySection
-                                }
-                                .padding(.bottom, 36)
-                            } else {
-                                emptyState
-                            }
-                        }
-                        .padding(.horizontal, playerHorizontalPadding)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    playerContent(
+                        in: proxy,
+                        isLandscape: isLandscape,
+                        contentWidth: contentWidth,
+                        contentHeight: contentHeight
+                    )
                 }
+                .frame(width: contentWidth, alignment: .top)
+                .padding(.leading, horizontalInsets.leading)
+                .padding(.trailing, horizontalInsets.trailing)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .padding(.top, topInset)
+                .padding(.bottom, bottomInset)
             }
         }
-        .ignoresSafeArea()
         .presentationDragIndicator(.hidden)
         .presentationBackground(.clear)
     }
@@ -105,12 +104,13 @@ struct NowPlayingView: View {
         }
     }
 
-    private func dismissBar(contentWidth: CGFloat) -> some View {
+    private func dismissBar() -> some View {
         Button(action: dismiss.callAsFunction) {
-            VStack(spacing: 12) {
+            ZStack(alignment: .top) {
                 Capsule()
                     .fill(Color.white.opacity(0.22))
                     .frame(width: 54, height: 6)
+                    .padding(.top, 10)
 
                 ZStack {
                     Text(headerTitle)
@@ -140,11 +140,14 @@ struct NowPlayingView: View {
                             }
                     }
                 }
-                .frame(height: 34)
+                .frame(height: 44)
+                .padding(.top, 22)
+                .padding(.bottom, 10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
             .padding(.horizontal, 18)
-            .padding(.top, 8)
-            .padding(.bottom, 10)
+            .frame(maxWidth: .infinity)
+            .frame(height: 84)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(Color.white.opacity(0.05))
@@ -154,7 +157,6 @@ struct NowPlayingView: View {
                     .stroke(Color.white.opacity(0.1), lineWidth: 1)
             }
         }
-        .frame(width: contentWidth)
         .buttonStyle(.plain)
         .accessibilityLabel(L10n.string("player.close.accessibility.label"))
         .accessibilityHint(L10n.string("player.close.accessibility.hint"))
@@ -171,13 +173,7 @@ struct NowPlayingView: View {
             }
             .overlay(alignment: .bottomLeading) {
                 if audioPlayer.currentTrackArtworkURL != nil {
-                    StationArtworkView(station: station, size: 58, surfaceStyle: .dark)
-                        .padding(6)
-                        .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                        }
+                    stationBadgeArtwork(for: station, size: 58)
                         .padding(18)
                 }
             }
@@ -185,17 +181,164 @@ struct NowPlayingView: View {
     }
 
     @ViewBuilder
-    private func heroArtwork(for station: Station, size: CGFloat) -> some View {
-        let cornerRadius: CGFloat = 32
+    private func stationBadgeArtwork(for station: Station, size: CGFloat) -> some View {
+        let badgeCornerRadius: CGFloat = 16
 
         Group {
-            if let artworkURL = audioPlayer.currentTrackArtworkURL {
+            if let artworkURL = stationArtworkURL(for: station) {
                 AsyncImage(url: artworkURL) { phase in
                     switch phase {
                     case .success(let image):
                         image
                             .resizable()
                             .scaledToFill()
+                    default:
+                        StationArtworkView(
+                            station: station,
+                            size: size,
+                            surfaceStyle: .light,
+                            contentInsetRatio: 0.04,
+                            cornerRadiusRatio: badgeCornerRadius / size
+                        )
+                    }
+                }
+            } else {
+                StationArtworkView(
+                    station: station,
+                    size: size,
+                    surfaceStyle: .light,
+                    contentInsetRatio: 0.04,
+                    cornerRadiusRatio: badgeCornerRadius / size
+                )
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: badgeCornerRadius, style: .continuous))
+        .padding(1)
+        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: badgeCornerRadius + 3, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: badgeCornerRadius + 3, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+    }
+
+    @ViewBuilder
+    private func playerContent(
+        in proxy: GeometryProxy,
+        isLandscape: Bool,
+        contentWidth: CGFloat,
+        contentHeight: CGFloat
+    ) -> some View {
+        if let station = audioPlayer.currentStation {
+            let compact = isCompactPlayer(in: proxy, isLandscape: isLandscape)
+
+            if isLandscape {
+                landscapePlayerContent(
+                    for: station,
+                    in: proxy,
+                    contentWidth: contentWidth,
+                    contentHeight: contentHeight,
+                    compact: compact
+                )
+            } else {
+                portraitPlayerContent(
+                    for: station,
+                    in: proxy,
+                    contentWidth: contentWidth,
+                    contentHeight: contentHeight,
+                    compact: compact
+                )
+            }
+        } else {
+            emptyState
+                .frame(maxHeight: .infinity)
+        }
+    }
+
+    private func portraitPlayerContent(
+        for station: Station,
+        in proxy: GeometryProxy,
+        contentWidth: CGFloat,
+        contentHeight: CGFloat,
+        compact: Bool
+    ) -> some View {
+        let artworkSize = portraitArtworkSize(in: proxy, contentWidth: contentWidth, compact: compact)
+        let summaryTopPadding: CGFloat = compact ? 16 : 18
+        let spacerMinLength: CGFloat = compact ? 18 : 24
+
+        return VStack(spacing: 0) {
+            artworkShowcase(for: station, size: artworkSize)
+                .offset(x: horizontalDragOffset)
+                .gesture(stationSwipeGesture)
+                .padding(.top, 18)
+
+            trackSummary(for: station, contentWidth: contentWidth, compact: compact)
+                .padding(.top, summaryTopPadding)
+
+            Spacer(minLength: spacerMinLength)
+
+            playerControls(contentWidth: contentWidth, compact: compact)
+        }
+        .frame(height: contentHeight, alignment: .top)
+    }
+
+    private func landscapePlayerContent(
+        for station: Station,
+        in proxy: GeometryProxy,
+        contentWidth: CGFloat,
+        contentHeight: CGFloat,
+        compact: Bool
+    ) -> some View {
+        let artworkSize = landscapeArtworkSize(in: proxy, contentWidth: contentWidth)
+        let columnSpacing: CGFloat = compact ? 22 : 28
+        let detailWidth = max(contentWidth - artworkSize - columnSpacing, 260)
+        let summaryHeight: CGFloat = compact ? 74 : 88
+
+        return VStack(spacing: 0) {
+            LandscapeNowPlayingRowLayout(
+                artworkSize: artworkSize,
+                spacing: columnSpacing,
+                summaryHeight: summaryHeight
+            ) {
+                artworkShowcase(for: station, size: artworkSize)
+                    .frame(width: artworkSize)
+                    .offset(x: horizontalDragOffset)
+                    .gesture(stationSwipeGesture)
+
+                trackSummary(
+                    for: station,
+                    contentWidth: detailWidth,
+                    minHeight: summaryHeight,
+                    compact: compact
+                )
+
+                playerControls(contentWidth: detailWidth, compact: compact)
+            }
+            .frame(width: contentWidth, height: artworkSize)
+            .padding(.top, compact ? 8 : 12)
+
+            Spacer(minLength: 0)
+        }
+        .frame(height: contentHeight, alignment: .top)
+    }
+
+    @ViewBuilder
+    private func heroArtwork(for station: Station, size: CGFloat) -> some View {
+        let cornerRadius: CGFloat = 32
+        let heroArtworkURL = audioPlayer.currentTrackArtworkURL ?? stationArtworkURL(for: station)
+
+        Group {
+            if let heroArtworkURL {
+                AsyncImage(url: heroArtworkURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: size, height: size)
+                            .scaleEffect(1.24)
+                            .clipped()
                     default:
                         StationArtworkView(
                             station: station,
@@ -229,11 +372,16 @@ struct NowPlayingView: View {
         .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
     }
 
-    private func trackSummary(for station: Station, contentWidth: CGFloat) -> some View {
-        VStack(spacing: 10) {
+    private func trackSummary(
+        for station: Station,
+        contentWidth: CGFloat,
+        minHeight: CGFloat = 126,
+        compact: Bool = false
+    ) -> some View {
+        VStack(spacing: compact ? 6 : 10) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(trackArtistLine)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: compact ? 15 : 17, weight: .semibold))
                     .foregroundStyle(AvradioTheme.highlight)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
@@ -246,47 +394,62 @@ struct NowPlayingView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(trackTitle(for: station))
-                .font(.system(size: 25, weight: .black, design: .rounded))
+                .font(.system(size: compact ? 21 : 25, weight: .black, design: .rounded))
                 .foregroundStyle(AvradioTheme.textInverse)
                 .multilineTextAlignment(.leading)
-                .lineLimit(3)
+                .lineLimit(compact ? 2 : 3)
                 .minimumScaleFactor(0.82)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if let albumTitle = audioPlayer.currentTrackAlbumTitle {
                 Text(albumTitle)
-                    .font(.body)
+                    .font(compact ? .subheadline : .body)
                     .foregroundStyle(AvradioTheme.textInverse.opacity(0.74))
                     .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                    .padding(.top, 2)
+                    .lineLimit(compact ? 1 : 2)
+                    .padding(.top, compact ? 0 : 2)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(L10n.string("player.fromStation", station.name))
-                    .font(.body)
+                    .font(compact ? .subheadline : .body)
                     .foregroundStyle(AvradioTheme.textInverse.opacity(0.68))
                     .multilineTextAlignment(.leading)
                     .lineLimit(1)
-                    .padding(.top, 2)
+                    .padding(.top, compact ? 0 : 2)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .frame(width: contentWidth, alignment: .leading)
-        .frame(minHeight: 126, alignment: .topLeading)
+        .frame(minHeight: minHeight, alignment: .topLeading)
     }
 
-    private func transportSection(contentWidth: CGFloat) -> some View {
-        HStack(spacing: 18) {
-            compactTransportButton(systemImage: "backward.fill", action: playPreviousStation)
+    private func playerControls(contentWidth: CGFloat, compact: Bool) -> some View {
+        VStack(spacing: compact ? 10 : 14) {
+            transportSection(contentWidth: contentWidth, compact: compact)
+
+            if shouldShowStatusRow {
+                statusRow(contentWidth: contentWidth)
+            }
+
+            retrySection
+        }
+    }
+
+    private func transportSection(contentWidth: CGFloat, compact: Bool) -> some View {
+        let sideButtonSize: CGFloat = compact ? 52 : 60
+        let primaryButtonSize: CGFloat = compact ? 84 : 96
+
+        return HStack(spacing: compact ? 14 : 18) {
+            compactTransportButton(systemImage: "backward.fill", size: sideButtonSize, compact: compact, action: playPreviousStation)
                 .disabled(!canCycleStations)
 
             Button {
                 audioPlayer.togglePlayback()
             } label: {
                 Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: compact ? 28 : 32, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 96, height: 96)
+                    .frame(width: primaryButtonSize, height: primaryButtonSize)
                     .background(AvradioTheme.signalGradient, in: Circle())
                     .shadow(color: AvradioTheme.highlight.opacity(0.25), radius: 18, y: 10)
             }
@@ -294,12 +457,12 @@ struct NowPlayingView: View {
             .accessibilityLabel(audioPlayer.isPlaying ? L10n.string("player.control.pause") : L10n.string("player.control.play"))
             .accessibilityIdentifier("player.transport.playPause")
 
-            compactTransportButton(systemImage: "forward.fill", action: playNextStation)
+            compactTransportButton(systemImage: "forward.fill", size: sideButtonSize, compact: compact, action: playNextStation)
                 .disabled(!canCycleStations)
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.horizontal, compact ? 14 : 18)
+        .padding(.vertical, compact ? 10 : 14)
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .fill(Color.white.opacity(0.06))
@@ -369,12 +532,12 @@ struct NowPlayingView: View {
         .buttonStyle(.plain)
     }
 
-    private func compactTransportButton(systemImage: String, action: @escaping () -> Void) -> some View {
+    private func compactTransportButton(systemImage: String, size: CGFloat, compact: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: compact ? 20 : 22, weight: .bold))
                 .foregroundStyle(canCycleStations ? AvradioTheme.textInverse : AvradioTheme.textInverse.opacity(0.36))
-                .frame(width: 60, height: 60)
+                .frame(width: size, height: size)
                 .background(Color.white.opacity(0.08), in: Circle())
         }
         .buttonStyle(.plain)
@@ -382,16 +545,78 @@ struct NowPlayingView: View {
         .overlay {
             Circle()
                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                .frame(width: 60, height: 60)
+                .frame(width: size, height: size)
         }
     }
 
-    private func playerContentWidth(in proxy: GeometryProxy) -> CGFloat {
-        min(proxy.size.width - (playerHorizontalPadding * 2), playerMaxContentWidth)
+    private func playerContentWidth(in proxy: GeometryProxy, isLandscape: Bool, horizontalInsets: EdgeInsets) -> CGFloat {
+        let availableWidth = proxy.size.width - horizontalInsets.leading - horizontalInsets.trailing
+        let maxWidth = isLandscape ? playerMaxLandscapeContentWidth : playerMaxContentWidth
+        return min(availableWidth, maxWidth)
     }
 
-    private func playerTopInset(in proxy: GeometryProxy) -> CGFloat {
-        max(64, proxy.safeAreaInsets.top + 10)
+    private func playerHorizontalInsets(in proxy: GeometryProxy, isLandscape: Bool) -> EdgeInsets {
+        let horizontalPadding = isLandscape ? playerLandscapeHorizontalPadding : playerHorizontalPadding
+
+        return EdgeInsets(
+            top: 0,
+            leading: horizontalPadding,
+            bottom: 0,
+            trailing: horizontalPadding
+        )
+    }
+
+    private func playerTopInset(in proxy: GeometryProxy, isLandscape: Bool) -> CGFloat {
+        if isLandscape {
+            return 6
+        }
+
+        return 10
+    }
+
+    private func playerBottomInset(
+        in proxy: GeometryProxy,
+        isLandscape: Bool,
+        horizontalInsets: EdgeInsets,
+        contentWidth: CGFloat
+    ) -> CGFloat {
+        if isLandscape {
+            return 28
+        }
+
+        return 0
+    }
+
+    private func playerContentHeight(
+        in proxy: GeometryProxy,
+        isLandscape: Bool,
+        topInset: CGFloat,
+        bottomInset: CGFloat
+    ) -> CGFloat {
+        let headerAllowance: CGFloat = isLandscape ? 84 : 72
+        return max(proxy.size.height - topInset - bottomInset - headerAllowance, 240)
+    }
+
+    private func usesLandscapeLayout(in proxy: GeometryProxy) -> Bool {
+        if let verticalSizeClass {
+            return verticalSizeClass == .compact
+        }
+
+        return proxy.size.width > proxy.size.height
+    }
+
+    private func isCompactPlayer(in proxy: GeometryProxy, isLandscape: Bool) -> Bool {
+        isLandscape || proxy.size.height < 780
+    }
+
+    private func portraitArtworkSize(in proxy: GeometryProxy, contentWidth: CGFloat, compact: Bool) -> CGFloat {
+        return contentWidth
+    }
+
+    private func landscapeArtworkSize(in proxy: GeometryProxy, contentWidth: CGFloat) -> CGFloat {
+        let maxHeight = max(proxy.size.height - playerTopInset(in: proxy, isLandscape: true) - 150, 190)
+        let preferredWidth = contentWidth * 0.34
+        return min(maxHeight, min(preferredWidth, 280))
     }
 
     private var emptyState: some View {
@@ -459,6 +684,11 @@ struct NowPlayingView: View {
         return URL(string: homepage)
     }
 
+    private func stationArtworkURL(for station: Station) -> URL? {
+        guard let artwork = station.displayArtworkURL else { return nil }
+        return artwork
+    }
+
     private var canCycleStations: Bool {
         audioPlayer.canCyclePlaybackQueue
     }
@@ -484,6 +714,57 @@ struct NowPlayingView: View {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
             horizontalDragOffset = 0
         }
+    }
+}
+
+private struct LandscapeNowPlayingRowLayout: Layout {
+    let artworkSize: CGFloat
+    let spacing: CGFloat
+    let summaryHeight: CGFloat
+    let controlsBottomNudge: CGFloat = 44
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout Void
+    ) -> CGSize {
+        CGSize(width: proposal.width ?? (artworkSize + spacing), height: artworkSize)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout Void
+    ) {
+        guard subviews.count >= 3 else { return }
+
+        let artworkProposal = ProposedViewSize(width: artworkSize, height: artworkSize)
+        let detailX = bounds.minX + artworkSize + spacing
+        let detailWidth = max(bounds.width - artworkSize - spacing, 0)
+
+        subviews[0].place(
+            at: CGPoint(x: bounds.minX, y: bounds.minY),
+            anchor: .topLeading,
+            proposal: artworkProposal
+        )
+
+        subviews[1].place(
+            at: CGPoint(x: detailX, y: bounds.minY),
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: detailWidth, height: summaryHeight)
+        )
+
+        let controlsSize = subviews[2].sizeThatFits(
+            ProposedViewSize(width: detailWidth, height: nil)
+        )
+        let controlsY = max(bounds.minY, bounds.maxY - controlsSize.height + controlsBottomNudge)
+
+        subviews[2].place(
+            at: CGPoint(x: detailX, y: controlsY),
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: detailWidth, height: controlsSize.height)
+        )
     }
 }
 

@@ -11,6 +11,8 @@ struct StationArtworkView: View {
     var surfaceStyle: SurfaceStyle = .light
     var contentInsetRatio: CGFloat = 0.16
     var cornerRadiusRatio: CGFloat = 0.24
+    var stageWidthRatio: CGFloat = 0.76
+    var stageHeightRatio: CGFloat = 0.62
 
     var body: some View {
         ZStack {
@@ -102,11 +104,11 @@ struct StationArtworkView: View {
     }
 
     private var artworkStageWidth: CGFloat {
-        size * 0.76
+        size * stageWidthRatio
     }
 
     private var artworkStageHeight: CGFloat {
-        size * 0.62
+        size * stageHeightRatio
     }
 
     private var backgroundGradient: LinearGradient {
