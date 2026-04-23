@@ -7,5 +7,6 @@ AVRADIO_SUPPORT_EMAIL = $(inherited)
 AVRADIO_ACCOUNT_MANAGEMENT_URL = $(inherited)
 AVRADIO_TERMS_URL = $(inherited)
 AVRADIO_PRIVACY_URL = $(inherited)
+AVRADIO_OPEN_SOURCE_URL = $(inherited)
 
 #include? "Local.xcconfig"

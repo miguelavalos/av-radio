@@ -1,4 +1,3 @@
-import StoreKit
 import SwiftUI
 
 struct ProfileScreen: View {
@@ -16,13 +15,6 @@ struct ProfileScreen: View {
     @State private var isSigningOut = false
     @State private var signOutErrorMessage = ""
     @State private var isShowingSignOutError = false
-    @State private var isShowingManageSubscriptions = false
-    @State private var isPurchasingSubscription = false
-    @State private var isRestoringPurchases = false
-    @State private var subscriptionMessage = ""
-    @State private var isShowingSubscriptionMessage = false
-    @State private var purchasingProductID: String?
-
     private let genreTags = ["rock", "pop", "jazz", "news", "electronic", "ambient"]
 
     var body: some View {
@@ -41,7 +33,6 @@ struct ProfileScreen: View {
                 }
 
                 accountManagementCard
-                subscriptionCard
                 profileSummaryCard
                 appPreferencesCard
                 localDataCard
@@ -56,7 +47,6 @@ struct ProfileScreen: View {
         }
         .scrollIndicators(.hidden)
         .background(AvradioTheme.shellBackground.ignoresSafeArea())
-        .manageSubscriptionsSheet(isPresented: $isShowingManageSubscriptions)
         .alert(L10n.string("profile.alert.clearData.title"), isPresented: $isShowingClearLocalDataAlert) {
             Button(L10n.string("profile.alert.clearData.cancel"), role: .cancel) {}
             Button(L10n.string("profile.alert.clearData.confirm"), role: .destructive) {
@@ -74,11 +64,6 @@ struct ProfileScreen: View {
             Button(L10n.string("profile.alert.close"), role: .cancel) {}
         } message: {
             Text(signOutErrorMessage)
-        }
-        .alert(L10n.string("profile.alert.subscription.title"), isPresented: $isShowingSubscriptionMessage) {
-            Button(L10n.string("profile.alert.close"), role: .cancel) {}
-        } message: {
-            Text(subscriptionMessage)
         }
     }
 
@@ -177,94 +162,6 @@ struct ProfileScreen: View {
         .background(profileCardBackground)
     }
 
-    private var subscriptionCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            sectionHeader(
-                title: L10n.string("profile.subscription.title"),
-                subtitle: L10n.string("profile.subscription.subtitle")
-            )
-
-            VStack(alignment: .leading, spacing: 12) {
-                ShellRow(
-                    systemImage: "creditcard",
-                    title: L10n.string("profile.subscription.status.title"),
-                    detail: subscriptionStatusDetail
-                )
-                ShellRow(
-                    systemImage: "apple.logo",
-                    title: L10n.string("profile.subscription.manageSource.title"),
-                    detail: L10n.string("profile.subscription.manageSource.detail")
-                )
-            }
-
-            if accessController.accessMode == .guest {
-                ProfileSecondaryButton(
-                    title: L10n.string("profile.subscription.connect"),
-                    action: { startSignInFlow(true) }
-                )
-                .disabled(!accessController.accountIsAvailable)
-            } else if accessController.planTier == .free {
-                if accessController.subscriptionProductsAreLoading {
-                    ShellRow(
-                        systemImage: "clock.arrow.circlepath",
-                        title: L10n.string("profile.subscription.loading.title"),
-                        detail: L10n.string("profile.subscription.loading.detail")
-                    )
-                } else if !accessController.subscriptionProducts.isEmpty {
-                    VStack(spacing: 12) {
-                        ForEach(accessController.subscriptionProducts) { product in
-                            SubscriptionOfferCard(
-                                product: product,
-                                isLoading: purchasingProductID == product.id,
-                                action: {
-                                    Task { await purchaseSubscription(productID: product.id) }
-                                }
-                            )
-                            .disabled(isPurchasingSubscription || isRestoringPurchases)
-                        }
-                    }
-                }
-
-                ProfileSecondaryButton(
-                    title: isRestoringPurchases
-                        ? L10n.string("profile.subscription.restoring")
-                        : L10n.string("profile.subscription.restore"),
-                    isLoading: isRestoringPurchases,
-                    action: {
-                        Task { await restorePurchases() }
-                    }
-                )
-                .disabled(!accessController.subscriptionIsAvailable || isPurchasingSubscription || isRestoringPurchases)
-            } else {
-                ProfilePrimaryButton(
-                    title: L10n.string("profile.subscription.manage"),
-                    action: { isShowingManageSubscriptions = true }
-                )
-
-                ProfileSecondaryButton(
-                    title: isRestoringPurchases
-                        ? L10n.string("profile.subscription.restoring")
-                        : L10n.string("profile.subscription.restore"),
-                    isLoading: isRestoringPurchases,
-                    action: {
-                        Task { await restorePurchases() }
-                    }
-                )
-                .disabled(!accessController.subscriptionIsAvailable || isRestoringPurchases || isPurchasingSubscription)
-            }
-
-            if !accessController.subscriptionIsAvailable {
-                ShellRow(
-                    systemImage: "info.circle",
-                    title: L10n.string("profile.subscription.unavailable.title"),
-                    detail: L10n.string("profile.subscription.unavailable.detail")
-                )
-            }
-        }
-        .padding(22)
-        .background(profileCardBackground)
-    }
-
     private var appPreferencesCard: some View {
         VStack(alignment: .leading, spacing: 18) {
             sectionHeader(
@@ -278,13 +175,7 @@ struct ProfileScreen: View {
                 detail: L10n.string("profile.preferences.language.detail")
             )
 
-            Picker(L10n.string("profile.preferences.language.title"), selection: languageSelection) {
-                ForEach(AppLanguage.allCases) { language in
-                    Text(language.displayName)
-                        .tag(language)
-                }
-            }
-            .pickerStyle(.menu)
+            languageSelector
 
             if accessController.accessMode == .guest {
                 ShellRow(
@@ -323,13 +214,7 @@ struct ProfileScreen: View {
                 detail: L10n.string("profile.preferences.theme.detail")
             )
 
-            Picker(L10n.string("profile.preferences.theme.title"), selection: themeSelection) {
-                ForEach(AppTheme.allCases) { theme in
-                    Text(themeLabel(for: theme))
-                        .tag(theme)
-                }
-            }
-            .pickerStyle(.segmented)
+            themeSelector
         }
         .padding(22)
         .background(profileCardBackground)
@@ -392,6 +277,21 @@ struct ProfileScreen: View {
             )
 
             VStack(spacing: 12) {
+                ShellRow(
+                    systemImage: "chevron.left.forwardslash.chevron.right",
+                    title: L10n.string("profile.help.opensource.title"),
+                    detail: L10n.string("profile.help.opensource.detail")
+                )
+
+                if let openSourceURL = AppConfig.openSourceURL {
+                    ProfileActionRow(
+                        systemImage: "book.pages",
+                        title: L10n.string("profile.help.sourceCode.title"),
+                        detail: L10n.string("profile.help.sourceCode.detail"),
+                        action: { open(openSourceURL) }
+                    )
+                }
+
                 if let supportURL = AppConfig.supportURL {
                     ProfileActionRow(
                         systemImage: "questionmark.bubble",
@@ -517,17 +417,6 @@ struct ProfileScreen: View {
         }
     }
 
-    private var subscriptionStatusDetail: String {
-        switch accessController.accessMode {
-        case .guest:
-            L10n.string("profile.subscription.status.guest")
-        case .signedInFree:
-            L10n.string("profile.subscription.status.free")
-        case .signedInPro:
-            L10n.string("profile.subscription.status.pro")
-        }
-    }
-
     private var languageSelection: Binding<AppLanguage> {
         Binding(
             get: { languageController.currentLanguage },
@@ -547,6 +436,67 @@ struct ProfileScreen: View {
             get: { themeController.currentTheme },
             set: { themeController.select($0) }
         )
+    }
+
+    private var languageSelector: some View {
+        Menu {
+            ForEach(AppLanguage.allCases) { language in
+                Button {
+                    languageSelection.wrappedValue = language
+                } label: {
+                    if languageController.currentLanguage == language {
+                        Label {
+                            Text("\(language.displayName) (\(language.autonym))")
+                        } icon: {
+                            Image(systemName: "checkmark")
+                        }
+                    } else {
+                        Text("\(language.displayName) (\(language.autonym))")
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(languageController.currentLanguage.displayName)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(AvradioTheme.textPrimary)
+
+                    Text(languageController.currentLanguage.autonym)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AvradioTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(AvradioTheme.highlight)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(AvradioTheme.mutedSurface)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+            }
+        }
+    }
+
+    private var themeSelector: some View {
+        HStack(spacing: 10) {
+            ForEach(AppTheme.allCases) { theme in
+                ThemeOptionButton(
+                    title: themeLabel(for: theme),
+                    systemImage: themeSymbol(for: theme),
+                    isSelected: themeController.currentTheme == theme,
+                    action: { themeSelection.wrappedValue = theme }
+                )
+            }
+        }
     }
 
     private var preferredGenreLabel: String {
@@ -569,6 +519,17 @@ struct ProfileScreen: View {
         }
     }
 
+    private func themeSymbol(for theme: AppTheme) -> String {
+        switch theme {
+        case .system:
+            "circle.lefthalf.filled"
+        case .light:
+            "sun.max"
+        case .dark:
+            "moon.fill"
+        }
+    }
+
     private func open(_ url: URL?) {
         guard let url else { return }
         openURL(url)
@@ -586,53 +547,6 @@ struct ProfileScreen: View {
         }
 
         isSigningOut = false
-    }
-
-    private func purchaseSubscription(productID: String) async {
-        guard !isPurchasingSubscription else { return }
-        isPurchasingSubscription = true
-        purchasingProductID = productID
-
-        do {
-            let outcome = try await accessController.purchasePro(productID: productID)
-            switch outcome {
-            case .purchased:
-                subscriptionMessage = L10n.string("profile.subscription.message.purchased")
-                isShowingSubscriptionMessage = true
-            case .pending:
-                subscriptionMessage = L10n.string("profile.subscription.message.pending")
-                isShowingSubscriptionMessage = true
-            case .cancelled:
-                break
-            }
-        } catch {
-            subscriptionMessage = error.localizedDescription
-            isShowingSubscriptionMessage = true
-        }
-
-        isPurchasingSubscription = false
-        purchasingProductID = nil
-    }
-
-    private func restorePurchases() async {
-        guard !isRestoringPurchases else { return }
-        isRestoringPurchases = true
-
-        do {
-            let outcome = try await accessController.restorePurchases()
-            switch outcome {
-            case .restored:
-                subscriptionMessage = L10n.string("profile.subscription.message.restored")
-            case .nothingToRestore:
-                subscriptionMessage = L10n.string("profile.subscription.message.nothingToRestore")
-            }
-            isShowingSubscriptionMessage = true
-        } catch {
-            subscriptionMessage = error.localizedDescription
-            isShowingSubscriptionMessage = true
-        }
-
-        isRestoringPurchases = false
     }
 }
 
@@ -786,50 +700,34 @@ private struct ProfileActionRow: View {
     }
 }
 
-private struct SubscriptionOfferCard: View {
-    let product: SubscriptionProduct
-    let isLoading: Bool
+private struct ThemeOptionButton: View {
+    let title: String
+    let systemImage: String
+    let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .center, spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(product.displayName)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(AvradioTheme.textPrimary)
+            VStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(isSelected ? AvradioTheme.highlight : AvradioTheme.textSecondary)
 
-                    Text(product.billingPeriod ?? L10n.string("profile.subscription.period.fallback"))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(AvradioTheme.textSecondary)
-                }
-
-                Spacer()
-
-                if isLoading {
-                    ProgressView()
-                        .tint(AvradioTheme.textPrimary)
-                } else {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(product.displayPrice)
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(AvradioTheme.textPrimary)
-
-                        Text(L10n.string("profile.subscription.subscribe"))
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(AvradioTheme.textSecondary)
-                    }
-                }
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+                    .lineLimit(1)
             }
-            .padding(18)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(AvradioTheme.highlight.opacity(0.16))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .stroke(AvradioTheme.highlight.opacity(0.26), lineWidth: 1)
-                    }
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(isSelected ? AvradioTheme.highlight.opacity(0.1) : AvradioTheme.mutedSurface)
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(isSelected ? AvradioTheme.highlight.opacity(0.35) : AvradioTheme.borderSubtle, lineWidth: 1)
+            }
         }
         .buttonStyle(.plain)
     }

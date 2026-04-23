@@ -86,7 +86,11 @@
 "profile.displayName.local" = "Local listener";
 "profile.help.privacy.detail" = "See how AV Radio handles your data.";
 "profile.help.privacy.title" = "Privacy policy";
-"profile.help.subtitle" = "Open support, privacy, and terms from here.";
+"profile.help.opensource.detail" = "AV Radio is maintained as an independent open-source project.";
+"profile.help.opensource.title" = "Open-source project";
+"profile.help.sourceCode.detail" = "Browse the repository, issues, and contribution guidelines.";
+"profile.help.sourceCode.title" = "Source code";
+"profile.help.subtitle" = "Open the project links, support, privacy, and terms from here.";
 "profile.help.support.detail" = "Email AV Radio support.";
 "profile.help.support.title" = "Contact support";
 "profile.help.terms.detail" = "Review the terms that apply to AV Radio.";

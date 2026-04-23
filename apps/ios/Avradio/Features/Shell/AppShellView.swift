@@ -877,9 +877,6 @@ private struct HomeScreen: View {
     }
 
     private var featuredSource: FeaturedSource? {
-        if !recentStations.isEmpty {
-            return .recent
-        }
         if !favoriteStations.isEmpty {
             return .favorite
         }
@@ -892,7 +889,7 @@ private struct HomeScreen: View {
     private var featuredStation: Station? {
         switch featuredSource {
         case .recent:
-            return recentStations.first
+            return nil
         case .favorite:
             return favoriteStations.first
         case .popular:
@@ -907,7 +904,7 @@ private struct HomeScreen: View {
     }
 
     private var displayedRecentStations: [Station] {
-        filteredStationsExcludingFeatured(from: recentStations)
+        recentStations
     }
 
     private var displayedFavoriteStations: [Station] {
@@ -949,7 +946,9 @@ private struct HomeScreen: View {
 
     private var featuredLabel: String {
         switch featuredSource {
-        case .recent, .favorite:
+        case .recent:
+            return L10n.string("shell.home.featured.frontPage").uppercased(with: .current)
+        case .favorite:
             return L10n.string("shell.home.featured.frontPage").uppercased(with: .current)
         case .popular, .none:
             break

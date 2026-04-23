@@ -25,6 +25,21 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         }
     }
 
+    var autonym: String {
+        switch self {
+        case .english:
+            "English"
+        case .spanish:
+            "Español"
+        case .french:
+            "Français"
+        case .german:
+            "Deutsch"
+        case .catalan:
+            "Català"
+        }
+    }
+
     var locale: Locale {
         Locale(identifier: rawValue)
     }
