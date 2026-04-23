@@ -4,9 +4,11 @@ struct StationService {
     struct SearchFilters {
         var query: String
         var country: String = ""
+        var countryCode: String = ""
         var language: String = ""
         var tag: String = ""
         var limit: Int = 30
+        var allowsEmptySearch: Bool = false
     }
 
     enum StationServiceError: LocalizedError {
@@ -30,10 +32,11 @@ struct StationService {
     func searchStations(filters: SearchFilters) async throws -> [Station] {
         let trimmedQuery = filters.query.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCountry = filters.country.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCountryCode = filters.countryCode.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedLanguage = filters.language.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedTag = filters.tag.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !trimmedQuery.isEmpty || !trimmedCountry.isEmpty || !trimmedLanguage.isEmpty || !trimmedTag.isEmpty else {
+        guard filters.allowsEmptySearch || !trimmedQuery.isEmpty || !trimmedCountry.isEmpty || !trimmedCountryCode.isEmpty || !trimmedLanguage.isEmpty || !trimmedTag.isEmpty else {
             return []
         }
 
@@ -41,6 +44,7 @@ struct StationService {
         components?.queryItems = [
             URLQueryItem(name: "name", value: trimmedQuery.isEmpty ? nil : trimmedQuery),
             URLQueryItem(name: "country", value: trimmedCountry.isEmpty ? nil : trimmedCountry),
+            URLQueryItem(name: "countrycode", value: trimmedCountryCode.isEmpty ? nil : trimmedCountryCode),
             URLQueryItem(name: "language", value: trimmedLanguage.isEmpty ? nil : trimmedLanguage),
             URLQueryItem(name: "tag", value: trimmedTag.isEmpty ? nil : trimmedTag),
             URLQueryItem(name: "hidebroken", value: "true"),

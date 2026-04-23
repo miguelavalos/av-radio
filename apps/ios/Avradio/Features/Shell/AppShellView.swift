@@ -12,13 +12,14 @@ struct AppShellView: View {
     @State private var isShowingNowPlaying = false
     @State private var searchQuery: String
     @State private var searchTag: String?
+    @State private var searchCountryCode: String?
     @State private var searchResults: [Station] = []
     @State private var searchIsLoading = false
     @State private var searchErrorMessage: String?
-    @State private var homeTag: String?
     @State private var homeStations: [Station] = []
     @State private var homeIsLoading = false
     @State private var homeErrorMessage: String?
+    @State private var homeFeedContext: HomeFeedContext = .popularWorldwide
     @State private var selectedStation: Station?
     @State private var didBootstrap = false
 
@@ -77,7 +78,7 @@ struct AppShellView: View {
         .task {
             await bootstrapIfNeeded()
         }
-        .task(id: homeTag) {
+        .task {
             await refreshHomeFeed()
         }
         .task(id: searchRequestKey) {
@@ -86,12 +87,6 @@ struct AppShellView: View {
         .onChange(of: audioPlayer.currentStation?.id) { _, stationID in
             guard stationID != nil, let station = audioPlayer.currentStation else { return }
             libraryStore.recordPlayback(of: station)
-        }
-        .onChange(of: accessController.accessMode) { _, newMode in
-            applyConnectedAccountHomePreference(for: newMode)
-        }
-        .onChange(of: libraryStore.settings.preferredTag) { _, _ in
-            applyConnectedAccountHomePreference(for: accessController.accessMode)
         }
     }
 
@@ -103,12 +98,11 @@ struct AppShellView: View {
                 stations: homeStations,
                 isLoading: homeIsLoading,
                 errorMessage: homeErrorMessage,
-                activeTag: homeTag,
-                tags: genreTags,
                 recentStations: recentStations,
+                favoriteStations: favoriteStations,
+                feedContext: homeFeedContext,
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
-                toggleTag: toggleHomeTag,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
                 showStationDetails: { selectedStation = $0 }
@@ -117,6 +111,7 @@ struct AppShellView: View {
             SearchScreen(
                 query: $searchQuery,
                 activeTag: $searchTag,
+                selectedCountryCode: $searchCountryCode,
                 results: searchResults,
                 isLoading: searchIsLoading,
                 errorMessage: searchErrorMessage,
@@ -158,7 +153,7 @@ struct AppShellView: View {
     }
 
     private var searchRequestKey: String {
-        "\(searchQuery.trimmingCharacters(in: .whitespacesAndNewlines))|\(searchTag ?? "")"
+        "\(searchQuery.trimmingCharacters(in: .whitespacesAndNewlines))|\(searchTag ?? "")|\(searchCountryCode ?? "")"
     }
 
     private var shellScrollBottomPadding: CGFloat {
@@ -172,7 +167,6 @@ struct AppShellView: View {
         didBootstrap = true
 
         audioPlayer.setSleepTimer(minutes: libraryStore.settings.sleepTimerMinutes)
-        applyConnectedAccountHomePreference(for: accessController.accessMode)
 
         if let preferredTab = launchContext.preferredTab {
             switch preferredTab {
@@ -202,51 +196,37 @@ struct AppShellView: View {
         }
     }
 
-    private func toggleHomeTag(_ tag: String) {
-        homeTag = homeTag == tag ? nil : tag
-    }
-
-    private func applyConnectedAccountHomePreference(for accessMode: AccessMode) {
-        let preferredTag = libraryStore.settings.preferredTag
-
-        guard accessMode != .guest else {
-            if homeTag == preferredTag {
-                homeTag = nil
-            }
-            return
-        }
-
-        guard !preferredTag.isEmpty else { return }
-        guard homeTag == nil || homeTag == preferredTag else { return }
-        homeTag = preferredTag
-    }
-
     private func playStation(_ station: Station) {
         audioPlayer.play(station: station)
         libraryStore.recordPlayback(of: station)
     }
 
     private func refreshHomeFeed() async {
-        guard let homeTag, !homeTag.isEmpty else {
-            homeStations = defaultEditorialStations
-            homeIsLoading = false
-            homeErrorMessage = nil
-            return
-        }
-
         homeIsLoading = true
         homeErrorMessage = nil
 
         do {
-            homeStations = try await stationService.searchStations(
-                filters: .init(query: "", tag: homeTag, limit: 8)
+            let regionCode = resolvedDeviceCountryCode()
+            let regionalStations = try await stationService.searchStations(
+                filters: .init(query: "", countryCode: regionCode ?? "", limit: 8, allowsEmptySearch: regionCode == nil ? false : true)
             )
+            let globalStations = try await stationService.searchStations(
+                filters: .init(query: "", limit: 8, allowsEmptySearch: true)
+            )
+
+            homeStations = mergeUniqueStations(primary: regionalStations, secondary: globalStations, limit: 8)
+            if let regionCode, !regionalStations.isEmpty {
+                homeFeedContext = .popularInCountry(localizedCountryName(for: regionCode))
+            } else {
+                homeFeedContext = .popularWorldwide
+            }
             homeIsLoading = false
         } catch is CancellationError {
             homeIsLoading = false
         } catch {
-            homeStations = []
-            homeErrorMessage = L10n.string("shell.error.home")
+            homeStations = defaultEditorialStations
+            homeFeedContext = .popularWorldwide
+            homeErrorMessage = defaultEditorialStations.isEmpty ? L10n.string("shell.error.home") : nil
             homeIsLoading = false
         }
     }
@@ -254,14 +234,8 @@ struct AppShellView: View {
     private func loadSearchResults() async {
         let queryText = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         let tagText = searchTag?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let requestKey = "\(queryText)|\(tagText ?? "")"
-
-        guard !queryText.isEmpty || tagText != nil else {
-            searchResults = []
-            searchErrorMessage = nil
-            searchIsLoading = false
-            return
-        }
+        let countryCode = searchCountryCode?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let requestKey = "\(queryText)|\(tagText ?? "")|\(countryCode ?? "")"
 
         searchIsLoading = true
         searchErrorMessage = nil
@@ -270,9 +244,21 @@ struct AppShellView: View {
             try await Task.sleep(for: .milliseconds(300))
             try Task.checkCancellation()
 
-            let results = try await stationService.searchStations(
-                filters: .init(query: queryText, tag: tagText ?? "", limit: queryText.isEmpty ? 12 : 24)
-            )
+            let results: [Station]
+
+            if queryText.isEmpty && (tagText?.isEmpty != false) && (countryCode?.isEmpty != false) {
+                results = try await loadWorldwideDiscoveryStations(limit: 12)
+            } else {
+                results = try await stationService.searchStations(
+                    filters: .init(
+                        query: queryText,
+                        countryCode: countryCode ?? "",
+                        tag: tagText ?? "",
+                        limit: queryText.isEmpty ? 12 : 24,
+                        allowsEmptySearch: queryText.isEmpty
+                    )
+                )
+            }
             guard requestKey == searchRequestKey else { return }
 
             searchResults = results
@@ -301,6 +287,96 @@ struct AppShellView: View {
             seen.insert(station.id).inserted
         }
     }
+
+    private func resolvedDeviceCountryCode() -> String? {
+        let code = Locale.autoupdatingCurrent.region?.identifier ?? Locale.current.region?.identifier
+        guard let code, !code.isEmpty else { return nil }
+        return code.uppercased()
+    }
+
+    private func localizedCountryName(for countryCode: String) -> String {
+        L10n.countryName(for: countryCode)
+    }
+
+    private func mergeUniqueStations(primary: [Station], secondary: [Station], limit: Int) -> [Station] {
+        var seen = Set<String>()
+        var merged: [Station] = []
+
+        for station in primary + secondary {
+            guard seen.insert(station.id).inserted else { continue }
+            merged.append(station)
+            if merged.count == limit {
+                break
+            }
+        }
+
+        return merged
+    }
+
+    private func loadWorldwideDiscoveryStations(limit: Int) async throws -> [Station] {
+        let seedCountryCodes =
+            [resolvedDeviceCountryCode()] +
+            recentStations.compactMap(\.countryCode) +
+            favoriteStations.compactMap(\.countryCode) +
+            ["US", "GB", "DE", "FR", "IT", "ES", "NL", "CA", "AU", "BR", "MX", "AR"]
+
+        var orderedCodes: [String] = []
+        var seenCodes = Set<String>()
+        for code in seedCountryCodes.compactMap(CountryOption.sanitizedCode) where seenCodes.insert(code).inserted {
+            orderedCodes.append(code)
+        }
+
+        var merged: [Station] = []
+        for code in orderedCodes {
+            let stations = try await stationService.searchStations(
+                filters: .init(query: "", countryCode: code, limit: 4, allowsEmptySearch: true)
+            )
+            merged = mergeUniqueStations(
+                primary: merged,
+                secondary: stations.filter(hasResolvedCountry),
+                limit: limit
+            )
+
+            if merged.count >= limit {
+                break
+            }
+        }
+
+        return Array(merged.prefix(limit))
+    }
+
+    private func hasResolvedCountry(_ station: Station) -> Bool {
+        if CountryOption.sanitizedCode(station.countryCode) != nil {
+            return true
+        }
+
+        let country = station.country.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !country.isEmpty else { return false }
+
+        let normalizedCountry = country
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+        let unknownCountryTokens = [
+            L10n.string("stationService.fallback.unknownCountry"),
+            "Unknown country",
+            "País desconocido",
+            "País desconegut",
+            "Pays inconnu",
+            "Unbekanntes Land"
+        ]
+        .map {
+            $0
+                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+                .lowercased()
+        }
+
+        return !unknownCountryTokens.contains(normalizedCountry)
+    }
+}
+
+private enum HomeFeedContext: Equatable {
+    case popularInCountry(String)
+    case popularWorldwide
 }
 
 private enum AppShellTab: Equatable {
@@ -483,12 +559,11 @@ private struct HomeScreen: View {
     let stations: [Station]
     let isLoading: Bool
     let errorMessage: String?
-    let activeTag: String?
-    let tags: [String]
     let recentStations: [Station]
+    let favoriteStations: [Station]
+    let feedContext: HomeFeedContext
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
-    let toggleTag: (String) -> Void
     let playStation: (Station) -> Void
     let toggleFavorite: (Station) -> Void
     let showStationDetails: (Station) -> Void
@@ -508,8 +583,6 @@ private struct HomeScreen: View {
                         .foregroundStyle(AvradioTheme.textSecondary)
                 }
 
-                GenreTagStrip(tags: tags, activeTag: activeTag, toggleTag: toggleTag)
-
                 LiveNowPanel(currentStation: audioPlayer.currentStation, status: audioPlayer.status.label)
 
                 if isLoading && stations.isEmpty {
@@ -522,7 +595,7 @@ private struct HomeScreen: View {
                 } else if let featuredStation = stations.first {
                     FeaturedStationCard(
                         station: featuredStation,
-                        label: activeTag.map { L10n.genreLabel(for: $0).uppercased(with: .current) } ?? L10n.string("shell.home.featured.frontPage").uppercased(with: .current),
+                        label: featuredLabel,
                         subtitle: stationDeck(for: featuredStation),
                         isFavorite: favoriteStationIDs.contains(featuredStation.id),
                         playAction: { playStation(featuredStation) },
@@ -532,12 +605,8 @@ private struct HomeScreen: View {
 
                     if stations.count > 1 {
                         StationSection(
-                            title: activeTag == nil
-                                ? L10n.string("shell.home.section.freshPicks.title")
-                                : L10n.string("shell.home.section.topGenre.title", L10n.genreLabel(for: activeTag ?? "")),
-                            subtitle: activeTag == nil
-                                ? L10n.string("shell.home.section.freshPicks.subtitle")
-                                : L10n.string("shell.home.section.topGenre.subtitle")
+                            title: sectionTitle,
+                            subtitle: sectionSubtitle
                         ) {
                             ForEach(Array(stations.dropFirst())) { station in
                                 StationRowCard(
@@ -570,6 +639,20 @@ private struct HomeScreen: View {
                         }
                     }
                 }
+
+                if !favoriteStations.isEmpty {
+                    StationSection(title: L10n.string("shell.home.favorites.title"), subtitle: L10n.string("shell.home.favorites.subtitle")) {
+                        ForEach(Array(favoriteStations.prefix(6))) { station in
+                            StationRowCard(
+                                station: station,
+                                isFavorite: favoriteStationIDs.contains(station.id),
+                                toggleFavorite: { toggleFavorite(station) },
+                                playAction: { playStation(station) },
+                                detailsAction: { showStationDetails(station) }
+                            )
+                        }
+                    }
+                }
             }
             .padding(24)
             .padding(.bottom, bottomContentPadding)
@@ -579,14 +662,97 @@ private struct HomeScreen: View {
     }
 
     private func stationDeck(for station: Station) -> String {
-        let codec = station.codec ?? L10n.string("shell.station.codec.live")
-        return "\(station.country) · \(station.language) · \(codec)"
+        let language = cleanedFeaturedDetail(station.language)
+        let country = cleanedFeaturedDetail(station.country)
+
+        switch feedContext {
+        case .popularInCountry:
+            if let language, let flag = station.flagEmoji {
+                return "\(flag) \(language)"
+            }
+            if let language {
+                return language
+            }
+            if let flag = station.flagEmoji, let country {
+                return "\(flag) \(country)"
+            }
+            if let country {
+                return country
+            }
+            return L10n.string("shell.station.codec.live")
+        case .popularWorldwide:
+            if let language, let flag = station.flagEmoji {
+                return "\(flag) \(language)"
+            }
+            if let language {
+                return language
+            }
+            if let flag = station.flagEmoji, let country {
+                return "\(flag) \(country)"
+            }
+            if let country {
+                return country
+            }
+            return L10n.string("shell.station.codec.live")
+        }
+    }
+
+    private func cleanedFeaturedDetail(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let normalized = trimmed
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
+            .lowercased()
+
+        let blocked = [
+            L10n.string("stationService.fallback.unknownCountry"),
+            L10n.string("stationService.fallback.unknownLanguage"),
+            "Unknown country",
+            "Unknown language"
+        ]
+        .map {
+            $0
+                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
+                .lowercased()
+        }
+
+        return blocked.contains(normalized) ? nil : trimmed
+    }
+
+    private var featuredLabel: String {
+        switch feedContext {
+        case .popularInCountry(let countryName):
+            return countryName.uppercased(with: .current)
+        case .popularWorldwide:
+            return L10n.string("shell.home.featured.popular").uppercased(with: .current)
+        }
+    }
+
+    private var sectionTitle: String {
+        switch feedContext {
+        case .popularInCountry(let countryName):
+            return L10n.string("shell.home.section.popularCountry.title", countryName)
+        case .popularWorldwide:
+            return L10n.string("shell.home.section.popularWorldwide.title")
+        }
+    }
+
+    private var sectionSubtitle: String {
+        switch feedContext {
+        case .popularInCountry(let countryName):
+            return L10n.string("shell.home.section.popularCountry.subtitle", countryName)
+        case .popularWorldwide:
+            return L10n.string("shell.home.section.popularWorldwide.subtitle")
+        }
     }
 }
 
 private struct SearchScreen: View {
     @Binding var query: String
     @Binding var activeTag: String?
+    @Binding var selectedCountryCode: String?
 
     let results: [Station]
     let isLoading: Bool
@@ -597,6 +763,9 @@ private struct SearchScreen: View {
     let playStation: (Station) -> Void
     let toggleFavorite: (Station) -> Void
     let showStationDetails: (Station) -> Void
+
+    @EnvironmentObject private var libraryStore: LibraryStore
+    @State private var isShowingCountryPicker = false
 
     var body: some View {
         ScrollView {
@@ -614,12 +783,25 @@ private struct SearchScreen: View {
                 }
 
                 SearchField(query: $query)
+                SearchCountryFilterButton(
+                    title: selectedCountryTitle,
+                    flag: selectedCountryFlag,
+                    isActive: selectedCountryCode != nil,
+                    clearAction: clearCountryFilter,
+                    openAction: { isShowingCountryPicker = true }
+                )
                 GenreTagStrip(tags: tags, activeTag: activeTag, toggleTag: toggleTag)
 
                 StationSection(
-                    title: queryText.isEmpty ? L10n.string("shell.search.section.browse.title") : L10n.string("shell.search.section.results.title"),
+                    title: queryText.isEmpty && activeTag == nil && selectedCountryCode != nil
+                        ? L10n.string("shell.search.section.country.title", selectedCountryTitle)
+                        : queryText.isEmpty && activeTag == nil
+                            ? L10n.string("shell.search.section.popularWorldwide.title")
+                        : queryText.isEmpty
+                            ? L10n.string("shell.search.section.browse.title")
+                            : L10n.string("shell.search.section.results.title"),
                     subtitle: queryText.isEmpty
-                        ? L10n.string("shell.search.section.browse.subtitle")
+                        ? browseSubtitle
                         : L10n.plural(
                             singular: "shell.search.results.count.one",
                             plural: "shell.search.results.count.other",
@@ -664,6 +846,13 @@ private struct SearchScreen: View {
         }
         .scrollIndicators(.hidden)
         .background(AvradioTheme.shellBackground.ignoresSafeArea())
+        .sheet(isPresented: $isShowingCountryPicker) {
+            SearchCountryPickerSheet(selectedCountryCode: $selectedCountryCode)
+                .environmentObject(libraryStore)
+        }
+        .onChange(of: selectedCountryCode) { _, newValue in
+            libraryStore.setPreferredCountry(newValue)
+        }
     }
 
     private var queryText: String {
@@ -672,6 +861,36 @@ private struct SearchScreen: View {
 
     private func toggleTag(_ tag: String) {
         activeTag = activeTag == tag ? nil : tag
+    }
+
+    private var selectedCountryTitle: String {
+        guard let selectedCountryCode else {
+            return L10n.string("shell.search.country.all")
+        }
+
+        return L10n.countryName(for: selectedCountryCode)
+    }
+
+    private var browseSubtitle: String {
+        if selectedCountryCode != nil {
+            return L10n.string("shell.search.section.country.subtitle", selectedCountryTitle)
+        }
+
+        if activeTag == nil {
+            return L10n.string("shell.search.section.popularWorldwide.subtitle")
+        }
+
+        return L10n.string("shell.search.section.browse.subtitle")
+    }
+
+    private func clearCountryFilter() {
+        selectedCountryCode = nil
+        libraryStore.setPreferredCountry(nil)
+    }
+
+    private var selectedCountryFlag: String? {
+        guard let selectedCountryCode else { return nil }
+        return CountryOption(code: selectedCountryCode, name: selectedCountryTitle).flag
     }
 }
 
@@ -917,7 +1136,7 @@ private struct LiveNowPanel: View {
     let status: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(L10n.string("shell.liveNow.title"))
                     .font(.system(size: 12, weight: .semibold))
@@ -929,59 +1148,101 @@ private struct LiveNowPanel: View {
                 ShellStatusPill(title: status)
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 Group {
                     if let currentStation {
-                        StationArtworkView(station: currentStation, size: 82)
+                        StationArtworkView(station: currentStation, size: 64, surfaceStyle: .dark)
                     } else {
-                        StationArtworkView(station: Station.samples[0], size: 82)
+                        EmptyLiveArtwork(size: 64)
                     }
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(audioPlayer.currentTrackTitle ?? currentStation?.name ?? L10n.string("shell.liveNow.ready"))
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 19, weight: .bold))
                         .foregroundStyle(AvradioTheme.textInverse)
                         .lineLimit(2)
 
                     if let currentTrackArtist = audioPlayer.currentTrackArtist, !currentTrackArtist.isEmpty {
                         Text(currentTrackArtist)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(AvradioTheme.highlight)
                     }
 
                     Text(audioPlayer.currentTrackAlbumTitle ?? currentStation?.shortMeta ?? L10n.string("shell.liveNow.subtitle.empty"))
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(AvradioTheme.textInverse.opacity(0.72))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AvradioTheme.textInverse.opacity(0.68))
                         .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(3)
                 }
             }
         }
-        .padding(22)
+        .padding(18)
         .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(AvradioTheme.darkSurface)
                 .overlay(alignment: .topTrailing) {
-                    ZStack {
-                        Circle()
-                            .stroke(AvradioTheme.highlight.opacity(0.18), lineWidth: 1)
-                            .frame(width: 140, height: 140)
-                        Circle()
-                            .stroke(AvradioTheme.highlight.opacity(0.08), lineWidth: 1)
-                            .frame(width: 190, height: 190)
-                        Image(systemName: "dot.radiowaves.left.and.right")
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundStyle(AvradioTheme.highlight.opacity(0.85))
-                    }
-                    .padding(.top, 18)
-                    .padding(.trailing, 14)
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(AvradioTheme.highlight.opacity(0.18))
+                        .padding(.top, 18)
+                        .padding(.trailing, 16)
                 }
                 .overlay {
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .stroke(AvradioTheme.borderSubtle.opacity(0.55), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(AvradioTheme.borderSubtle.opacity(0.48), lineWidth: 1)
                 }
         )
-        .shadow(color: AvradioTheme.softShadow, radius: 30, y: 16)
+        .shadow(color: AvradioTheme.softShadow.opacity(0.72), radius: 16, y: 8)
+    }
+}
+
+private struct EmptyLiveArtwork: View {
+    let size: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        AvradioTheme.darkSurface,
+                        AvradioTheme.highlight.opacity(0.04)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .frame(width: size, height: size)
+            .overlay {
+                RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            }
+            .overlay {
+                ZStack {
+                    Circle()
+                        .fill(AvradioTheme.highlight.opacity(0.08))
+                        .frame(width: size * 0.62, height: size * 0.62)
+
+                    HStack(alignment: .bottom, spacing: size * 0.05) {
+                        ForEach([0.28, 0.46, 0.74, 0.46, 0.28], id: \.self) { scale in
+                            Capsule(style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            AvradioTheme.textInverse.opacity(0.45),
+                                            AvradioTheme.highlight.opacity(0.92)
+                                        ],
+                                        startPoint: .bottom,
+                                        endPoint: .top
+                                    )
+                                )
+                                .frame(width: size * 0.07, height: size * CGFloat(scale))
+                        }
+                    }
+                    .frame(height: size * 0.24)
+                }
+            }
+            .shadow(color: AvradioTheme.highlight.opacity(0.07), radius: 10, y: 5)
     }
 }
 
@@ -1017,6 +1278,301 @@ private struct GenreTagStrip: View {
             .padding(.vertical, 1)
         }
     }
+}
+
+private struct SearchCountryFilterButton: View {
+    let title: String
+    let flag: String?
+    let isActive: Bool
+    let clearAction: () -> Void
+    let openAction: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button(action: openAction) {
+                HStack(spacing: 8) {
+                    Image(systemName: "globe.europe.africa")
+                        .font(.system(size: 14, weight: .semibold))
+
+                    Text(L10n.string("shell.search.country.label"))
+                        .font(.system(size: 14, weight: .semibold))
+
+                    if let flag {
+                        Text(flag)
+                            .font(.system(size: 16))
+                    }
+
+                    Text(title)
+                        .font(.system(size: 14, weight: .bold))
+                        .lineLimit(1)
+
+                    Spacer(minLength: 6)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundStyle(isActive ? AvradioTheme.highlight : AvradioTheme.textPrimary)
+                .padding(.horizontal, 16)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(isActive ? AvradioTheme.highlight.opacity(0.08) : AvradioTheme.cardSurface)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(isActive ? AvradioTheme.highlight.opacity(0.22) : AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if isActive {
+                Button(action: clearAction) {
+                    Text(L10n.string("shell.search.country.clear"))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AvradioTheme.highlight)
+                        .padding(.horizontal, 14)
+                        .frame(height: 50)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(AvradioTheme.cardSurface)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+private struct SearchCountryPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var libraryStore: LibraryStore
+
+    @Binding var selectedCountryCode: String?
+
+    @State private var query = ""
+
+    private var countryOptions: [CountryOption] {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else { return CountryOption.all }
+
+        return CountryOption.all.filter { option in
+            option.name.localizedCaseInsensitiveContains(trimmedQuery) ||
+                option.code.localizedCaseInsensitiveContains(trimmedQuery)
+        }
+    }
+
+    private var suggestedCountries: [CountryOption] {
+        let codes =
+            [selectedCountryCode, resolvedDeviceCountryCode()] +
+            libraryStore.recentStations().compactMap(\.countryCode) +
+            libraryStore.favoriteStations().compactMap(\.countryCode) +
+            ["ES", "US", "GB", "FR", "DE", "IT", "MX", "AR"]
+        let lookup = Dictionary(uniqueKeysWithValues: CountryOption.all.map { ($0.code, $0) })
+        var seen = Set<String>()
+
+        return codes
+            .compactMap(CountryOption.sanitizedCode)
+            .filter { seen.insert($0).inserted }
+            .compactMap { lookup[$0] }
+            .prefix(8)
+            .map { $0 }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    SearchField(query: $query, prompt: L10n.string("shell.search.country.searchPrompt"))
+
+                    Button {
+                        selectedCountryCode = nil
+                        dismiss()
+                    } label: {
+                        CountryRow(
+                            title: L10n.string("shell.search.country.all"),
+                            subtitle: L10n.string("shell.search.country.allSubtitle"),
+                            flag: nil,
+                            isSelected: selectedCountryCode == nil
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(L10n.string("shell.search.country.suggested"))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(AvradioTheme.textPrimary)
+
+                            FlowLayout(horizontalSpacing: 10, verticalSpacing: 10) {
+                                ForEach(suggestedCountries) { option in
+                                    Button {
+                                        selectedCountryCode = option.code
+                                        dismiss()
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            if let flag = option.flag {
+                                                Text(flag)
+                                                    .font(.system(size: 17))
+                                            }
+
+                                            Text(option.name)
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .lineLimit(1)
+
+                                            if selectedCountryCode == option.code {
+                                                Image(systemName: "checkmark")
+                                                    .font(.system(size: 11, weight: .bold))
+                                            }
+                                        }
+                                        .foregroundStyle(selectedCountryCode == option.code ? AvradioTheme.highlight : AvradioTheme.textPrimary)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 11)
+                                        .background(
+                                            Capsule(style: .continuous)
+                                                .fill(selectedCountryCode == option.code ? AvradioTheme.highlight.opacity(0.1) : AvradioTheme.cardSurface)
+                                        )
+                                        .overlay {
+                                            Capsule(style: .continuous)
+                                                .stroke(selectedCountryCode == option.code ? AvradioTheme.highlight.opacity(0.24) : AvradioTheme.borderSubtle, lineWidth: 1)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .padding(.top, 6)
+                    }
+
+                    ForEach(countryOptions) { option in
+                        Button {
+                            selectedCountryCode = option.code
+                            dismiss()
+                        } label: {
+                            CountryRow(
+                                title: option.name,
+                                subtitle: nil,
+                                flag: option.flag,
+                                isSelected: selectedCountryCode == option.code
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(24)
+            }
+            .scrollIndicators(.hidden)
+            .background(AvradioTheme.shellBackground.ignoresSafeArea())
+            .navigationTitle(L10n.string("shell.search.country.pickerTitle"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(L10n.string("shell.search.country.done")) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func resolvedDeviceCountryCode() -> String? {
+        CountryOption.sanitizedCode(
+            Locale.autoupdatingCurrent.region?.identifier ?? Locale.current.region?.identifier
+        )
+    }
+}
+
+private struct CountryRow: View {
+    let title: String
+    let subtitle: String?
+    let flag: String?
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(isSelected ? AvradioTheme.highlight.opacity(0.12) : AvradioTheme.mutedSurface)
+
+                if let flag {
+                    Text(flag)
+                        .font(.system(size: 22))
+                } else {
+                    Image(systemName: "globe")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AvradioTheme.highlight)
+                }
+            }
+            .frame(width: 46, height: 46)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+                    .multilineTextAlignment(.leading)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(AvradioTheme.textSecondary)
+                }
+            }
+
+            Spacer(minLength: 12)
+
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(AvradioTheme.highlight)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(AvradioTheme.cardSurface)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(isSelected ? AvradioTheme.highlight.opacity(0.22) : AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+        )
+    }
+}
+
+private struct CountryOption: Identifiable {
+    let code: String
+    let name: String
+
+    var id: String { code }
+
+    private static let excludedRegionCodes: Set<String> = [
+        "AC", "CP", "CQ", "DG", "EA", "EU", "EZ", "IC", "QO", "TA", "UN"
+    ]
+
+    static func sanitizedCode(_ rawValue: String?) -> String? {
+        guard let rawValue else { return nil }
+        let code = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard code.count == 2 else { return nil }
+        guard code.unicodeScalars.allSatisfy({ CharacterSet.uppercaseLetters.contains($0) }) else { return nil }
+        guard !excludedRegionCodes.contains(code) else { return nil }
+        return code
+    }
+
+    var flag: String? {
+        guard code.count == 2 else { return nil }
+        let base: UInt32 = 127397
+        let scalars = code.uppercased().unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
+        guard scalars.count == 2 else { return nil }
+        return String(String.UnicodeScalarView(scalars))
+    }
+
+    static let all: [CountryOption] = Locale.Region.isoRegions.compactMap { region in
+        guard let code = sanitizedCode(region.identifier) else { return nil }
+        return CountryOption(code: code, name: L10n.countryName(for: code))
+    }
+    .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 }
 
 private struct FeaturedStationCard: View {
@@ -1119,7 +1675,7 @@ private struct StationSection<Content: View>: View {
 }
 
 private enum StationRowMetrics {
-    static let artworkSize: CGFloat = 58
+    static let artworkSize: CGFloat = 62
     static let favoriteButtonSize: CGFloat = 34
     static let playButtonSize: CGFloat = 38
 }
@@ -1137,25 +1693,39 @@ private struct StationRowCard: View {
         audioPlayer.isCurrent(station) && audioPlayer.isPlaying
     }
 
+    private var detailText: String? {
+        station.cardDetailText(preferCountryName: station.flagEmoji == nil)
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .center, spacing: 16) {
             StationArtworkView(station: station, size: StationRowMetrics.artworkSize)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(station.name)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(AvradioTheme.textPrimary)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(station.shortMeta)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(AvradioTheme.textSecondary)
-                    .lineLimit(1)
+                if let detailText {
+                    HStack(spacing: 6) {
+                        if let flagEmoji = station.flagEmoji {
+                            Text(flagEmoji)
+                                .font(.system(size: 12))
+                        }
+
+                        Text(detailText)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(AvradioTheme.textSecondary.opacity(0.88))
+                            .lineLimit(1)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .layoutPriority(1)
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 14)
 
             Button(action: toggleFavorite) {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
@@ -1184,16 +1754,18 @@ private struct StationRowCard: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 15)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(AvradioTheme.cardSurface)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
                         .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
                 }
         )
-        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: AvradioTheme.softShadow.opacity(0.28), radius: 12, y: 4)
+        .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .onTapGesture(perform: detailsAction)
     }
 }

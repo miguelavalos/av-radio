@@ -173,7 +173,7 @@ struct NowPlayingView: View {
             }
             .overlay(alignment: .bottomLeading) {
                 if audioPlayer.currentTrackArtworkURL != nil {
-                    StationArtworkView(station: station, size: 58)
+                    StationArtworkView(station: station, size: 58, surfaceStyle: .dark)
                         .padding(6)
                         .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                         .overlay {
@@ -202,6 +202,7 @@ struct NowPlayingView: View {
                         StationArtworkView(
                             station: station,
                             size: size,
+                            surfaceStyle: .dark,
                             contentInsetRatio: 0.04,
                             cornerRadiusRatio: cornerRadius / size
                         )
@@ -211,6 +212,7 @@ struct NowPlayingView: View {
                 StationArtworkView(
                     station: station,
                     size: size,
+                    surfaceStyle: .dark,
                     contentInsetRatio: 0.04,
                     cornerRadiusRatio: cornerRadius / size
                 )

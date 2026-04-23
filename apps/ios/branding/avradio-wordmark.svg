@@ -9,6 +9,6 @@
     <circle cx="102" cy="139" r="9" fill="#D9E0DC"/>
   </g>
   <line x1="284" y1="46" x2="284" y2="254" stroke="#C8D1CB" stroke-width="3"/>
-  <text x="356" y="176" fill="#0D0D0D" font-family="Manrope, Arial, sans-serif" font-size="126" font-weight="800" letter-spacing="-3">radio</text>
-  <text x="356" y="230" fill="#39B54A" font-family="IBM Plex Mono, Menlo, monospace" font-size="24" letter-spacing="4">LIVE STATIONS</text>
+  <text x="356" y="176" fill="#0D0D0D" font-family="Manrope, Arial, sans-serif" font-size="112" font-weight="800" letter-spacing="-3">AV</text>
+  <text x="510" y="176" fill="#39B54A" font-family="Manrope, Arial, sans-serif" font-size="112" font-weight="800" letter-spacing="-3">Radio</text>
 </svg>

@@ -48,18 +48,19 @@ struct AvradioSplashView: View {
                                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
                         }
 
-                    RoundedRectangle(cornerRadius: 32, style: .continuous)
-                        .fill(Color.white)
-                        .frame(width: 108, height: 108)
+                    RoundedRectangle(cornerRadius: 34, style: .continuous)
+                        .fill(AvradioTheme.brandBlack.opacity(0.96))
+                        .frame(width: 112, height: 112)
                         .overlay {
-                            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
                         }
+                        .shadow(color: .black.opacity(0.24), radius: 20, y: 10)
 
                     Image("LaunchBrand")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 64, height: 64)
+                        .frame(width: 72, height: 72)
                         .scaleEffect(contentVisible ? 1 : 0.86)
                 }
                 .scaleEffect(contentVisible ? 1 : 0.9)

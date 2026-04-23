@@ -87,6 +87,10 @@ final class AppLanguageController: ObservableObject {
 }
 
 enum L10n {
+    static var locale: Locale {
+        AppLanguage.resolved(from: UserDefaults.standard.string(forKey: "avradio.appLanguage")).locale
+    }
+
     static func string(_ key: String) -> String {
         NSLocalizedString(key, tableName: nil, bundle: bundle, value: key, comment: "")
     }
@@ -124,14 +128,20 @@ enum L10n {
         case "ambient":
             return string("genre.ambient")
         default:
-            return tag.capitalized(with: .current)
+            return tag.capitalized(with: locale)
         }
+    }
+
+    static func countryName(for countryCode: String) -> String {
+        locale.localizedString(forRegionCode: countryCode) ??
+            Locale(identifier: "en").localizedString(forRegionCode: countryCode) ??
+            countryCode
     }
 
     private static func format(_ key: String, arguments: [CVarArg]) -> String {
         let format = string(key)
         guard !arguments.isEmpty else { return format }
-        return String(format: format, locale: .current, arguments: arguments)
+        return String(format: format, locale: locale, arguments: arguments)
     }
 
     private static var bundle: Bundle {

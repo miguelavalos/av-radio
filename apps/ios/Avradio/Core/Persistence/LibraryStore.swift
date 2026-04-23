@@ -130,6 +130,12 @@ final class LibraryStore: ObservableObject {
         saveAndRefresh()
     }
 
+    func setPreferredCountry(_ countryCode: String?) {
+        settings.preferredCountry = countryCode?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        settings.updatedAt = .now
+        saveAndRefresh()
+    }
+
     func clearLocalData() {
         for favorite in favorites {
             context.delete(favorite)

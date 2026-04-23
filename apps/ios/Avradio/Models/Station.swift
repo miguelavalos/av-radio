@@ -176,6 +176,33 @@ extension Station {
             .joined(separator: " · ")
     }
 
+    var flagEmoji: String? {
+        guard let countryCode, countryCode.count == 2 else { return nil }
+        let base: UInt32 = 127397
+        let scalars = countryCode.uppercased().unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
+        guard scalars.count == 2 else { return nil }
+        return String(String.UnicodeScalarView(scalars))
+    }
+
+    func cardDetailText(preferCountryName: Bool) -> String? {
+        let normalizedLanguage = normalizedCardValue(language)
+        let normalizedCountry = normalizedCardValue(country)
+
+        if let normalizedLanguage, !normalizedLanguage.isEmpty {
+            return normalizedLanguage
+        }
+
+        if preferCountryName, let normalizedCountry, !normalizedCountry.isEmpty {
+            return normalizedCountry
+        }
+
+        if let normalizedCountry, !normalizedCountry.isEmpty {
+            return normalizedCountry
+        }
+
+        return nil
+    }
+
     var primaryDetailLine: String {
         [state, country, language]
             .compactMap { value in
@@ -225,6 +252,38 @@ extension Station {
             .joined()
 
         return parts.isEmpty ? "AV" : parts
+    }
+
+    private func normalizedCardValue(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let localizedUnknowns = [
+            L10n.string("stationService.fallback.unknownCountry"),
+            L10n.string("stationService.fallback.unknownLanguage"),
+            "Unknown country",
+            "Unknown language",
+            "País desconocido",
+            "Idioma desconocido",
+            "País desconegut",
+            "Idioma desconegut",
+            "Pays inconnu",
+            "Langue inconnue",
+            "Unbekanntes Land",
+            "Unbekannte Sprache"
+        ]
+        .map {
+            $0
+                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
+                .lowercased()
+        }
+
+        let normalizedTrimmed = trimmed
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
+            .lowercased()
+
+        return localizedUnknowns.contains(normalizedTrimmed) ? nil : trimmed
     }
 
     var displayArtworkURL: URL? {
