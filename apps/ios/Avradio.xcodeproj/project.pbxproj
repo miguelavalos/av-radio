@@ -11,6 +11,7 @@
 		09D875E93270F39DD13FFF68 /* AudioPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C2CA340D36ED0E45D9E5DD4 /* AudioPlayerService.swift */; };
 		0C799CBD3726544A4D341687 /* AvradioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F77065AA29100C9F1C79A16 /* AvradioApp.swift */; };
 		0EA536E51B9C6A55C13DF752 /* SearchQueueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC094A093EFF7ABFF788955E /* SearchQueueUITests.swift */; };
+		1320DBD9D11819DD863EC950 /* StationDetailQueueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9660B560DBF998B1CA2D3B8C /* StationDetailQueueUITests.swift */; };
 		180F8E48A3E6675B2AFA0129 /* LaunchContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */; };
 		1F7CEF563A71B7B47F161E97 /* StationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8B90DE206EB81665E13922 /* StationService.swift */; };
 		2283DE9C92A3EFCE44E1631C /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = F17C3145DAD23B00F9300C1B /* ClerkKit */; };
@@ -71,6 +72,7 @@
 		850B0F51DE8B45597DDA0079 /* AccessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessController.swift; sourceTree = "<group>"; };
 		863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAppsAccountService.swift; sourceTree = "<group>"; };
 		8ED913084AC8D906119907F2 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		9660B560DBF998B1CA2D3B8C /* StationDetailQueueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationDetailQueueUITests.swift; sourceTree = "<group>"; };
 		92FD5B14198ADF365BEB0533 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		972A6787B144C38F8D5CC16B /* ca */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ca; path = ca.lproj/Localizable.strings; sourceTree = "<group>"; };
 		9963A1C1E14528B4564B0429 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
@@ -119,6 +121,7 @@
 				E1D079A9F075D1A27C4F4EDE /* HomeUITests.swift */,
 				2D512F4A2A2C553F8C7DC177 /* PlayerQueueUITests.swift */,
 				BC094A093EFF7ABFF788955E /* SearchQueueUITests.swift */,
+				9660B560DBF998B1CA2D3B8C /* StationDetailQueueUITests.swift */,
 			);
 			path = AvradioUITests;
 			sourceTree = "<group>";
@@ -438,6 +441,7 @@
 				EE0995F84551EFB3C9C412BE /* HomeUITests.swift in Sources */,
 				A63F3687E9933ECC0917A357 /* PlayerQueueUITests.swift in Sources */,
 				0EA536E51B9C6A55C13DF752 /* SearchQueueUITests.swift in Sources */,
+				1320DBD9D11819DD863EC950 /* StationDetailQueueUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

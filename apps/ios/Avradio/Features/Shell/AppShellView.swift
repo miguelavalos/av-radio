@@ -21,7 +21,7 @@ struct AppShellView: View {
     @State private var homeErrorMessage: String?
     @State private var homeFeedContext: HomeFeedContext = .popularWorldwide
     @State private var homeSnapshot = HomeSnapshot()
-    @State private var selectedStation: Station?
+    @State private var selectedStationDetail: SelectedStationDetail?
     @State private var didBootstrap = false
 
     private let stationService = StationService()
@@ -65,13 +65,19 @@ struct AppShellView: View {
                 .environmentObject(audioPlayer)
                 .environmentObject(libraryStore)
         }
-        .sheet(item: $selectedStation) { station in
+        .sheet(item: $selectedStationDetail) { detail in
             StationDetailSheet(
-                station: station,
-                isFavorite: favoriteStationIDs.contains(station.id),
-                isPlaying: audioPlayer.isCurrent(station) && audioPlayer.isPlaying,
-                playAction: { playStation(station) },
-                toggleFavorite: { libraryStore.toggleFavorite(for: station) }
+                station: detail.station,
+                isFavorite: favoriteStationIDs.contains(detail.station.id),
+                isPlaying: audioPlayer.isCurrent(detail.station) && audioPlayer.isPlaying,
+                playAction: {
+                    playStation(
+                        detail.station,
+                        queueSource: detail.queueSource,
+                        queue: detail.queueStations
+                    )
+                },
+                toggleFavorite: { libraryStore.toggleFavorite(for: detail.station) }
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -114,7 +120,7 @@ struct AppShellView: View {
                 refreshHome: refreshHomePresentationAndFeed,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
-                showStationDetails: { selectedStation = $0 }
+                showStationDetails: showStationDetails
             )
         case .search:
             SearchScreen(
@@ -129,7 +135,7 @@ struct AppShellView: View {
                 favoriteStationIDs: favoriteStationIDs,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
-                showStationDetails: { selectedStation = $0 }
+                showStationDetails: showStationDetails
             )
         case .library:
             LibraryScreen(
@@ -139,7 +145,7 @@ struct AppShellView: View {
                 favoriteStationIDs: favoriteStationIDs,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
-                showStationDetails: { selectedStation = $0 }
+                showStationDetails: showStationDetails
             )
         case .profile:
             ProfileScreen(
@@ -234,6 +240,18 @@ struct AppShellView: View {
         )
         audioPlayer.play(station: station, queue: playbackQueue)
         libraryStore.recordPlayback(of: station)
+    }
+
+    private func showStationDetails(
+        _ station: Station,
+        queueSource: AudioPlayerService.PlaybackQueue.Source = .singleStation,
+        queue: [Station]? = nil
+    ) {
+        selectedStationDetail = SelectedStationDetail(
+            station: station,
+            queueSource: queueSource,
+            queueStations: queue ?? [station]
+        )
     }
 
     private func refreshHomeFeed() async {
@@ -482,6 +500,16 @@ private struct HomeSnapshot {
     var feedContext: HomeFeedContext = .popularWorldwide
 }
 
+private struct SelectedStationDetail: Identifiable {
+    let station: Station
+    let queueSource: AudioPlayerService.PlaybackQueue.Source
+    let queueStations: [Station]
+
+    var id: String {
+        station.id
+    }
+}
+
 private enum HomeFeedContext: Equatable {
     case popularInCountry(String)
     case popularWorldwide
@@ -681,7 +709,7 @@ private struct HomeScreen: View {
     let refreshHome: () async -> Void
     let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
-    let showStationDetails: (Station) -> Void
+    let showStationDetails: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
 
     private enum FeaturedSource {
         case recent
@@ -716,7 +744,7 @@ private struct HomeScreen: View {
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
                                 playAction: { playStation(station, .homeRecents, recentStations) },
-                                detailsAction: { showStationDetails(station) }
+                                detailsAction: { showStationDetails(station, .homeRecents, recentStations) }
                             )
                         }
                     }
@@ -730,7 +758,7 @@ private struct HomeScreen: View {
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
                                 playAction: { playStation(station, .homeFavorites, favoriteStations) },
-                                detailsAction: { showStationDetails(station) }
+                                detailsAction: { showStationDetails(station, .homeFavorites, favoriteStations) }
                             )
                         }
                     }
@@ -755,7 +783,7 @@ private struct HomeScreen: View {
                                 isFavorite: favoriteStationIDs.contains(featuredStation.id),
                                 toggleFavorite: { toggleFavorite(featuredStation) },
                                 playAction: { playStation(featuredStation, featuredQueueSource, featuredQueueStations) },
-                                detailsAction: { showStationDetails(featuredStation) }
+                                detailsAction: { showStationDetails(featuredStation, featuredQueueSource, featuredQueueStations) }
                             )
                         }
                     } else {
@@ -766,7 +794,7 @@ private struct HomeScreen: View {
                             isFavorite: favoriteStationIDs.contains(featuredStation.id),
                             playAction: { playStation(featuredStation, featuredQueueSource, featuredQueueStations) },
                             favoriteAction: { toggleFavorite(featuredStation) },
-                            detailsAction: { showStationDetails(featuredStation) }
+                            detailsAction: { showStationDetails(featuredStation, featuredQueueSource, featuredQueueStations) }
                         )
                     }
 
@@ -782,7 +810,7 @@ private struct HomeScreen: View {
                                     isFavorite: favoriteStationIDs.contains(station.id),
                                     toggleFavorite: { toggleFavorite(station) },
                                     playAction: { playStation(station, .homeDiscovery, displayedPopularStations) },
-                                    detailsAction: { showStationDetails(station) }
+                                    detailsAction: { showStationDetails(station, .homeDiscovery, displayedPopularStations) }
                                 )
                             }
                         }
@@ -994,7 +1022,7 @@ private struct SearchScreen: View {
     let favoriteStationIDs: Set<String>
     let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
-    let showStationDetails: (Station) -> Void
+    let showStationDetails: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
 
     @EnvironmentObject private var libraryStore: LibraryStore
     @State private var isShowingCountryPicker = false
@@ -1054,7 +1082,7 @@ private struct SearchScreen: View {
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
                                 playAction: { playStation(station, .searchResults, results) },
-                                detailsAction: { showStationDetails(station) }
+                                detailsAction: { showStationDetails(station, .searchResults, results) }
                             )
                         }
                     } else if isLoading {
@@ -1136,7 +1164,7 @@ private struct LibraryScreen: View {
     let favoriteStationIDs: Set<String>
     let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
-    let showStationDetails: (Station) -> Void
+    let showStationDetails: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
 
     var body: some View {
         ScrollView {
@@ -1179,7 +1207,7 @@ private struct LibraryScreen: View {
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
                                 playAction: { playStation(station, .libraryFavorites, favorites) },
-                                detailsAction: { showStationDetails(station) }
+                                detailsAction: { showStationDetails(station, .libraryFavorites, favorites) }
                             )
                         }
                     }
@@ -1193,7 +1221,7 @@ private struct LibraryScreen: View {
                                 isFavorite: favoriteStationIDs.contains(station.id),
                                 toggleFavorite: { toggleFavorite(station) },
                                 playAction: { playStation(station, .libraryRecents, recents) },
-                                detailsAction: { showStationDetails(station) }
+                                detailsAction: { showStationDetails(station, .libraryRecents, recents) }
                             )
                         }
                     }
@@ -2146,6 +2174,7 @@ private struct StationDetailSheet: View {
                         .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("stationDetail.play")
 
                     Button(action: toggleFavorite) {
                         Image(systemName: isFavorite ? "heart.fill" : "heart")
