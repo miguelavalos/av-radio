@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 .infisical/
+.codex/
 
 # Xcode
 DerivedData/
@@ -16,7 +17,15 @@ build/
 # Local secrets
 apps/ios/Config/Local.xcconfig
 
+# Override global ignore rules so Android app sources remain trackable.
+!/apps/android/
+!/apps/android/**
+
 # Override global ignore rules so iOS app sources remain trackable.
 !/apps/ios/
 !/apps/ios/Avradio/
 !/apps/ios/Avradio/**
+
+# Override global ignore rules so macOS app sources remain trackable.
+!/apps/macos/
+!/apps/macos/**
