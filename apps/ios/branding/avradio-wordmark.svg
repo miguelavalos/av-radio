@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1400" height="300" viewBox="0 0 1400 300" fill="none">
   <rect width="1400" height="300" fill="transparent"/>
-  <g transform="translate(32 38)">
-    <circle cx="112" cy="112" r="92" stroke="#C8D1CB" stroke-width="10"/>
-    <circle cx="112" cy="112" r="60" stroke="#5F6862" stroke-width="8"/>
-    <path d="M112 112L176 60" stroke="#39B54A" stroke-width="14" stroke-linecap="round"/>
-    <circle cx="112" cy="112" r="12" fill="#39B54A"/>
-    <path d="M54 178L80 99H97L123 178H107L101 163H76L70 178H54ZM77 148H102L90 113L77 148Z" fill="#0D0D0D"/>
-    <path d="M130 83L156 178H188L214 71H181L158 155L147 83H130Z" fill="#39B54A"/>
+  <g transform="translate(26 38)">
+    <rect x="8" y="24" width="188" height="128" rx="34" stroke="#D9E0DC" stroke-width="10"/>
+    <path d="M38 54H118C129 54 138 63 138 74V104C138 115 129 124 118 124H38C27 124 18 115 18 104V74C18 63 27 54 38 54Z" fill="#1A1D1B" stroke="#5F6862" stroke-width="4"/>
+    <path d="M151 60H184V120H151" stroke="#D9E0DC" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M81 24L117 -18" stroke="#39B54A" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="63" cy="139" r="9" fill="#39B54A"/>
+    <circle cx="102" cy="139" r="9" fill="#D9E0DC"/>
   </g>
-  <line x1="288" y1="48" x2="288" y2="252" stroke="#C8D1CB" stroke-width="3"/>
-  <text x="360" y="178" fill="#0D0D0D" font-family="Sora, Arial, sans-serif" font-size="108" font-weight="700" letter-spacing="-3">AV</text>
-  <text x="540" y="178" fill="#39B54A" font-family="Manrope, Arial, sans-serif" font-size="100" font-weight="800" letter-spacing="-1.5">Radio</text>
+  <line x1="284" y1="46" x2="284" y2="254" stroke="#C8D1CB" stroke-width="3"/>
+  <text x="356" y="176" fill="#0D0D0D" font-family="Manrope, Arial, sans-serif" font-size="126" font-weight="800" letter-spacing="-3">radio</text>
+  <text x="356" y="230" fill="#39B54A" font-family="IBM Plex Mono, Menlo, monospace" font-size="24" letter-spacing="4">LIVE STATIONS</text>
 </svg>
