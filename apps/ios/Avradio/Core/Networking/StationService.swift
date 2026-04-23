@@ -42,16 +42,17 @@ struct StationService {
 
         var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
         components?.queryItems = [
-            URLQueryItem(name: "name", value: trimmedQuery.isEmpty ? nil : trimmedQuery),
-            URLQueryItem(name: "country", value: trimmedCountry.isEmpty ? nil : trimmedCountry),
-            URLQueryItem(name: "countrycode", value: trimmedCountryCode.isEmpty ? nil : trimmedCountryCode),
-            URLQueryItem(name: "language", value: trimmedLanguage.isEmpty ? nil : trimmedLanguage),
-            URLQueryItem(name: "tag", value: trimmedTag.isEmpty ? nil : trimmedTag),
+            trimmedQuery.isEmpty ? nil : URLQueryItem(name: "name", value: trimmedQuery),
+            trimmedCountry.isEmpty ? nil : URLQueryItem(name: "country", value: trimmedCountry),
+            trimmedCountryCode.isEmpty ? nil : URLQueryItem(name: "countrycode", value: trimmedCountryCode),
+            trimmedLanguage.isEmpty ? nil : URLQueryItem(name: "language", value: trimmedLanguage),
+            trimmedTag.isEmpty ? nil : URLQueryItem(name: "tag", value: trimmedTag),
             URLQueryItem(name: "hidebroken", value: "true"),
             URLQueryItem(name: "order", value: "clickcount"),
             URLQueryItem(name: "reverse", value: "true"),
             URLQueryItem(name: "limit", value: String(filters.limit))
         ]
+        .compactMap { $0 }
 
         guard let url = components?.url else {
             throw URLError(.badURL)
