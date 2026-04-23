@@ -56,6 +56,11 @@ dotenv_value() {
   printf '%s\n' "$secret_payload" | sed -n "s/^${key}='\\(.*\\)'$/\\1/p" | head -n 1
 }
 
+xcodebuild_url_value() {
+  local value="$1"
+  printf '%s' "$value" | sed 's#//#/$()/#g'
+}
+
 clerk_publishable_key="$(dotenv_value CLERK_PUBLISHABLE_KEY)"
 if [ -z "$clerk_publishable_key" ]; then
   clerk_publishable_key="$(dotenv_value EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY)"
@@ -88,9 +93,9 @@ AVRADIO_BUNDLE_IDENTIFIER = $bundle_identifier
 CLERK_PUBLISHABLE_KEY = $clerk_publishable_key
 AVRADIO_PREMIUM_PRODUCT_IDS = $premium_product_ids
 AVRADIO_SUPPORT_EMAIL = $support_email
-AVRADIO_ACCOUNT_MANAGEMENT_URL = $account_management_url
-AVRADIO_TERMS_URL = $terms_url
-AVRADIO_PRIVACY_URL = $privacy_url
+AVRADIO_ACCOUNT_MANAGEMENT_URL = $(xcodebuild_url_value "$account_management_url")
+AVRADIO_TERMS_URL = $(xcodebuild_url_value "$terms_url")
+AVRADIO_PRIVACY_URL = $(xcodebuild_url_value "$privacy_url")
 EOF
 )"
 

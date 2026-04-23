@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import Foundation
 import MediaPlayer
+import UIKit
 
 @MainActor
 final class AudioPlayerService: NSObject, ObservableObject {
@@ -87,10 +88,13 @@ final class AudioPlayerService: NSObject, ObservableObject {
     private var loadingTimeoutTask: Task<Void, Never>?
     private var nowPlayingPollingTask: Task<Void, Never>?
     private var artworkResolutionTask: Task<Void, Never>?
+    private var nowPlayingArtworkTask: Task<Void, Never>?
     private let nowPlayingService = NowPlayingService()
     private let trackArtworkService = TrackArtworkService()
     private var currentTrackSource: TrackSource?
     private var cachedNowPlayingByStationID: [String: CachedNowPlayingState] = [:]
+    private var nowPlayingArtworkImage: UIImage?
+    private var nowPlayingArtworkSourceURL: URL?
 
     private enum TrackSource {
         case stream
@@ -203,6 +207,8 @@ final class AudioPlayerService: NSObject, ObservableObject {
         nowPlayingPollingTask = nil
         artworkResolutionTask?.cancel()
         artworkResolutionTask = nil
+        nowPlayingArtworkTask?.cancel()
+        nowPlayingArtworkTask = nil
         player?.pause()
         player = nil
         playerItemStatusObserver = nil
@@ -218,6 +224,8 @@ final class AudioPlayerService: NSObject, ObservableObject {
         currentTrackArtist = nil
         currentTrackAlbumTitle = nil
         currentTrackArtworkURL = nil
+        nowPlayingArtworkImage = nil
+        nowPlayingArtworkSourceURL = nil
         playbackQueue = .init(source: .singleStation, stations: [])
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
@@ -425,6 +433,8 @@ final class AudioPlayerService: NSObject, ObservableObject {
         nowPlayingPollingTask = nil
         artworkResolutionTask?.cancel()
         artworkResolutionTask = nil
+        nowPlayingArtworkTask?.cancel()
+        nowPlayingArtworkTask = nil
         status = .failed(message)
         lastErrorMessage = message
         player?.pause()
@@ -439,6 +449,8 @@ final class AudioPlayerService: NSObject, ObservableObject {
         nowPlayingPollingTask = nil
         artworkResolutionTask?.cancel()
         artworkResolutionTask = nil
+        nowPlayingArtworkTask?.cancel()
+        nowPlayingArtworkTask = nil
         lastErrorMessage = nil
         player?.pause()
         player = nil
@@ -453,6 +465,8 @@ final class AudioPlayerService: NSObject, ObservableObject {
         currentTrackAlbumTitle = nil
         currentTrackArtworkURL = nil
         currentTrackSource = nil
+        nowPlayingArtworkImage = nil
+        nowPlayingArtworkSourceURL = nil
     }
 
     private var shouldReloadCurrentStation: Bool {
@@ -494,11 +508,16 @@ final class AudioPlayerService: NSObject, ObservableObject {
 
         info[MPMediaItemPropertyAlbumTitle] = currentStation.name
 
+        if let artworkImage = resolvedNowPlayingArtworkImage(for: currentStation) {
+            info[MPMediaItemPropertyArtwork] = Self.makeNowPlayingArtwork(from: artworkImage)
+        }
+
         if let elapsed = player?.currentTime().seconds, elapsed.isFinite {
             info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        refreshNowPlayingArtworkIfNeeded(for: currentStation)
     }
 
     private func updateTrackMetadata(from events: [StreamMetadataEvent]) async {
@@ -605,6 +624,51 @@ final class AudioPlayerService: NSObject, ObservableObject {
             self.currentTrackAlbumTitle = resolved?.albumTitle
             self.currentTrackArtworkURL = resolved?.artworkURL
             self.persistCurrentNowPlayingState()
+            self.updateNowPlayingInfo()
+        }
+    }
+
+    private func resolvedNowPlayingArtworkImage(for station: Station) -> UIImage? {
+        if let nowPlayingArtworkImage {
+            return nowPlayingArtworkImage
+        }
+
+        return UIImage(named: "BrandMark")
+    }
+
+    private func refreshNowPlayingArtworkIfNeeded(for station: Station) {
+        let artworkURL = currentTrackArtworkURL ?? station.displayArtworkURL
+
+        if artworkURL == nowPlayingArtworkSourceURL, nowPlayingArtworkImage != nil {
+            return
+        }
+
+        if artworkURL == nil, nowPlayingArtworkSourceURL == nil, nowPlayingArtworkImage != nil {
+            return
+        }
+
+        nowPlayingArtworkTask?.cancel()
+        nowPlayingArtworkTask = Task { [weak self] in
+            guard let self else { return }
+            let resolvedImage = await self.loadNowPlayingArtworkImage(from: artworkURL)
+            guard !Task.isCancelled else { return }
+            guard self.currentStation?.id == station.id else { return }
+
+            self.nowPlayingArtworkSourceURL = artworkURL
+            self.nowPlayingArtworkImage = resolvedImage ?? UIImage(named: "BrandMark")
+            self.updateNowPlayingInfo()
+        }
+    }
+
+    private func loadNowPlayingArtworkImage(from url: URL?) async -> UIImage? {
+        guard let url else { return UIImage(named: "BrandMark") }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard !Task.isCancelled else { return nil }
+            return UIImage(data: data)
+        } catch {
+            return UIImage(named: "BrandMark")
         }
     }
 
@@ -682,6 +746,11 @@ final class AudioPlayerService: NSObject, ObservableObject {
         }
 
         return nil
+    }
+
+    private nonisolated static func makeNowPlayingArtwork(from image: UIImage) -> MPMediaItemArtwork {
+        let boundsSize = image.size
+        return MPMediaItemArtwork(boundsSize: boundsSize) { _ in image }
     }
 
     private func sanitizeTrackArtist(_ rawValue: String?) -> String? {
