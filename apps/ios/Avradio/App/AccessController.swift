@@ -26,9 +26,14 @@ final class AccessController: ObservableObject {
         now: @escaping () -> Date = Date.init
     ) {
         let currentUser = accountService.currentUser
+        let fallbackEntitlementService = StoreKitEntitlementService(userDefaults: userDefaults)
 
         self.accountService = accountService
-        self.entitlementService = entitlementService ?? StoreKitEntitlementService(userDefaults: userDefaults)
+        self.entitlementService = entitlementService
+            ?? PlatformBackedEntitlementService(
+                fallback: fallbackEntitlementService,
+                apiClient: AVAppsAPIClient(getToken: { try await accountService.getToken() })
+            )
         self.userDefaults = userDefaults
         self.guestOnboardingPolicy = guestOnboardingPolicy
         self.now = now
@@ -69,8 +74,8 @@ final class AccessController: ObservableObject {
     func syncFromAccountProvider() async {
         accountUser = accountService.currentUser
         resolveAccessState()
-        let refreshedTier = await entitlementService.refreshPlanTier(for: accountUser)
-        applyResolvedPlanTier(refreshedTier)
+        let refreshedAccess = await entitlementService.refreshAccess(for: accountUser)
+        applyResolvedAccess(refreshedAccess)
         await refreshSubscriptionProducts()
     }
 
@@ -126,19 +131,11 @@ final class AccessController: ObservableObject {
     }
 
     private func resolveAccessState() {
-        guard let accountUser else {
-            planTier = .free
-            accessMode = .guest
-            capabilities = AccessCapabilities.forMode(.guest)
-            accountSession = nil
-            return
-        }
-
-        applyResolvedPlanTier(entitlementService.resolvePlanTier(for: accountUser))
+        applyResolvedAccess(entitlementService.resolveAccess(for: accountUser))
     }
 
-    private func applyResolvedPlanTier(_ resolvedPlanTier: PlanTier) {
-        guard let accountUser else {
+    private func applyResolvedAccess(_ resolvedAccess: ResolvedAccess) {
+        guard let accountUser, resolvedAccess.accessMode != .guest else {
             planTier = .free
             accessMode = .guest
             capabilities = AccessCapabilities.forMode(.guest)
@@ -146,9 +143,9 @@ final class AccessController: ObservableObject {
             return
         }
 
-        planTier = resolvedPlanTier
-        accessMode = planTier == .pro ? .signedInPro : .signedInFree
-        capabilities = AccessCapabilities.forMode(accessMode)
+        planTier = resolvedAccess.planTier
+        accessMode = resolvedAccess.accessMode
+        capabilities = resolvedAccess.capabilities
         accountSession = AccountSession(
             user: accountUser,
             planTier: planTier,

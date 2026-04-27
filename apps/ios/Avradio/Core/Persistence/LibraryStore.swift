@@ -8,6 +8,9 @@ final class LibraryStore: ObservableObject {
     @Published private(set) var settings: AppSettings
 
     private let context: ModelContext
+    private var appDataService: AVRadioAppDataService?
+    private var isApplyingRemoteSnapshot = false
+    private var pushTask: Task<Void, Never>?
 
     init(container: ModelContainer) {
         self.context = ModelContext(container)
@@ -155,6 +158,49 @@ final class LibraryStore: ObservableObject {
         saveAndRefresh()
     }
 
+    func setAppDataService(_ service: AVRadioAppDataService?) {
+        appDataService = service
+    }
+
+    func refreshCloudLibraryIfNeeded() async {
+        guard let appDataService, appDataService.isConfigured() else {
+            return
+        }
+
+        do {
+            let remoteDocument = try await appDataService.pullLibrary()
+            let localSnapshot = librarySnapshot()
+            let localHasContent = localSnapshot.hasMeaningfulContent
+            let localUpdatedAt = latestLocalUpdateAt()
+
+            guard let remoteSnapshot = remoteDocument.snapshot else {
+                if localHasContent {
+                    try await appDataService.pushLibrary(localSnapshot)
+                }
+                return
+            }
+
+            let remoteHasContent = remoteSnapshot.hasMeaningfulContent
+            if !remoteHasContent {
+                if localHasContent {
+                    try await appDataService.pushLibrary(localSnapshot)
+                }
+                return
+            }
+
+            if !localHasContent || remoteDocument.updatedAt > localUpdatedAt {
+                applyRemoteSnapshot(remoteSnapshot)
+                return
+            }
+
+            if localUpdatedAt > remoteDocument.updatedAt {
+                try await appDataService.pushLibrary(localSnapshot)
+            }
+        } catch {
+            return
+        }
+    }
+
     private func trimRecents(limit: Int) {
         guard recents.count > limit else { return }
         let sorted = recents.sorted { $0.lastPlayedAt > $1.lastPlayedAt }
@@ -166,5 +212,98 @@ final class LibraryStore: ObservableObject {
     private func saveAndRefresh() {
         try? context.save()
         refresh()
+        scheduleCloudPushIfNeeded()
+    }
+
+    private func scheduleCloudPushIfNeeded() {
+        guard !isApplyingRemoteSnapshot, let appDataService, appDataService.isConfigured() else {
+            return
+        }
+
+        let snapshot = librarySnapshot()
+        pushTask?.cancel()
+        pushTask = Task { [snapshot] in
+            try? await appDataService.pushLibrary(snapshot)
+        }
+    }
+
+    private func librarySnapshot() -> AVRadioLibrarySnapshot {
+        AVRadioLibrarySnapshot(
+            favorites: favorites.map {
+                FavoriteStationRecord(
+                    station: Station(favorite: $0).appDataRecord,
+                    createdAt: AVRadioAppDataService.isoString(from: $0.createdAt)
+                )
+            },
+            recents: recents.map {
+                RecentStationRecord(
+                    station: Station(recent: $0).appDataRecord,
+                    lastPlayedAt: AVRadioAppDataService.isoString(from: $0.lastPlayedAt)
+                )
+            },
+            settings: AppSettingsRecord(
+                preferredCountry: settings.preferredCountry,
+                preferredLanguage: settings.preferredLanguage,
+                preferredTag: settings.preferredTag,
+                lastPlayedStationID: settings.lastPlayedStationID,
+                sleepTimerMinutes: settings.sleepTimerMinutes,
+                updatedAt: AVRadioAppDataService.isoString(from: settings.updatedAt)
+            )
+        )
+    }
+
+    private func latestLocalUpdateAt() -> Date {
+        let timestamps =
+            favorites.map(\.createdAt) +
+            recents.map(\.lastPlayedAt) +
+            [settings.updatedAt]
+        return timestamps.max() ?? .distantPast
+    }
+
+    private func applyRemoteSnapshot(_ snapshot: AVRadioLibrarySnapshot) {
+        isApplyingRemoteSnapshot = true
+        defer { isApplyingRemoteSnapshot = false }
+
+        for favorite in favorites {
+            context.delete(favorite)
+        }
+
+        for recent in recents {
+            context.delete(recent)
+        }
+
+        for favorite in snapshot.favorites {
+            context.insert(
+                FavoriteStation(
+                    station: Station(record: favorite.station),
+                    createdAt: Self.date(from: favorite.createdAt)
+                )
+            )
+        }
+
+        for recent in snapshot.recents {
+            context.insert(
+                RecentStation(
+                    station: Station(record: recent.station),
+                    lastPlayedAt: Self.date(from: recent.lastPlayedAt)
+                )
+            )
+        }
+
+        settings.preferredCountry = snapshot.settings.preferredCountry
+        settings.preferredLanguage = snapshot.settings.preferredLanguage
+        settings.preferredTag = snapshot.settings.preferredTag
+        settings.lastPlayedStationID = snapshot.settings.lastPlayedStationID
+        settings.sleepTimerMinutes = snapshot.settings.sleepTimerMinutes
+        settings.updatedAt = Self.date(from: snapshot.settings.updatedAt)
+
+        try? context.save()
+        refresh()
+    }
+
+    private static func date(from value: String) -> Date {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: value) ?? .distantPast
     }
 }

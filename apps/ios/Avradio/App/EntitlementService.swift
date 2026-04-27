@@ -45,8 +45,8 @@ protocol EntitlementService {
     var isSubscriptionConfigured: Bool { get }
 
     func loadSubscriptionProducts() async throws -> [SubscriptionProduct]
-    func resolvePlanTier(for user: AccountUser?) -> PlanTier
-    func refreshPlanTier(for user: AccountUser?) async -> PlanTier
+    func resolveAccess(for user: AccountUser?) -> ResolvedAccess
+    func refreshAccess(for user: AccountUser?) async -> ResolvedAccess
     func purchasePro(for user: AccountUser, productID: String) async throws -> SubscriptionPurchaseOutcome
     func restorePurchases(for user: AccountUser) async throws -> RestorePurchasesOutcome
 }
@@ -87,17 +87,18 @@ final class StoreKitEntitlementService: EntitlementService {
         }
     }
 
-    func resolvePlanTier(for user: AccountUser?) -> PlanTier {
-        guard let user else { return .free }
+    func resolveAccess(for user: AccountUser?) -> ResolvedAccess {
+        guard let user else { return .guest }
         let cached = userDefaults.string(forKey: cacheKey(for: user.id)) ?? ""
-        return PlanTier(rawValue: cached) ?? .free
+        let planTier = PlanTier(rawValue: cached) ?? .free
+        return resolvedAccess(for: user, planTier: planTier)
     }
 
-    func refreshPlanTier(for user: AccountUser?) async -> PlanTier {
-        guard let user else { return .free }
+    func refreshAccess(for user: AccountUser?) async -> ResolvedAccess {
+        guard let user else { return .guest }
         guard isSubscriptionConfigured else {
             cache(.free, for: user.id)
-            return .free
+            return resolvedAccess(for: user, planTier: .free)
         }
 
         let accountToken = appAccountToken(for: user)
@@ -113,7 +114,7 @@ final class StoreKitEntitlementService: EntitlementService {
         }
 
         cache(resolvedTier, for: user.id)
-        return resolvedTier
+        return resolvedAccess(for: user, planTier: resolvedTier)
     }
 
     func purchasePro(for user: AccountUser, productID: String) async throws -> SubscriptionPurchaseOutcome {
@@ -128,7 +129,7 @@ final class StoreKitEntitlementService: EntitlementService {
         case .success(let verification):
             let transaction = try verifiedTransaction(from: verification)
             await transaction.finish()
-            _ = await refreshPlanTier(for: user)
+            _ = await refreshAccess(for: user)
             return .purchased
         case .pending:
             return .pending
@@ -145,8 +146,17 @@ final class StoreKitEntitlementService: EntitlementService {
         }
 
         try await AppStore.sync()
-        let refreshedTier = await refreshPlanTier(for: user)
-        return refreshedTier == .pro ? .restored : .nothingToRestore
+        let refreshedAccess = await refreshAccess(for: user)
+        return refreshedAccess.planTier == .pro ? .restored : .nothingToRestore
+    }
+
+    private func resolvedAccess(for user: AccountUser, planTier: PlanTier) -> ResolvedAccess {
+        let accessMode: AccessMode = planTier == .pro ? .signedInPro : .signedInFree
+        return ResolvedAccess(
+            planTier: planTier,
+            accessMode: accessMode,
+            capabilities: AccessCapabilities.forMode(accessMode)
+        )
     }
 
     private func loadProduct(id: String) async throws -> Product {
@@ -193,6 +203,76 @@ final class StoreKitEntitlementService: EntitlementService {
         guard let subscription = product.subscription else { return nil }
         let period = subscription.subscriptionPeriod
         return L10n.string("subscription.period.format", period.value, period.unit.localizedLabel)
+    }
+}
+
+@MainActor
+final class PlatformBackedEntitlementService: EntitlementService {
+    private let fallback: StoreKitEntitlementService
+    private let apiClient: AVAppsAPIClient
+
+    init(
+        fallback: StoreKitEntitlementService = StoreKitEntitlementService(),
+        apiClient: AVAppsAPIClient
+    ) {
+        self.fallback = fallback
+        self.apiClient = apiClient
+    }
+
+    var isSubscriptionConfigured: Bool {
+        fallback.isSubscriptionConfigured
+    }
+
+    func loadSubscriptionProducts() async throws -> [SubscriptionProduct] {
+        try await fallback.loadSubscriptionProducts()
+    }
+
+    func resolveAccess(for user: AccountUser?) -> ResolvedAccess {
+        fallback.resolveAccess(for: user)
+    }
+
+    func refreshAccess(for user: AccountUser?) async -> ResolvedAccess {
+        guard let user else { return .guest }
+
+        let fallbackAccess = await fallback.refreshAccess(for: user)
+        guard apiClient.isConfigured() else {
+            return fallbackAccess
+        }
+
+        do {
+            let payload = try await apiClient.fetchMeAccess()
+            guard let avRadioAccess = payload.apps.first(where: { $0.appId == "avradio" }) else {
+                return fallbackAccess
+            }
+
+            return mergeBackendAccess(
+                ResolvedAccess(
+                    planTier: avRadioAccess.planTier,
+                    accessMode: avRadioAccess.accessMode,
+                    capabilities: avRadioAccess.capabilities
+                ),
+                fallbackAccess: fallbackAccess
+            )
+        } catch {
+            return fallbackAccess
+        }
+    }
+
+    func purchasePro(for user: AccountUser, productID: String) async throws -> SubscriptionPurchaseOutcome {
+        try await fallback.purchasePro(for: user, productID: productID)
+    }
+
+    func restorePurchases(for user: AccountUser) async throws -> RestorePurchasesOutcome {
+        try await fallback.restorePurchases(for: user)
+    }
+
+    private func mergeBackendAccess(_ backendAccess: ResolvedAccess, fallbackAccess: ResolvedAccess) -> ResolvedAccess {
+        // Preserve existing StoreKit-backed Pro during the transition until backend reconciliation is complete.
+        if fallbackAccess.planTier == .pro, backendAccess.planTier != .pro {
+            return fallbackAccess
+        }
+
+        return backendAccess
     }
 }
 

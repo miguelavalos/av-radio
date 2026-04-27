@@ -24,6 +24,8 @@
 	<string>$(AVRADIO_PREMIUM_PRODUCT_IDS)</string>
 	<key>AVRADIO_SUPPORT_EMAIL</key>
 	<string>$(AVRADIO_SUPPORT_EMAIL)</string>
+	<key>AVRADIO_AVAPPS_API_BASE_URL</key>
+	<string>$(AVRADIO_AVAPPS_API_BASE_URL)</string>
 	<key>AVRADIO_ACCOUNT_MANAGEMENT_URL</key>
 	<string>$(AVRADIO_ACCOUNT_MANAGEMENT_URL)</string>
 	<key>AVRADIO_TERMS_URL</key>

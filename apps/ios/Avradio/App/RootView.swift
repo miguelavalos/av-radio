@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var accessController: AccessController
+    @EnvironmentObject private var libraryStore: LibraryStore
     @State private var authOptionsArePresented = false
     @State private var automaticGuestOnboardingIsPresented = false
     @State private var isShowingAccountOnboarding = false
@@ -56,12 +57,14 @@ struct RootView: View {
         .tint(AvradioTheme.highlight)
         .task {
             await accessController.syncFromAccountProvider()
+            await refreshLibrarySync()
             presentAutomaticGuestOnboardingIfNeeded()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
             Task {
                 await accessController.syncFromAccountProvider()
+                await refreshLibrarySync()
                 presentAutomaticGuestOnboardingIfNeeded()
             }
         }
@@ -89,6 +92,7 @@ struct RootView: View {
         try await accessController.accountService.signInWithApple()
         automaticGuestOnboardingIsPresented = false
         await accessController.syncFromAccountProvider()
+        await refreshLibrarySync()
         isShowingAccountOnboarding = false
     }
 
@@ -96,7 +100,26 @@ struct RootView: View {
         try await accessController.accountService.signInWithGoogle()
         automaticGuestOnboardingIsPresented = false
         await accessController.syncFromAccountProvider()
+        await refreshLibrarySync()
         isShowingAccountOnboarding = false
+    }
+
+    private func refreshLibrarySync() async {
+        guard accessController.capabilities.canUseCloudSync else {
+            libraryStore.setAppDataService(nil)
+            return
+        }
+
+        let appDataService = AVRadioAppDataService(
+            apiClient: AVAppsAPIClient(getToken: { try await accessController.accountService.getToken() })
+        )
+        guard appDataService.isConfigured() else {
+            libraryStore.setAppDataService(nil)
+            return
+        }
+
+        libraryStore.setAppDataService(appDataService)
+        await libraryStore.refreshCloudLibraryIfNeeded()
     }
 
     private func presentAutomaticGuestOnboardingIfNeeded() {

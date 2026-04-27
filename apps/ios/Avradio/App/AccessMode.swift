@@ -1,14 +1,26 @@
 import Foundation
 
-enum AccessMode: String {
+enum AccessMode: String, Codable {
     case guest
     case signedInFree
     case signedInPro
 }
 
-enum PlanTier: String {
+enum PlanTier: String, Codable {
     case free
     case pro
+}
+
+struct ResolvedAccess: Equatable {
+    let planTier: PlanTier
+    let accessMode: AccessMode
+    let capabilities: AccessCapabilities
+
+    static let guest = ResolvedAccess(
+        planTier: .free,
+        accessMode: .guest,
+        capabilities: .forMode(.guest)
+    )
 }
 
 struct AccountSession: Equatable {
@@ -30,38 +42,54 @@ struct AccountUser: Equatable {
     }
 }
 
-struct AccessCapabilities: Equatable {
-    let isLocalOnly: Bool
-    let usesBackend: Bool
+struct AccessCapabilities: Codable, Equatable {
+    let isSignedIn: Bool
+    let canUseBackend: Bool
     let canAccessPremiumFeatures: Bool
-    let canManageAVAppsAccount: Bool
-    let canUpgradeToPro: Bool
+    let canUseCloudSync: Bool
+    let canManagePlan: Bool
+
+    var isLocalOnly: Bool {
+        !canUseBackend && !canUseCloudSync
+    }
+
+    var usesBackend: Bool {
+        canUseBackend || canUseCloudSync
+    }
+
+    var canManageAVAppsAccount: Bool {
+        isSignedIn
+    }
+
+    var canUpgradeToPro: Bool {
+        isSignedIn && !canAccessPremiumFeatures
+    }
 
     static func forMode(_ accessMode: AccessMode) -> AccessCapabilities {
         switch accessMode {
         case .guest:
             AccessCapabilities(
-                isLocalOnly: true,
-                usesBackend: false,
+                isSignedIn: false,
+                canUseBackend: false,
                 canAccessPremiumFeatures: false,
-                canManageAVAppsAccount: false,
-                canUpgradeToPro: false
+                canUseCloudSync: false,
+                canManagePlan: false
             )
         case .signedInFree:
             AccessCapabilities(
-                isLocalOnly: true,
-                usesBackend: false,
+                isSignedIn: true,
+                canUseBackend: false,
                 canAccessPremiumFeatures: false,
-                canManageAVAppsAccount: true,
-                canUpgradeToPro: true
+                canUseCloudSync: false,
+                canManagePlan: true
             )
         case .signedInPro:
             AccessCapabilities(
-                isLocalOnly: false,
-                usesBackend: true,
+                isSignedIn: true,
+                canUseBackend: true,
                 canAccessPremiumFeatures: true,
-                canManageAVAppsAccount: true,
-                canUpgradeToPro: false
+                canUseCloudSync: true,
+                canManagePlan: true
             )
         }
     }

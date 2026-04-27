@@ -1,8 +1,12 @@
 # AV Radio
 
-Open-source iOS client for AV Radio.
+Open-source native product repo for AV Radio.
 
-This repository contains the native app client, local playback and persistence flows, account-facing UI, and local StoreKit configuration used for development. Premium value, backend processing, subscriptions authority, and account platform logic live outside this repository.
+This repository contains the AV Radio clients for iOS, Android, and macOS, together with local playback and persistence flows, account-facing UI, and development-time premium/access configuration. Premium value, shared entitlement authority, and account platform logic still converge in private infrastructure outside this repository.
+
+The current main product target is `iOS`. `Android` and `macOS` exist in the repo, but they are secondary for now.
+
+When configured, the iOS and Android clients can now resolve signed-in access from the shared AV Apps backend while remaining local-first by default.
 
 ## License
 
@@ -13,7 +17,10 @@ This repository is released under the MIT license. See [LICENSE](LICENSE).
 ```text
 apps/
   ios/      SwiftUI iOS app
+  android/  Kotlin + Jetpack Compose Android app
+  macos/    SwiftUI macOS app
 docs/
+  install-android.md
   install-ios.md
 ```
 
@@ -24,21 +31,66 @@ docs/
 - account and premium UI surfaces
 - local StoreKit configuration for development
 - iOS project and Xcode configuration
+- Android project with Media3 playback, onboarding, account states, and tests
+- macOS target with native SwiftUI shell
+
+## Current state
+
+- `apps/ios` is still the most complete product client
+- `apps/ios` is the current primary execution target
+- `apps/android` is implemented beyond bootstrap and includes:
+  - Home, Search, Library, and Profile
+  - Media3 playback with background service
+  - favorites, recents, queue, and sleep timer
+  - onboarding and multiple auth modes
+  - backend-backed access refresh when configured
+  - shared `library` sync when backend access enables cloud sync
+- `apps/macos` exists as a native companion target
+- the repo remains local-first overall, and platform/backend adoption is still narrower than in `public/av-series`
+- current product focus is `av-radio iOS`; Android and macOS should be treated as lower-priority follow-up work unless explicitly promoted
 
 ## Local Setup
+
+### iOS
 
 1. Resolve the local iOS config from Infisical:
    `./scripts/generate-local-xcconfig.sh local`
 2. This writes `apps/ios/Config/Local.xcconfig` with the client-side values needed for your build.
 3. Open `apps/ios/Avradio.xcodeproj` in Xcode and run the `Avradio` scheme.
 
-For internal builds, keep the real values out of git and regenerate `Local.xcconfig` from Infisical when needed.
+### Android
+
+1. Generate `apps/android/local.properties` locally:
+   `./scripts/generate-android-local-properties.sh local`
+2. Build from `apps/android`:
+   `./gradlew --no-daemon assembleDebug`
+
+### macOS
+
+- The repo contains `apps/macos/AvradioMac` as a native SwiftUI target for local Xcode work.
+
+For internal builds, keep the real values out of git and regenerate local config from Infisical when needed.
 
 ## Local Secrets
 
 This project may use local Infisical bootstrap files during development, but nothing inside `.infisical/` is versioned in git.
 
-See [docs/install-ios.md](docs/install-ios.md) for simulator and device setup details.
+See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](docs/install-android.md) for setup details.
+
+## Platform integration
+
+- iOS can use `AVRADIO_AVAPPS_API_BASE_URL` to refresh signed-in access through `GET /v1/me/access`
+- Android can do the same through generated local runtime config
+- shared backend sync is currently limited to `library`
+- billing-provider reconciliation into shared entitlements is still pending
+
+## Pending work
+
+1. Reconcile App Store and Google Play purchases into shared backend entitlements.
+2. Extend sync beyond `library` and define conflict/merge behavior across devices.
+3. Keep active AV Radio work focused on `iOS`, using Android/macOS mainly as secondary references until priorities change.
+4. Keep iOS and Android access behavior aligned on backend-owned capabilities.
+5. Decide later whether macOS becomes a maintained first-class target or stays a companion/experimental app.
 
 ## Contributing And Security
 
