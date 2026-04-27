@@ -1,0 +1,18 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "avradio",
+      "devDependencies": {
+        "@varlock/infisical-plugin": "0.0.6",
+        "varlock": "^0.9.1",
+      },
+    },
+  },
+  "packages": {
+    "@varlock/infisical-plugin": ["@varlock/infisical-plugin@0.0.6", "", { "peerDependencies": { "varlock": "^0.7.0" } }, "sha512-1ueVXkNQJaegHBsr2hcKJj3enY1nbE7+ba+zToQ0LcFhwaKMDBKjClHtDVd+ZrgQVnsQvbpmK3oQw2Dpz+wGAQ=="],
+
+    "varlock": ["varlock@0.9.1", "", { "bin": { "varlock": "bin/cli.js" } }, "sha512-AMF41b5Pqo7rOOBK5mXuR+Jv++R/jeq9T9KdWCiYXD4ARZKH6MWbe0N/2JKpSPPDpiCWD2tlRLDPfh/gHAavkg=="],
+  }
+}

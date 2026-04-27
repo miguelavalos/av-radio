@@ -1,7 +1,8 @@
 .DS_Store
 .idea/
 .vscode/
-.infisical/
+.infisical/*
+!.infisical/bootstrap.env.example
 .codex/
 
 # Xcode

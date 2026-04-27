@@ -1,0 +1,17 @@
+{
+  "name": "avradio",
+  "private": true,
+  "packageManager": "bun@1.3.13",
+  "scripts": {
+    "varlock:load": "zsh -lc 'eval \"$(./scripts/resolve-infisical-bootstrap-env.sh local)\" && ./node_modules/.bin/varlock load'",
+    "varlock:load:production": "zsh -lc 'eval \"$(./scripts/resolve-infisical-bootstrap-env.sh production)\" && ./node_modules/.bin/varlock load'",
+    "ios:config": "./scripts/generate-local-xcconfig.sh local",
+    "ios:config:production": "./scripts/generate-local-xcconfig.sh production",
+    "android:config": "./scripts/generate-android-local-properties.sh local",
+    "android:config:production": "./scripts/generate-android-local-properties.sh production"
+  },
+  "devDependencies": {
+    "@varlock/infisical-plugin": "0.0.6",
+    "varlock": "^0.9.1"
+  }
+}

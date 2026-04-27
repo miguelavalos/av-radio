@@ -18,19 +18,22 @@ Current note:
 1. Xcode 26.4.1 or later installed
 2. An Apple account available in `Xcode > Settings > Accounts`
 3. Command line tools selected from that Xcode
-4. `infisical` CLI available locally
-5. `apps/ios/Config/Local.xcconfig` generated from Infisical
+4. `bun` 1.3.13 or later
+5. A local `.infisical/bootstrap.env`
+6. `apps/ios/Config/Local.xcconfig` generated through Varlock
 
 Generate the local config:
 
 ```bash
-./scripts/generate-local-xcconfig.sh local
+bun install
+cp .infisical/bootstrap.env.example .infisical/bootstrap.env
+bun run ios:config
 ```
 
 For production/App Store preparation:
 
 ```bash
-./scripts/generate-local-xcconfig.sh production
+bun run ios:config:production
 ```
 
 `Local.xcconfig` is gitignored and should be regenerated locally instead of hand-maintained.

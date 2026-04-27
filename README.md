@@ -53,15 +53,19 @@ docs/
 
 ### iOS
 
-1. Resolve the local iOS config from Infisical:
-   `./scripts/generate-local-xcconfig.sh local`
-2. This writes `apps/ios/Config/Local.xcconfig` with the client-side values needed for your build.
-3. Open `apps/ios/Avradio.xcodeproj` in Xcode and run the `Avradio` scheme.
+1. Install repo tooling:
+   `bun install`
+2. Create the shared Infisical bootstrap:
+   `cp .infisical/bootstrap.env.example .infisical/bootstrap.env`
+3. Resolve the local iOS config through Varlock + Infisical:
+   `bun run ios:config`
+4. This writes `apps/ios/Config/Local.xcconfig` with the client-side values needed for your build.
+5. Open `apps/ios/Avradio.xcodeproj` in Xcode and run the `Avradio` scheme.
 
 ### Android
 
-1. Generate `apps/android/local.properties` locally:
-   `./scripts/generate-android-local-properties.sh local`
+1. Generate `apps/android/local.properties` locally through Varlock:
+   `bun run android:config`
 2. Build from `apps/android`:
    `./gradlew --no-daemon assembleDebug`
 
@@ -69,11 +73,16 @@ docs/
 
 - The repo contains `apps/macos/AvradioMac` as a native SwiftUI target for local Xcode work.
 
-For internal builds, keep the real values out of git and regenerate local config from Infisical when needed.
+For internal builds, keep the real values out of git and regenerate local config through Varlock + Infisical when needed.
 
 ## Local Secrets
 
-This project may use local Infisical bootstrap files during development, but nothing inside `.infisical/` is versioned in git.
+This project follows the same shared bootstrap pattern used in the internal repos:
+
+- `.infisical/bootstrap.env.example` is committed
+- `.infisical/bootstrap.env` stays local-only
+- `.env.schema` is the canonical repo contract
+- native local files are generated through `varlock printenv`, not manual `infisical export` parsing
 
 See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](docs/install-android.md) for setup details.
 

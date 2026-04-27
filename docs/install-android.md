@@ -11,19 +11,22 @@ This guide is for local Android builds while keeping the same local config patte
 ## Prerequisites
 
 1. Android Studio Koala or later, or a working local Android SDK + JDK 17
-2. Any local prerequisites required by `./scripts/generate-android-local-properties.sh`
-3. `apps/android/local.properties` generated locally
+2. `bun` 1.3.13 or later
+3. A local `.infisical/bootstrap.env`
+4. `apps/android/local.properties` generated locally through Varlock
 
 Generate the local config:
 
 ```bash
-./scripts/generate-android-local-properties.sh local
+bun install
+cp .infisical/bootstrap.env.example .infisical/bootstrap.env
+bun run android:config
 ```
 
 For release preparation:
 
 ```bash
-./scripts/generate-android-local-properties.sh production
+bun run android:config:production
 ```
 
 `local.properties` is gitignored and should be kept local to your machine.

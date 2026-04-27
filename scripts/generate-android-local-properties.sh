@@ -18,42 +18,18 @@ case "$profile" in
     ;;
 esac
 
-if ! command -v infisical >/dev/null 2>&1; then
-  echo "infisical CLI is required but was not found in PATH." >&2
+eval "$("$repo_root/scripts/resolve-infisical-bootstrap-env.sh" "$profile")"
+
+varlock_bin="$repo_root/node_modules/.bin/varlock"
+
+if [ ! -x "$varlock_bin" ]; then
+  echo "varlock CLI is required. Run 'bun install' in $repo_root." >&2
   exit 1
 fi
 
-eval "$("$repo_root/scripts/resolve-infisical-bootstrap-env.sh" "$profile")"
-
-domain="${INFISICAL_SITE_URL:-https://app.infisical.com}"
-api_domain="$domain"
-if [[ "$api_domain" != */api ]]; then
-  api_domain="${api_domain%/}/api"
-fi
-
-token="$(
-  infisical login \
-    --method universal-auth \
-    --client-id "$INFISICAL_CLIENT_ID" \
-    --client-secret "$INFISICAL_CLIENT_SECRET" \
-    --domain "$api_domain" \
-    --plain \
-    --silent
-)"
-
-secret_payload="$(
-  infisical export \
-    --token "$token" \
-    --domain "$api_domain" \
-    --env "$INFISICAL_ENVIRONMENT" \
-    --projectId "$INFISICAL_PROJECT_ID" \
-    --format dotenv \
-    --silent
-)"
-
-dotenv_value() {
+printenv_value() {
   local key="$1"
-  printf '%s\n' "$secret_payload" | sed -n "s/^${key}='\\(.*\\)'$/\\1/p" | head -n 1
+  "$varlock_bin" printenv --path "$repo_root/" "$key"
 }
 
 properties_escape() {
@@ -74,21 +50,17 @@ preserve_local_property() {
   sed -n "s/^${key}=//p" "$file" | head -n 1
 }
 
-clerk_publishable_key="$(dotenv_value CLERK_PUBLISHABLE_KEY)"
-if [ -z "$clerk_publishable_key" ]; then
-  clerk_publishable_key="$(dotenv_value EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY)"
-fi
-
-premium_product_ids="$(dotenv_value AVRADIO_PREMIUM_PRODUCT_IDS)"
-support_email="$(dotenv_value AVRADIO_SUPPORT_EMAIL)"
-account_management_url="$(dotenv_value AVRADIO_ACCOUNT_MANAGEMENT_URL)"
-terms_url="$(dotenv_value AVRADIO_TERMS_URL)"
-privacy_url="$(dotenv_value AVRADIO_PRIVACY_URL)"
-
-auth_provider="${AVRADIO_AUTH_PROVIDER:-clerk}"
-auth_web_url="${AVRADIO_AUTH_WEB_URL:-}"
-auth_callback_scheme="${AVRADIO_AUTH_CALLBACK_SCHEME:-avradio}"
-auth_callback_host="${AVRADIO_AUTH_CALLBACK_HOST:-auth}"
+clerk_publishable_key="$(printenv_value CLERK_PUBLISHABLE_KEY)"
+premium_product_ids="$(printenv_value AVRADIO_PREMIUM_PRODUCT_IDS)"
+support_email="$(printenv_value AVRADIO_SUPPORT_EMAIL)"
+avapps_api_base_url="$(printenv_value AVRADIO_AVAPPS_API_BASE_URL)"
+account_management_url="$(printenv_value AVRADIO_ACCOUNT_MANAGEMENT_URL)"
+terms_url="$(printenv_value AVRADIO_TERMS_URL)"
+privacy_url="$(printenv_value AVRADIO_PRIVACY_URL)"
+auth_provider="$(printenv_value AVRADIO_AUTH_PROVIDER)"
+auth_web_url="$(printenv_value AVRADIO_AUTH_WEB_URL)"
+auth_callback_scheme="$(printenv_value AVRADIO_AUTH_CALLBACK_SCHEME)"
+auth_callback_host="$(printenv_value AVRADIO_AUTH_CALLBACK_HOST)"
 
 required_values=(
   clerk_publishable_key
@@ -111,6 +83,7 @@ rendered_config="$(cat <<EOF
 AVRADIO_APPLICATION_ID=$(properties_escape "$application_id")
 AVRADIO_AUTH_PROVIDER=$(properties_escape "$auth_provider")
 CLERK_PUBLISHABLE_KEY=$(properties_escape "$clerk_publishable_key")
+AVRADIO_AVAPPS_API_BASE_URL=$(properties_escape "$avapps_api_base_url")
 AVRADIO_AUTH_WEB_URL=$(properties_escape "$auth_web_url")
 AVRADIO_AUTH_CALLBACK_SCHEME=$(properties_escape "$auth_callback_scheme")
 AVRADIO_AUTH_CALLBACK_HOST=$(properties_escape "$auth_callback_host")

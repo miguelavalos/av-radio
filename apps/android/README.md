@@ -107,7 +107,7 @@ Clone behavior from these iOS sources:
 Generate `apps/android/local.properties` locally and keep local secrets out of git:
 
 ```bash
-./scripts/generate-android-local-properties.sh local
+bun run android:config
 ```
 
 ## Useful Commands
@@ -127,13 +127,13 @@ If you have an emulator or device connected:
 Android runtime config follows the same local-generated pattern used by iOS. Generate `apps/android/local.properties` locally:
 
 ```bash
-./scripts/generate-android-local-properties.sh local
+bun run android:config
 ```
 
 For release preparation:
 
 ```bash
-./scripts/generate-android-local-properties.sh production
+bun run android:config:production
 ```
 
 Gradle still accepts environment overrides, but the normal local workflow should use `apps/android/local.properties`.

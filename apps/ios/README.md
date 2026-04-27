@@ -4,9 +4,10 @@ SwiftUI iOS app for AV Radio.
 
 ## Local Config
 
-1. Copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig`.
-2. Set the client-side values you want to use for local development.
-3. Open `Avradio.xcodeproj` in Xcode.
+1. From the repo root, run `bun install`.
+2. Create `.infisical/bootstrap.env` from `.infisical/bootstrap.env.example`.
+3. Generate `Config/Local.xcconfig` from the repo root with `bun run ios:config`.
+4. Open `Avradio.xcodeproj` in Xcode.
 
 The public repository ships with neutral defaults. Internal builds can override `AVRADIO_BUNDLE_IDENTIFIER` and the other client-facing values in the local, non-versioned `Config/Local.xcconfig`.
 
