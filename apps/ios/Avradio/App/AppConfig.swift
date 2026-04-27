@@ -12,7 +12,7 @@ enum AppConfig {
     }
 
     static var avAppsAPIBaseURL: URL? {
-        urlValue(for: "AVAPPS_API_BASE_URL") ?? urlValue(for: "AVRADIO_AVAPPS_API_BASE_URL")
+        urlValue(for: "AVAPPS_API_BASE_URL")
     }
 
     static var accountManagementURL: URL? {

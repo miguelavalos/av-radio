@@ -41,9 +41,6 @@ clerk_publishable_key="$(printenv_value CLERK_PUBLISHABLE_KEY)"
 premium_product_ids="$(printenv_value AVRADIO_PREMIUM_PRODUCT_IDS)"
 support_email="$(printenv_value AVRADIO_SUPPORT_EMAIL)"
 avapps_api_base_url="$(printenv_value AVAPPS_API_BASE_URL)"
-if [ -z "${avapps_api_base_url:-}" ]; then
-  avapps_api_base_url="$(printenv_value AVRADIO_AVAPPS_API_BASE_URL)"
-fi
 account_management_url="$(printenv_value AVRADIO_ACCOUNT_MANAGEMENT_URL)"
 terms_url="$(printenv_value AVRADIO_TERMS_URL)"
 privacy_url="$(printenv_value AVRADIO_PRIVACY_URL)"
@@ -71,7 +68,6 @@ CLERK_PUBLISHABLE_KEY = $clerk_publishable_key
 AVRADIO_PREMIUM_PRODUCT_IDS = $premium_product_ids
 AVRADIO_SUPPORT_EMAIL = $support_email
 AVAPPS_API_BASE_URL = $(xcodebuild_url_value "$avapps_api_base_url")
-AVRADIO_AVAPPS_API_BASE_URL = $(xcodebuild_url_value "$avapps_api_base_url")
 AVRADIO_ACCOUNT_MANAGEMENT_URL = $(xcodebuild_url_value "$account_management_url")
 AVRADIO_TERMS_URL = $(xcodebuild_url_value "$terms_url")
 AVRADIO_PRIVACY_URL = $(xcodebuild_url_value "$privacy_url")

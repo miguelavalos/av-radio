@@ -54,9 +54,6 @@ clerk_publishable_key="$(printenv_value CLERK_PUBLISHABLE_KEY)"
 premium_product_ids="$(printenv_value AVRADIO_PREMIUM_PRODUCT_IDS)"
 support_email="$(printenv_value AVRADIO_SUPPORT_EMAIL)"
 avapps_api_base_url="$(printenv_value AVAPPS_API_BASE_URL)"
-if [ -z "${avapps_api_base_url:-}" ]; then
-  avapps_api_base_url="$(printenv_value AVRADIO_AVAPPS_API_BASE_URL)"
-fi
 account_management_url="$(printenv_value AVRADIO_ACCOUNT_MANAGEMENT_URL)"
 terms_url="$(printenv_value AVRADIO_TERMS_URL)"
 privacy_url="$(printenv_value AVRADIO_PRIVACY_URL)"
@@ -87,7 +84,6 @@ AVRADIO_APPLICATION_ID=$(properties_escape "$application_id")
 AVRADIO_AUTH_PROVIDER=$(properties_escape "$auth_provider")
 CLERK_PUBLISHABLE_KEY=$(properties_escape "$clerk_publishable_key")
 AVAPPS_API_BASE_URL=$(properties_escape "$avapps_api_base_url")
-AVRADIO_AVAPPS_API_BASE_URL=$(properties_escape "$avapps_api_base_url")
 AVRADIO_AUTH_WEB_URL=$(properties_escape "$auth_web_url")
 AVRADIO_AUTH_CALLBACK_SCHEME=$(properties_escape "$auth_callback_scheme")
 AVRADIO_AUTH_CALLBACK_HOST=$(properties_escape "$auth_callback_host")
