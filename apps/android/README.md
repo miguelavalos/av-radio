@@ -146,7 +146,7 @@ The generated config provides:
 - `AVRADIO_AUTH_PROVIDER=demo`
 - `AVRADIO_AUTH_PROVIDER=none`
 - `CLERK_PUBLISHABLE_KEY=pk_test_...`
-- `AVRADIO_AVAPPS_API_BASE_URL=https://api.example.com`
+- `AVAPPS_API_BASE_URL=https://api.example.com`
 - `AVRADIO_AUTH_WEB_URL=https://accounts.your-domain.tld/sign-in`
 - `AVRADIO_AUTH_CALLBACK_SCHEME=avradio`
 - `AVRADIO_AUTH_CALLBACK_HOST=auth`
@@ -173,7 +173,7 @@ The public repo currently supports:
 
 - real Clerk SDK initialization and sign-in UI via `AuthView`
 - Clerk session observation and sign-out through Android native SDK
-- backend-backed access resolution through `GET /v1/me/access` when `AVRADIO_AVAPPS_API_BASE_URL` is configured
+- backend-backed access resolution through `GET /v1/me/access` when `AVAPPS_API_BASE_URL` is configured
 - shared `app-data` sync for `library` when backend access resolves `canUseCloudSync=true`
 - opening a configured web sign-in URL from onboarding/profile
 - accepting a deep-link callback and materializing a local signed-in state from query params

@@ -88,7 +88,7 @@ See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](doc
 
 ## Platform integration
 
-- iOS can use `AVRADIO_AVAPPS_API_BASE_URL` to refresh signed-in access through `GET /v1/me/access`
+- iOS can use `AVAPPS_API_BASE_URL` to refresh signed-in access through `GET /v1/me/access`
 - Android can do the same through generated local runtime config
 - shared backend sync is currently limited to `library`
 - billing-provider reconciliation into shared entitlements is still pending

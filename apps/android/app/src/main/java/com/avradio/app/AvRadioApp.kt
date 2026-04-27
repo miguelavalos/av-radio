@@ -1540,7 +1540,7 @@ private fun ProfileScreen(
                 } else if (!AppConfig.isPremiumSubscriptionAvailable) {
                     "Add AVRADIO_PREMIUM_PRODUCT_IDS to the Android config to enable store subscriptions in this build."
                 } else if (authProvider == AppConfig.AuthProvider.CLERK && accessState.isSignedIn) {
-                    "Account login is real through Clerk. Configure AVRADIO_AVAPPS_API_BASE_URL to resolve access from the shared backend."
+                    "Account login is real through Clerk. Configure AVAPPS_API_BASE_URL to resolve access from the shared backend."
                 } else {
                     "Local-first mode with no backend dependency."
                 }

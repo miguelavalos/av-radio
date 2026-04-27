@@ -28,6 +28,11 @@ fun buildConfigString(name: String, defaultValue: String = ""): String {
     return "\"$value\""
 }
 
+fun avappsApiBaseUrl(): String {
+    val canonical = configValue("AVAPPS_API_BASE_URL")
+    return if (canonical.isNotBlank()) canonical else configValue("AVRADIO_AVAPPS_API_BASE_URL")
+}
+
 android {
     namespace = "com.avradio"
     compileSdk = 36
@@ -45,7 +50,7 @@ android {
         buildConfigField("String", "AUTH_CALLBACK_SCHEME", buildConfigString("AVRADIO_AUTH_CALLBACK_SCHEME", "avradio"))
         buildConfigField("String", "AUTH_CALLBACK_HOST", buildConfigString("AVRADIO_AUTH_CALLBACK_HOST", "auth"))
         buildConfigField("String", "CLERK_PUBLISHABLE_KEY", buildConfigString("CLERK_PUBLISHABLE_KEY", ""))
-        buildConfigField("String", "AVAPPS_API_BASE_URL", buildConfigString("AVRADIO_AVAPPS_API_BASE_URL", ""))
+        buildConfigField("String", "AVAPPS_API_BASE_URL", "\"${avappsApiBaseUrl().replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         buildConfigField("String", "PREMIUM_PRODUCT_IDS", buildConfigString("AVRADIO_PREMIUM_PRODUCT_IDS", ""))
         buildConfigField("String", "SUPPORT_EMAIL", buildConfigString("AVRADIO_SUPPORT_EMAIL", ""))
         buildConfigField("String", "ACCOUNT_MANAGEMENT_URL", buildConfigString("AVRADIO_ACCOUNT_MANAGEMENT_URL", ""))
