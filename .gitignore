@@ -20,6 +20,7 @@ apps/ios/Config/Local.xcconfig
 # Override global ignore rules so Android app sources remain trackable.
 !/apps/android/
 !/apps/android/**
+apps/android/.kotlin/
 
 # Override global ignore rules so iOS app sources remain trackable.
 !/apps/ios/

@@ -1,6 +1,8 @@
 package com.avradio.app
 
 import com.avradio.BuildConfig
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 object AppConfig {
     enum class AuthProvider {
@@ -23,6 +25,9 @@ object AppConfig {
 
     val clerkPublishableKey: String?
         get() = BuildConfig.CLERK_PUBLISHABLE_KEY.trim().ifBlank { null }
+
+    val avAppsApiBaseUrl: HttpUrl?
+        get() = BuildConfig.AVAPPS_API_BASE_URL.trim().ifBlank { null }?.toHttpUrlOrNull()
 
     val premiumProductIds: List<String>
         get() = BuildConfig.PREMIUM_PRODUCT_IDS.split(',')
@@ -61,6 +66,9 @@ object AppConfig {
 
     val isClerkAuthAvailable: Boolean
         get() = authProvider == AuthProvider.CLERK && !clerkPublishableKey.isNullOrBlank()
+
+    val isAvAppsBackendConfigured: Boolean
+        get() = avAppsApiBaseUrl != null
 
     val isWebAuthAvailable: Boolean
         get() = authProvider == AuthProvider.WEB && !authWebUrl.isNullOrBlank()

@@ -146,6 +146,7 @@ The generated config provides:
 - `AVRADIO_AUTH_PROVIDER=demo`
 - `AVRADIO_AUTH_PROVIDER=none`
 - `CLERK_PUBLISHABLE_KEY=pk_test_...`
+- `AVRADIO_AVAPPS_API_BASE_URL=https://api.example.com`
 - `AVRADIO_AUTH_WEB_URL=https://your-auth-entrypoint.example.com`
 - `AVRADIO_AUTH_CALLBACK_SCHEME=avradio`
 - `AVRADIO_AUTH_CALLBACK_HOST=auth`
@@ -172,6 +173,8 @@ The public repo currently supports:
 
 - real Clerk SDK initialization and sign-in UI via `AuthView`
 - Clerk session observation and sign-out through Android native SDK
+- backend-backed access resolution through `GET /v1/me/access` when `AVRADIO_AVAPPS_API_BASE_URL` is configured
+- shared `app-data` sync for `library` when backend access resolves `canUseCloudSync=true`
 - opening a configured web sign-in URL from onboarding/profile
 - accepting a deep-link callback and materializing a local signed-in state from query params
 - an `AuthSessionExchange` seam so the callback-to-session step can be replaced by a real backend exchange
@@ -179,8 +182,8 @@ The public repo currently supports:
 The public repo does not yet implement:
 
 - billing-backed entitlements on Android
-- backend-backed entitlement resolution
-- cross-device account state beyond Clerk session identity
+- conflict-aware or partial `library` merge beyond snapshot sync
+- cross-device account state beyond shared backend access and `library` sync
 
 ## Current Delivery Status
 
@@ -199,4 +202,4 @@ Implemented:
 Still external or pending:
 
 - Google Play Billing
-- production backend entitlement sync
+- broader production app-data sync beyond `library`

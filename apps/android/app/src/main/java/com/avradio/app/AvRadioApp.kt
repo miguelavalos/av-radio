@@ -1528,18 +1528,24 @@ private fun ProfileScreen(
             ProfileCard(
                 title = "Capabilities",
                 detail = if (accessState.capabilities.canAccessPremiumFeatures) {
-                    "Premium features enabled in this local Android demo."
+                    "Premium and cloud-backed capabilities are active for this account."
+                } else if (accessState.capabilities.canUseBackend) {
+                    "Backend-backed account access is active, but premium features remain off for this account."
+                } else if (authProvider == AppConfig.AuthProvider.CLERK && AppConfig.isAvAppsBackendConfigured && accessState.isSignedIn) {
+                    "Account login is real through Clerk and access is resolved by AV Apps. This free state still stays local-first."
                 } else if (!AppConfig.isPremiumSubscriptionAvailable) {
                     "Add AVRADIO_PREMIUM_PRODUCT_IDS to the Android config to enable store subscriptions in this build."
                 } else if (authProvider == AppConfig.AuthProvider.CLERK && accessState.isSignedIn) {
-                    "Account login is real through Clerk. Subscription products are configured, but entitlement sync is not active yet."
+                    "Account login is real through Clerk. Configure AVRADIO_AVAPPS_API_BASE_URL to resolve access from the shared backend."
                 } else {
                     "Local-first mode with no backend dependency."
                 }
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     CapabilityRow("Local only", accessState.capabilities.isLocalOnly)
+                    CapabilityRow("Backend access", accessState.capabilities.canUseBackend)
                     CapabilityRow("Premium features", accessState.capabilities.canAccessPremiumFeatures)
+                    CapabilityRow("Cloud sync", accessState.capabilities.canUseCloudSync)
                     CapabilityRow("Account management", accessState.capabilities.canManageAccount)
                     CapabilityRow("Subscriptions configured", AppConfig.isPremiumSubscriptionAvailable)
                 }
@@ -1623,7 +1629,7 @@ private fun ProfileScreen(
                 detail = when (authProvider) {
                     AppConfig.AuthProvider.CLERK ->
                         if (accessState.isSignedIn) {
-                            "Signed in with Clerk. Account surfaces match iOS, while Android billing and entitlement sync are still pending."
+                            "Signed in with Clerk. Android now resolves account access through AV Apps when configured, while billing and app-data sync are still pending."
                         } else {
                             "Sign in with the same Clerk-powered AV Apps Account flow used by iOS."
                         }

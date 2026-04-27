@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.clerk.api.Clerk
+import com.clerk.api.network.serialization.ClerkResult
+import com.clerk.api.session.GetTokenOptions
 import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +25,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class ClerkAccessRepository(
-    context: Context
+    context: Context,
+    private val avAppsAccessApi: AVAppsAccessApi
 ) : AccessRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val dataStore = PreferenceDataStoreFactory.create(
@@ -44,14 +47,21 @@ class ClerkAccessRepository(
                     .map { preferences -> preferences[ONBOARDING_SEEN_KEY] ?: false },
                 Clerk.userFlow
             ) { onboardingSeen, user ->
+                onboardingSeen to user
+            }.collectLatest { (onboardingSeen, user) ->
                 val accountUser = user?.toAccountUser()
-                val mode = if (accountUser == null) AccessMode.GUEST else AccessMode.SIGNED_IN_FREE
-                AccessState(
+                val resolvedAccess = if (accountUser == null) {
+                    ResolvedAccess.guest
+                } else {
+                    resolveSignedInAccess()
+                }
+                val state = AccessState(
                     onboardingSeen = onboardingSeen || accountUser != null,
-                    mode = mode,
-                    user = accountUser
+                    mode = resolvedAccess.accessMode,
+                    planTier = resolvedAccess.planTier,
+                    user = accountUser,
+                    capabilities = resolvedAccess.capabilities
                 )
-            }.collectLatest { state ->
                 _state.value = state
                 if (state.user != null && !state.onboardingSeen) {
                     markOnboardingSeen()
@@ -88,6 +98,16 @@ class ClerkAccessRepository(
         dataStore.edit { prefs ->
             prefs[ONBOARDING_SEEN_KEY] = true
         }
+    }
+
+    private suspend fun resolveSignedInAccess(): ResolvedAccess {
+        if (!avAppsAccessApi.isConfigured()) {
+            return ResolvedAccess.signedInFree
+        }
+
+        return avAppsAccessApi.fetchResolvedAccess()
+            ?.takeIf { it.capabilities.isSignedIn }
+            ?: ResolvedAccess.signedInFree
     }
 
     private fun Any.toAccountUser(): AccountUser {
