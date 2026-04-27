@@ -54,6 +54,9 @@ clerk_publishable_key="$(printenv_value CLERK_PUBLISHABLE_KEY)"
 premium_product_ids="$(printenv_value AVRADIO_PREMIUM_PRODUCT_IDS)"
 support_email="$(printenv_value AVRADIO_SUPPORT_EMAIL)"
 avapps_api_base_url="$(printenv_value AVAPPS_API_BASE_URL)"
+if [ -z "${avapps_api_base_url:-}" ] && [ "$profile" = "local" ]; then
+  avapps_api_base_url="http://127.0.0.1:8788"
+fi
 account_management_url="$(printenv_value AVRADIO_ACCOUNT_MANAGEMENT_URL)"
 terms_url="$(printenv_value AVRADIO_TERMS_URL)"
 privacy_url="$(printenv_value AVRADIO_PRIVACY_URL)"
