@@ -1,9 +1,9 @@
 AVRADIO_BUNDLE_IDENTIFIER = com.example.avradio.dev
 CLERK_PUBLISHABLE_KEY = pk_test_your_publishable_key_here
 AVRADIO_PREMIUM_PRODUCT_IDS = com.example.avradio.pro.monthly,com.example.avradio.pro.yearly
-AVRADIO_SUPPORT_EMAIL = support@example.com
+AVRADIO_SUPPORT_EMAIL = support@avalsys.com
 AVRADIO_AVAPPS_API_BASE_URL = https:/$()/api.example.com
-AVRADIO_ACCOUNT_MANAGEMENT_URL = https:/$()/example.com/account
-AVRADIO_TERMS_URL = https:/$()/example.com/terms
-AVRADIO_PRIVACY_URL = https:/$()/example.com/privacy
-AVRADIO_OPEN_SOURCE_URL = https:/$()/github.com/example/av-radio
+AVRADIO_ACCOUNT_MANAGEMENT_URL = https:/$()/accounts.avalsys.com/user
+AVRADIO_TERMS_URL = https:/$()/av-radio.avalsys.com/terms
+AVRADIO_PRIVACY_URL = https:/$()/av-radio.avalsys.com/privacy
+AVRADIO_OPEN_SOURCE_URL = https:/$()/github.com/miguelavalos/av-radio

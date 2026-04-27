@@ -153,8 +153,8 @@ struct AuthOnboardingView: View {
     }
 
     private var legalConsentText: AttributedString {
-        let termsURL = AppConfig.termsURL?.absoluteString ?? "https://example.com/terms"
-        let privacyURL = AppConfig.privacyURL?.absoluteString ?? "https://example.com/privacy"
+        let termsURL = AppConfig.termsURL?.absoluteString ?? "https://www.avalsys.com/av-apps/av-radio/terms"
+        let privacyURL = AppConfig.privacyURL?.absoluteString ?? "https://www.avalsys.com/av-apps/av-radio/privacy"
         return L10n.markdown("auth.legalConsent", termsURL, privacyURL)
     }
 }

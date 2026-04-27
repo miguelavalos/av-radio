@@ -31,6 +31,10 @@ enum AppConfig {
         urlValue(for: "AVRADIO_OPEN_SOURCE_URL")
     }
 
+    static var radioBrowserURL: URL? {
+        URL(string: "https://www.radio-browser.info/")
+    }
+
     static var supportURL: URL? {
         guard let supportEmail else { return nil }
         let encodedSubject = "AV Radio Support".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "AV%20Radio%20Support"

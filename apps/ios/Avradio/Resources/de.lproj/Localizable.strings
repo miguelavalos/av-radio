@@ -86,7 +86,13 @@
 "profile.displayName.local" = "Lokaler Hörer";
 "profile.help.privacy.detail" = "Erfahre, wie AV Radio mit deinen Daten umgeht.";
 "profile.help.privacy.title" = "Datenschutzerklärung";
-"profile.help.subtitle" = "Öffne hier Support, Datenschutz und Nutzungsbedingungen.";
+"profile.help.dataSources.detail" = "Die Sendererkennung nutzt Radio Browser; einzelne Cover oder Icons können über externe Metadaten-Endpunkte aufgelöst werden.";
+"profile.help.dataSources.title" = "Datenquellen";
+"profile.help.opensource.detail" = "AV Radio wird als unabhängiges Open-Source-Projekt gepflegt.";
+"profile.help.opensource.title" = "Open-Source-Projekt";
+"profile.help.sourceCode.detail" = "Sieh dir Repository, Issues und Hinweise zum Mitwirken an.";
+"profile.help.sourceCode.title" = "Quellcode";
+"profile.help.subtitle" = "Öffne hier Projektlinks, Datenquellen, Support, Datenschutz und Nutzungsbedingungen.";
 "profile.help.support.detail" = "AV Radio Support per E-Mail kontaktieren.";
 "profile.help.support.title" = "Support kontaktieren";
 "profile.help.terms.detail" = "Prüfe die für AV Radio geltenden Bedingungen.";

@@ -40,10 +40,10 @@ AVRADIO_APPLICATION_ID=com.example.avradio.dev
 AVRADIO_AUTH_PROVIDER=clerk
 CLERK_PUBLISHABLE_KEY=pk_test_your_publishable_key
 AVRADIO_PREMIUM_PRODUCT_IDS=com.example.avradio.pro.monthly,com.example.avradio.pro.yearly
-AVRADIO_SUPPORT_EMAIL=support@example.com
-AVRADIO_ACCOUNT_MANAGEMENT_URL=https://example.com/account
-AVRADIO_TERMS_URL=https://example.com/terms
-AVRADIO_PRIVACY_URL=https://example.com/privacy
+AVRADIO_SUPPORT_EMAIL=support@avalsys.com
+AVRADIO_ACCOUNT_MANAGEMENT_URL=https://accounts.avalsys.com/user
+AVRADIO_TERMS_URL=https://av-radio.avalsys.com/terms
+AVRADIO_PRIVACY_URL=https://av-radio.avalsys.com/privacy
 ```
 
 Optional auth handoff overrides can also live there:

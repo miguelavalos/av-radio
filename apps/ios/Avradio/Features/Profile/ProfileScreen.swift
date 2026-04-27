@@ -292,6 +292,15 @@ struct ProfileScreen: View {
                     )
                 }
 
+                if let radioBrowserURL = AppConfig.radioBrowserURL {
+                    ProfileActionRow(
+                        systemImage: "dot.radiowaves.left.and.right",
+                        title: L10n.string("profile.help.dataSources.title"),
+                        detail: L10n.string("profile.help.dataSources.detail"),
+                        action: { open(radioBrowserURL) }
+                    )
+                }
+
                 if let supportURL = AppConfig.supportURL {
                     ProfileActionRow(
                         systemImage: "questionmark.bubble",

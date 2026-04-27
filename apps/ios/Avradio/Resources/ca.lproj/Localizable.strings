@@ -86,7 +86,13 @@
 "profile.displayName.local" = "Oient local";
 "profile.help.privacy.detail" = "Consulta com AV Radio gestiona les teves dades.";
 "profile.help.privacy.title" = "Política de privacitat";
-"profile.help.subtitle" = "Obre des d'aquí suport, privacitat i termes.";
+"profile.help.dataSources.detail" = "El descobriment d'emissores depèn de Radio Browser i algunes caràtules o icones es resolen mitjançant endpoints externs de metadades.";
+"profile.help.dataSources.title" = "Fonts de dades";
+"profile.help.opensource.detail" = "AV Radio es manté com un projecte open-source i independent.";
+"profile.help.opensource.title" = "Projecte open-source";
+"profile.help.sourceCode.detail" = "Consulta el repositori, les incidències i com contribuir.";
+"profile.help.sourceCode.title" = "Codi font";
+"profile.help.subtitle" = "Obre des d'aquí els enllaços del projecte, les referències de dades, suport, privacitat i termes.";
 "profile.help.support.detail" = "Escriu al suport d'AV Radio.";
 "profile.help.support.title" = "Contactar amb suport";
 "profile.help.terms.detail" = "Revisa els termes aplicables a AV Radio.";

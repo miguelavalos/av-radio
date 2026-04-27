@@ -277,6 +277,9 @@ fun AvRadioApp(
                     onOpenWebAuth = {
                         AppConfig.authWebUrl?.let(uriHandler::openUri)
                     },
+                    onOpenStationDataSource = {
+                        uriHandler.openUri("https://www.radio-browser.info/")
+                    },
                     onOpenManageAccount = {
                         AppConfig.accountManagementUrl?.let(uriHandler::openUri)
                     },
@@ -1427,6 +1430,7 @@ private fun ProfileScreen(
     libraryState: LibraryState,
     onConnectDemo: () -> Unit,
     onOpenWebAuth: () -> Unit,
+    onOpenStationDataSource: () -> Unit,
     onOpenManageAccount: () -> Unit,
     onOpenSupport: () -> Unit,
     onOpenTerms: () -> Unit,
@@ -1576,9 +1580,14 @@ private fun ProfileScreen(
         item {
             ProfileCard(
                 title = "Help and legal",
-                detail = "Open account management, support, privacy, and terms from the Android app."
+                detail = "Open project, data-source, account, support, privacy, and terms references from the Android app."
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LinkListItem(
+                        title = "Station data source",
+                        detail = "Station discovery relies on Radio Browser, with some artwork or icon lookups resolved through third-party metadata endpoints.",
+                        onClick = onOpenStationDataSource
+                    )
                     if (AppConfig.accountManagementUrl != null && accessState.capabilities.canManageAccount) {
                         LinkListItem(
                             title = "Manage account",

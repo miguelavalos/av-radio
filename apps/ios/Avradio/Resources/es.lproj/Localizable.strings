@@ -90,7 +90,9 @@
 "profile.help.opensource.title" = "Proyecto open-source";
 "profile.help.sourceCode.detail" = "Consulta el repositorio, las incidencias y cómo contribuir.";
 "profile.help.sourceCode.title" = "Código fuente";
-"profile.help.subtitle" = "Abre desde aquí los enlaces del proyecto, soporte, privacidad y términos.";
+"profile.help.dataSources.detail" = "El descubrimiento de emisoras depende de Radio Browser y algunas portadas o iconos se resuelven mediante endpoints externos de metadatos.";
+"profile.help.dataSources.title" = "Fuentes de datos";
+"profile.help.subtitle" = "Abre desde aquí los enlaces del proyecto, las referencias de datos, soporte, privacidad y términos.";
 "profile.help.support.detail" = "Escribe al soporte de AV Radio.";
 "profile.help.support.title" = "Contactar con soporte";
 "profile.help.terms.detail" = "Revisa los términos aplicables a AV Radio.";

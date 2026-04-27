@@ -93,6 +93,21 @@ See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](doc
 - shared backend sync is currently limited to `library`
 - billing-provider reconciliation into shared entitlements is still pending
 
+## Third-Party Services And Data Sources
+
+- Station discovery currently relies on `Radio Browser`.
+- Playback relies on direct third-party station stream hosts that AV Radio does not control.
+- Artwork resolution may use Apple `iTunes Search`.
+- Favicon fallback resolution may use Google's favicon endpoint when station metadata does not provide a usable icon.
+- Optional signed-in account and entitlement flows depend on the private AV Apps backend and related identity infrastructure.
+- Profile surfaces now expose an in-product data-source reference for `Radio Browser`.
+
+## Account Deletion Support
+
+- Public deletion support URL: `https://av-radio.avalsys.com/delete-account`
+- Local-only users can remove on-device data from inside the app or by deleting the app.
+- If an AV Apps account was used, the public deletion page documents the out-of-app request path and the provider-subscription caveats.
+
 ## Pending work
 
 1. Reconcile App Store and Google Play purchases into shared backend entitlements.
@@ -100,6 +115,7 @@ See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](doc
 3. Keep active AV Radio work focused on `iOS`, using Android/macOS mainly as secondary references until priorities change.
 4. Keep iOS and Android access behavior aligned on backend-owned capabilities.
 5. Decide later whether macOS becomes a maintained first-class target or stays a companion/experimental app.
+6. Keep store disclosures aligned with the shipped account/deletion flow as production distribution expands.
 
 ## Contributing And Security
 

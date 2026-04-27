@@ -147,14 +147,14 @@ The generated config provides:
 - `AVRADIO_AUTH_PROVIDER=none`
 - `CLERK_PUBLISHABLE_KEY=pk_test_...`
 - `AVRADIO_AVAPPS_API_BASE_URL=https://api.example.com`
-- `AVRADIO_AUTH_WEB_URL=https://your-auth-entrypoint.example.com`
+- `AVRADIO_AUTH_WEB_URL=https://accounts.your-domain.tld/sign-in`
 - `AVRADIO_AUTH_CALLBACK_SCHEME=avradio`
 - `AVRADIO_AUTH_CALLBACK_HOST=auth`
 - `AVRADIO_PREMIUM_PRODUCT_IDS=com.example.avradio.pro.monthly,com.example.avradio.pro.yearly`
-- `AVRADIO_SUPPORT_EMAIL=support@example.com`
-- `AVRADIO_ACCOUNT_MANAGEMENT_URL=https://example.com/account`
-- `AVRADIO_TERMS_URL=https://example.com/terms`
-- `AVRADIO_PRIVACY_URL=https://example.com/privacy`
+- `AVRADIO_SUPPORT_EMAIL=support@avalsys.com`
+- `AVRADIO_ACCOUNT_MANAGEMENT_URL=https://accounts.avalsys.com/user`
+- `AVRADIO_TERMS_URL=https://av-radio.avalsys.com/terms`
+- `AVRADIO_PRIVACY_URL=https://av-radio.avalsys.com/privacy`
 
 Examples:
 
@@ -165,7 +165,7 @@ Examples:
   `AVRADIO_AUTH_PROVIDER=demo`
 - external web handoff:
   `AVRADIO_AUTH_PROVIDER=web`
-  `AVRADIO_AUTH_WEB_URL=https://example.com/sign-in`
+  `AVRADIO_AUTH_WEB_URL=https://accounts.your-domain.tld/sign-in`
   callback target example:
   `avradio://auth/callback?user_id=123&name=AV%20Listener&email=listener%40example.com&plan=pro`
 
@@ -192,6 +192,7 @@ Implemented:
 - Compose shell with Home, Search, Library, and Profile
 - onboarding and local access states
 - Radio Browser search and discovery
+- visible in-product data-source attribution for Radio Browser in Profile
 - Media3 playback with background service
 - favorites, recents, queue, and sleep timer
 - now playing screen

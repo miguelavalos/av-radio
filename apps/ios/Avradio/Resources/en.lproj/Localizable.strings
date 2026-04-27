@@ -90,7 +90,9 @@
 "profile.help.opensource.title" = "Open-source project";
 "profile.help.sourceCode.detail" = "Browse the repository, issues, and contribution guidelines.";
 "profile.help.sourceCode.title" = "Source code";
-"profile.help.subtitle" = "Open the project links, support, privacy, and terms from here.";
+"profile.help.dataSources.detail" = "Station discovery relies on Radio Browser, with some artwork or icon lookups resolved through third-party metadata endpoints.";
+"profile.help.dataSources.title" = "Data sources";
+"profile.help.subtitle" = "Open project links, data-source references, support, privacy, and terms from here.";
 "profile.help.support.detail" = "Email AV Radio support.";
 "profile.help.support.title" = "Contact support";
 "profile.help.terms.detail" = "Review the terms that apply to AV Radio.";
