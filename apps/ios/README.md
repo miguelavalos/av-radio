@@ -18,6 +18,12 @@ Optional local subscription config:
 - keep `AVRADIO_PREMIUM_PRODUCT_IDS` aligned with the product IDs defined in that `.storekit` file
 - the shared `Avradio` scheme is configured to use the local StoreKit file on Run
 
+Optional shared-platform access config:
+
+- set `AVRADIO_AVAPPS_API_BASE_URL` in `Config/Local.xcconfig` to enable backend-owned access resolution through `private/av-apps`
+- when both `CLERK_PUBLISHABLE_KEY` and `AVRADIO_AVAPPS_API_BASE_URL` are configured, signed-in access refreshes from `GET /v1/me/access`
+- StoreKit remains the client fallback while purchase-to-entitlement reconciliation is still being finalized outside this repo
+
 ## Current app shape
 
 - shared internal access model with `guest`, `signedInFree`, and `signedInPro`
@@ -25,7 +31,7 @@ Optional local subscription config:
 - `AV Apps Account` as the product-facing account layer name
 - onboarding with `Skip for now`
 - local-first shell that works without sign-in
-- signing in does not change storage behavior yet; it only connects an account
+- signing in does not change storage behavior yet; it only connects an account and can refresh backend-owned access when configured
 - premium access remains the only state allowed to grow into backend-backed features
 
 ## Localization

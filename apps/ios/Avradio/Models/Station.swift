@@ -75,6 +75,62 @@ struct Station: Identifiable, Hashable {
 }
 
 extension Station {
+    init(record: StationRecord) {
+        self.init(
+            id: record.id,
+            name: record.name,
+            country: record.country,
+            countryCode: record.countryCode,
+            state: record.state,
+            language: record.language,
+            languageCodes: record.languageCodes,
+            tags: record.tags,
+            streamURL: record.streamURL,
+            faviconURL: record.faviconURL,
+            bitrate: record.bitrate,
+            codec: record.codec,
+            homepageURL: record.homepageURL,
+            votes: record.votes,
+            clickCount: record.clickCount,
+            clickTrend: record.clickTrend,
+            isHLS: record.isHLS,
+            hasExtendedInfo: record.hasExtendedInfo,
+            hasSSLError: record.hasSSLError,
+            lastCheckOKAt: record.lastCheckOKAt,
+            geoLatitude: record.geoLatitude,
+            geoLongitude: record.geoLongitude
+        )
+    }
+
+    var appDataRecord: StationRecord {
+        StationRecord(
+            id: id,
+            name: name,
+            country: country,
+            countryCode: countryCode,
+            state: state,
+            language: language,
+            languageCodes: languageCodes,
+            tags: tags,
+            streamURL: streamURL,
+            faviconURL: faviconURL,
+            bitrate: bitrate,
+            codec: codec,
+            homepageURL: homepageURL,
+            votes: votes,
+            clickCount: clickCount,
+            clickTrend: clickTrend,
+            isHLS: isHLS,
+            hasExtendedInfo: hasExtendedInfo,
+            hasSSLError: hasSSLError,
+            lastCheckOKAt: lastCheckOKAt,
+            geoLatitude: geoLatitude,
+            geoLongitude: geoLongitude
+        )
+    }
+}
+
+extension Station {
     init(favorite: FavoriteStation) {
         self.init(
             id: favorite.stationID,

@@ -6,6 +6,7 @@ protocol AVAppsAccountService {
     var isAvailable: Bool { get }
     var currentUser: AccountUser? { get }
 
+    func getToken() async throws -> String?
     func signInWithApple() async throws
     func signInWithGoogle() async throws
     func signOut() async throws
@@ -45,6 +46,14 @@ struct DefaultAVAppsAccountService: AVAppsAccountService {
             displayName: displayName.isEmpty ? L10n.string("account.displayName.listener") : displayName,
             emailAddress: user.primaryEmailAddress?.emailAddress
         )
+    }
+
+    func getToken() async throws -> String? {
+        guard isAvailable, let session = Clerk.shared.session else {
+            return nil
+        }
+
+        return try await session.getToken()
     }
 
     func signInWithApple() async throws {

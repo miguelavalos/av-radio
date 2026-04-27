@@ -11,6 +11,10 @@ enum AppConfig {
         nonEmptyStringValue(for: "AVRADIO_SUPPORT_EMAIL")
     }
 
+    static var avAppsAPIBaseURL: URL? {
+        urlValue(for: "AVRADIO_AVAPPS_API_BASE_URL")
+    }
+
     static var accountManagementURL: URL? {
         urlValue(for: "AVRADIO_ACCOUNT_MANAGEMENT_URL")
     }
