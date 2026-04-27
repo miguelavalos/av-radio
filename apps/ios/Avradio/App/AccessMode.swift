@@ -49,6 +49,14 @@ struct AccessCapabilities: Codable, Equatable {
     let canUseCloudSync: Bool
     let canManagePlan: Bool
 
+    enum CodingKeys: String, CodingKey {
+        case isSignedIn
+        case canUseBackend
+        case canAccessPremiumFeatures = "canUsePremiumFeatures"
+        case canUseCloudSync
+        case canManagePlan
+    }
+
     var isLocalOnly: Bool {
         !canUseBackend && !canUseCloudSync
     }
