@@ -40,6 +40,7 @@ class DataStoreLibraryRepository(
     private var canUseCloudSync = false
     private var isApplyingRemoteSnapshot = false
     private var pushJob: Job? = null
+    private var activeCloudAccountId: String? = null
 
     private val _state = MutableStateFlow(LibraryState())
     override val state: StateFlow<LibraryState> = _state.asStateFlow()
@@ -62,11 +63,15 @@ class DataStoreLibraryRepository(
         if (accessRepository != null && appDataService != null) {
             scope.launch {
                 accessRepository.state
-                    .map { it.capabilities.canUseCloudSync }
+                    .map { state -> state.user?.id to state.capabilities.canUseCloudSync }
                     .distinctUntilChanged()
-                    .collect { enabled ->
+                    .collect { (userId, enabled) ->
+                        val identityChanged = activeCloudAccountId != userId
+                        activeCloudAccountId = userId
                         canUseCloudSync = enabled
-                        if (enabled) {
+                        if (enabled && identityChanged) {
+                            refreshCloudLibraryIfNeeded()
+                        } else if (enabled) {
                             refreshCloudLibraryIfNeeded()
                         }
                     }
