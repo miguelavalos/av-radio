@@ -8,8 +8,10 @@ struct NowPlayingView: View {
     @EnvironmentObject private var libraryStore: LibraryStore
 
     @State private var horizontalDragOffset: CGFloat = 0
+    @State private var verticalDragOffset: CGFloat = 0
 
     private let swipeThreshold: CGFloat = 72
+    private let dismissSwipeThreshold: CGFloat = 88
     private let playerHorizontalPadding: CGFloat = 16
     private let playerLandscapeHorizontalPadding: CGFloat = 12
     private let playerMaxContentWidth: CGFloat = 360
@@ -53,9 +55,10 @@ struct NowPlayingView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .padding(.top, topInset)
                 .padding(.bottom, bottomInset)
+                .offset(y: max(verticalDragOffset, 0))
             }
         }
-        .presentationDragIndicator(.hidden)
+        .simultaneousGesture(dismissSwipeGesture)
         .presentationBackground(.clear)
     }
 
@@ -659,6 +662,26 @@ struct NowPlayingView: View {
             }
     }
 
+    private var dismissSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 18, coordinateSpace: .local)
+            .onChanged { value in
+                guard isVerticalDismissSwipe(value) else { return }
+                verticalDragOffset = value.translation.height * 0.38
+            }
+            .onEnded { value in
+                guard isVerticalDismissSwipe(value) else {
+                    resetVerticalDrag()
+                    return
+                }
+
+                if value.translation.height >= dismissSwipeThreshold {
+                    dismiss()
+                } else {
+                    resetVerticalDrag()
+                }
+            }
+    }
+
     private var headerTitle: String {
         audioPlayer.currentStation?.name ?? L10n.string("player.header.nowPlaying")
     }
@@ -714,6 +737,16 @@ struct NowPlayingView: View {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
             horizontalDragOffset = 0
         }
+    }
+
+    private func resetVerticalDrag() {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            verticalDragOffset = 0
+        }
+    }
+
+    private func isVerticalDismissSwipe(_ value: DragGesture.Value) -> Bool {
+        value.translation.height > 0 && abs(value.translation.height) > abs(value.translation.width)
     }
 }
 

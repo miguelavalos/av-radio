@@ -60,10 +60,12 @@ struct AppShellView: View {
                 }
             }
         )
-        .fullScreenCover(isPresented: $isShowingNowPlaying) {
+        .sheet(isPresented: $isShowingNowPlaying) {
             NowPlayingView()
                 .environmentObject(audioPlayer)
                 .environmentObject(libraryStore)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(item: $selectedStationDetail) { detail in
             StationDetailSheet(
