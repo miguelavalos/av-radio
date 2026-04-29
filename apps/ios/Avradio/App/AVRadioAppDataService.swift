@@ -14,10 +14,38 @@ struct AVRadioLibraryDocument {
 struct AVRadioLibrarySnapshot: Codable, Equatable {
     let favorites: [FavoriteStationRecord]
     let recents: [RecentStationRecord]
+    let discoveries: [DiscoveredTrackRecord]
     let settings: AppSettingsRecord
 
     var hasMeaningfulContent: Bool {
-        !favorites.isEmpty || !recents.isEmpty || settings.hasMeaningfulContent
+        !favorites.isEmpty || !recents.isEmpty || !discoveries.isEmpty || settings.hasMeaningfulContent
+    }
+
+    init(
+        favorites: [FavoriteStationRecord],
+        recents: [RecentStationRecord],
+        discoveries: [DiscoveredTrackRecord] = [],
+        settings: AppSettingsRecord
+    ) {
+        self.favorites = favorites
+        self.recents = recents
+        self.discoveries = discoveries
+        self.settings = settings
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case favorites
+        case recents
+        case discoveries
+        case settings
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        favorites = try container.decode([FavoriteStationRecord].self, forKey: .favorites)
+        recents = try container.decode([RecentStationRecord].self, forKey: .recents)
+        discoveries = try container.decodeIfPresent([DiscoveredTrackRecord].self, forKey: .discoveries) ?? []
+        settings = try container.decode(AppSettingsRecord.self, forKey: .settings)
     }
 }
 
@@ -29,6 +57,19 @@ struct FavoriteStationRecord: Codable, Equatable {
 struct RecentStationRecord: Codable, Equatable {
     let station: StationRecord
     let lastPlayedAt: String
+}
+
+struct DiscoveredTrackRecord: Codable, Equatable {
+    let discoveryID: String
+    let title: String
+    let artist: String?
+    let stationID: String
+    let stationName: String
+    let artworkURL: String?
+    let stationArtworkURL: String?
+    let playedAt: String
+    let markedInterestedAt: String?
+    let hiddenAt: String?
 }
 
 struct AppSettingsRecord: Codable, Equatable {

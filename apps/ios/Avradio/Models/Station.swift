@@ -481,8 +481,10 @@ final class DiscoveredTrack {
     var stationID: String
     var stationName: String
     var artworkURL: String?
+    var stationArtworkURL: String?
     var playedAt: Date
     var markedInterestedAt: Date?
+    var hiddenAt: Date?
 
     init(
         title: String,
@@ -490,7 +492,8 @@ final class DiscoveredTrack {
         station: Station,
         artworkURL: URL?,
         playedAt: Date = .now,
-        markedInterestedAt: Date? = nil
+        markedInterestedAt: Date? = nil,
+        hiddenAt: Date? = nil
     ) {
         let normalizedArtist = artist?.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -500,8 +503,24 @@ final class DiscoveredTrack {
         self.stationID = station.id
         self.stationName = station.name
         self.artworkURL = artworkURL?.absoluteString
+        self.stationArtworkURL = station.displayArtworkURL?.absoluteString
         self.playedAt = playedAt
         self.markedInterestedAt = markedInterestedAt
+        self.hiddenAt = hiddenAt
+    }
+
+    init(record: DiscoveredTrackRecord) {
+        let normalizedArtist = record.artist?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.discoveryID = record.discoveryID
+        self.title = record.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.artist = normalizedArtist?.isEmpty == true ? nil : normalizedArtist
+        self.stationID = record.stationID
+        self.stationName = record.stationName
+        self.artworkURL = record.artworkURL
+        self.stationArtworkURL = record.stationArtworkURL
+        self.playedAt = Self.date(from: record.playedAt)
+        self.markedInterestedAt = record.markedInterestedAt.map(Self.date(from:))
+        self.hiddenAt = record.hiddenAt.map(Self.date(from:))
     }
 
     static func makeID(title: String, artist: String?, stationID: String) -> String {
@@ -518,11 +537,21 @@ final class DiscoveredTrack {
             }
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
     }
+
+    private static func date(from value: String) -> Date {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: value) ?? .distantPast
+    }
 }
 
 extension DiscoveredTrack {
     var isMarkedInteresting: Bool {
         markedInterestedAt != nil
+    }
+
+    var isHidden: Bool {
+        hiddenAt != nil
     }
 
     var artistDisplayText: String {
@@ -542,10 +571,36 @@ extension DiscoveredTrack {
         return URL(string: artworkURL)
     }
 
+    var resolvedStationArtworkURL: URL? {
+        guard let stationArtworkURL else { return nil }
+        return URL(string: stationArtworkURL)
+    }
+
+    var appDataRecord: DiscoveredTrackRecord {
+        DiscoveredTrackRecord(
+            discoveryID: discoveryID,
+            title: title,
+            artist: artist,
+            stationID: stationID,
+            stationName: stationName,
+            artworkURL: artworkURL,
+            stationArtworkURL: stationArtworkURL,
+            playedAt: Self.isoString(from: playedAt),
+            markedInterestedAt: markedInterestedAt.map(Self.isoString(from:)),
+            hiddenAt: hiddenAt.map(Self.isoString(from:))
+        )
+    }
+
     private var normalizedArtist: String? {
         guard let artist else { return nil }
         let trimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func isoString(from date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
     }
 }
 

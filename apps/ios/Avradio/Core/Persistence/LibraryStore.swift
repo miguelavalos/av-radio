@@ -130,6 +130,28 @@ final class LibraryStore: ObservableObject {
         )
     }
 
+    func toggleDiscoverySaved(_ discovery: DiscoveredTrack) {
+        if discovery.isMarkedInteresting {
+            discovery.markedInterestedAt = nil
+        } else {
+            discovery.markedInterestedAt = .now
+            discovery.hiddenAt = nil
+        }
+
+        saveAndRefresh()
+    }
+
+    func hideDiscovery(_ discovery: DiscoveredTrack) {
+        discovery.hiddenAt = .now
+        discovery.markedInterestedAt = nil
+        saveAndRefresh()
+    }
+
+    func restoreDiscovery(_ discovery: DiscoveredTrack) {
+        discovery.hiddenAt = nil
+        saveAndRefresh()
+    }
+
     func recordDiscoveredTrack(title: String?, artist: String?, station: Station?, artworkURL: URL?) {
         saveDiscoveredTrack(
             title: title,
@@ -165,8 +187,10 @@ final class LibraryStore: ObservableObject {
             existing.playedAt = .now
             if markInteresting {
                 existing.markedInterestedAt = existing.markedInterestedAt ?? .now
+                existing.hiddenAt = nil
             }
             existing.artworkURL = artworkURL?.absoluteString ?? existing.artworkURL
+            existing.stationArtworkURL = station.displayArtworkURL?.absoluteString ?? existing.stationArtworkURL
         } else {
             context.insert(
                 DiscoveredTrack(
@@ -251,6 +275,10 @@ final class LibraryStore: ObservableObject {
 
         for recent in recents {
             context.delete(recent)
+        }
+
+        for discovery in discoveries {
+            context.delete(discovery)
         }
 
         settings.preferredCountry = ""
@@ -360,6 +388,7 @@ final class LibraryStore: ObservableObject {
                     lastPlayedAt: AVRadioAppDataService.isoString(from: $0.lastPlayedAt)
                 )
             },
+            discoveries: discoveries.map(\.appDataRecord),
             settings: AppSettingsRecord(
                 preferredCountry: settings.preferredCountry,
                 preferredLanguage: settings.preferredLanguage,
@@ -375,6 +404,13 @@ final class LibraryStore: ObservableObject {
         let timestamps =
             favorites.map(\.createdAt) +
             recents.map(\.lastPlayedAt) +
+            discoveries.flatMap { discovery in
+                [
+                    discovery.playedAt,
+                    discovery.markedInterestedAt,
+                    discovery.hiddenAt
+                ].compactMap { $0 }
+            } +
             [settings.updatedAt]
         return timestamps.max() ?? .distantPast
     }
@@ -389,6 +425,10 @@ final class LibraryStore: ObservableObject {
 
         for recent in recents {
             context.delete(recent)
+        }
+
+        for discovery in discoveries {
+            context.delete(discovery)
         }
 
         for favorite in snapshot.favorites {
@@ -407,6 +447,10 @@ final class LibraryStore: ObservableObject {
                     lastPlayedAt: Self.date(from: recent.lastPlayedAt)
                 )
             )
+        }
+
+        for discovery in snapshot.discoveries {
+            context.insert(DiscoveredTrack(record: discovery))
         }
 
         settings.preferredCountry = snapshot.settings.preferredCountry

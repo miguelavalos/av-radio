@@ -13,6 +13,7 @@ struct AppShellView: View {
     @State private var searchQuery: String
     @State private var searchTag: String?
     @State private var searchCountryCode: String?
+    @State private var searchFocusRequest = 0
     @State private var searchResults: [Station] = []
     @State private var searchIsLoading = false
     @State private var searchErrorMessage: String?
@@ -46,6 +47,7 @@ struct AppShellView: View {
             hasFooterPlayer: audioPlayer.currentStation != nil,
             searchAction: {
                 selectedTab = .search
+                searchFocusRequest += 1
             },
             selectTab: { tab in
                 selectedTab = tab
@@ -125,6 +127,7 @@ struct AppShellView: View {
                 errorMessage: homeErrorMessage,
                 recentStations: homeSnapshot.recentStations,
                 favoriteStations: homeSnapshot.favoriteStations,
+                discoveries: libraryStore.discoveries,
                 feedContext: homeSnapshot.feedContext,
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
@@ -143,6 +146,7 @@ struct AppShellView: View {
                 isLoading: searchIsLoading,
                 errorMessage: searchErrorMessage,
                 tags: genreTags,
+                focusRequest: searchFocusRequest,
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
                 nowPlayingTracks: stationNowPlayingTracks,
@@ -154,15 +158,24 @@ struct AppShellView: View {
             LibraryScreen(
                 favorites: favoriteStations,
                 recents: recentStations,
-                discoveries: libraryStore.discoveries,
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
                 nowPlayingTracks: stationNowPlayingTracks,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
-                removeDiscovery: libraryStore.removeDiscovery(_:),
-                clearDiscoveries: libraryStore.clearDiscoveries,
                 showStationDetails: showStationDetails
+            )
+        case .music:
+            MusicScreen(
+                discoveries: libraryStore.discoveries,
+                bottomContentPadding: shellScrollBottomPadding,
+                openDiscoveryStation: openDiscoveryStation(_:),
+                stationArtworkURL: { discovery in libraryStore.station(for: discovery.stationID)?.displayArtworkURL },
+                toggleDiscoverySaved: libraryStore.toggleDiscoverySaved(_:),
+                hideDiscovery: libraryStore.hideDiscovery(_:),
+                restoreDiscovery: libraryStore.restoreDiscovery(_:),
+                removeDiscovery: libraryStore.removeDiscovery(_:),
+                clearDiscoveries: libraryStore.clearDiscoveries
             )
         case .profile:
             ProfileScreen(
@@ -203,7 +216,8 @@ struct AppShellView: View {
         [
             audioPlayer.currentStation?.id ?? "",
             audioPlayer.currentTrackArtist ?? "",
-            audioPlayer.currentTrackTitle ?? ""
+            audioPlayer.currentTrackTitle ?? "",
+            audioPlayer.currentTrackArtworkURL?.absoluteString ?? ""
         ].joined(separator: "|")
     }
 
@@ -221,6 +235,8 @@ struct AppShellView: View {
             return uniqueStations(searchResults.prefix(9))
         case .library:
             return uniqueStations(favoriteStations.prefix(9) + recentStations.prefix(6))
+        case .music:
+            return []
         case .profile:
             return []
         }
@@ -269,7 +285,8 @@ struct AppShellView: View {
     private func recordCurrentTrackDiscovery() {
         guard
             let station = audioPlayer.currentStation,
-            normalizedTrackValue(audioPlayer.currentTrackTitle) != nil
+            normalizedTrackValue(audioPlayer.currentTrackTitle) != nil,
+            normalizedTrackValue(audioPlayer.currentTrackArtist) != nil
         else {
             return
         }
@@ -310,6 +327,8 @@ struct AppShellView: View {
                 selectedTab = .search
             case .library:
                 selectedTab = .library
+            case .music:
+                selectedTab = .music
             case .player:
                 if let lastStation = libraryStore.station(for: libraryStore.settings.lastPlayedStationID) {
                     playStation(lastStation)
@@ -388,6 +407,12 @@ struct AppShellView: View {
             queueSource: queueSource,
             queueStations: queue ?? [station]
         )
+    }
+
+    private func openDiscoveryStation(_ discovery: DiscoveredTrack) {
+        guard let station = libraryStore.station(for: discovery.stationID) else { return }
+
+        playStation(station, queueSource: .libraryRecents, queue: recentStations)
     }
 
     private func refreshHomeFeed() async {
@@ -664,6 +689,7 @@ private enum AppShellTab: Equatable {
     case home
     case search
     case library
+    case music
     case profile
 
     init(_ preferredTab: LaunchContext.Tab?, preferredSearchQuery: String?) {
@@ -672,6 +698,8 @@ private enum AppShellTab: Equatable {
             self = .search
         case .library:
             self = .library
+        case .music:
+            self = .music
         case .settings:
             self = .profile
         case .player, .none:
@@ -703,64 +731,88 @@ private struct AppShellScaffold<Content: View, FooterPlayer: View>: View {
     }
 
     private var footer: some View {
-        VStack(spacing: 10) {
-            footerPlayer()
+        ZStack(alignment: .bottom) {
+            LinearGradient(
+                colors: [
+                    AvradioTheme.footerBackdrop.opacity(0),
+                    AvradioTheme.footerBackdrop.opacity(0.94),
+                    AvradioTheme.footerBackdrop
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: hasFooterPlayer ? 210 : 142)
+            .allowsHitTesting(false)
 
-            HStack(spacing: 18) {
-                HStack {
-                    AppShellFooterTabButton(
-                        title: L10n.string("tab.home"),
-                        systemImage: "house.fill",
-                        isSelected: selectedTab == .home,
-                        selectionNamespace: footerSelectionAnimation,
-                        accessibilityIdentifier: "tab.home"
-                    ) {
-                        selectTab(.home)
-                    }
+            VStack(spacing: 10) {
+                footerPlayer()
 
-                    AppShellFooterTabButton(
-                        title: L10n.string("tab.library"),
-                        systemImage: "heart.fill",
-                        isSelected: selectedTab == .library,
-                        selectionNamespace: footerSelectionAnimation,
-                        accessibilityIdentifier: "tab.library"
-                    ) {
-                        selectTab(.library)
-                    }
-
-                    AppShellFooterTabButton(
-                        title: L10n.string("tab.profile"),
-                        systemImage: "person.crop.circle.fill",
-                        isSelected: selectedTab == .profile,
-                        selectionNamespace: footerSelectionAnimation,
-                        accessibilityIdentifier: "tab.profile"
-                    ) {
-                        selectTab(.profile)
-                    }
-                }
-                .padding(.leading, 14)
-                .padding(.trailing, 14)
-                .padding(.vertical, 7)
-                .background {
-                    Capsule(style: .continuous)
-                        .fill(AvradioTheme.footerGlass)
-                        .background(.ultraThinMaterial.opacity(0.95), in: Capsule(style: .continuous))
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .stroke(AvradioTheme.glassStroke, lineWidth: 1)
+                HStack(spacing: 18) {
+                    HStack {
+                        AppShellFooterTabButton(
+                            title: L10n.string("tab.home"),
+                            systemImage: "house.fill",
+                            isSelected: selectedTab == .home,
+                            selectionNamespace: footerSelectionAnimation,
+                            accessibilityIdentifier: "tab.home"
+                        ) {
+                            selectTab(.home)
                         }
-                }
-                .shadow(color: AvradioTheme.glassShadow, radius: 18, y: 10)
 
-                AppShellFooterSearchButton(isSelected: selectedTab == .search) {
-                    searchAction()
+                        AppShellFooterTabButton(
+                            title: L10n.string("tab.library"),
+                            systemImage: "heart.fill",
+                            isSelected: selectedTab == .library,
+                            selectionNamespace: footerSelectionAnimation,
+                            accessibilityIdentifier: "tab.library"
+                        ) {
+                            selectTab(.library)
+                        }
+
+                        AppShellFooterTabButton(
+                            title: L10n.string("tab.music"),
+                            systemImage: "music.note.list",
+                            isSelected: selectedTab == .music,
+                            selectionNamespace: footerSelectionAnimation,
+                            accessibilityIdentifier: "tab.music"
+                        ) {
+                            selectTab(.music)
+                        }
+
+                        AppShellFooterTabButton(
+                            title: L10n.string("tab.profile"),
+                            systemImage: "person.crop.circle.fill",
+                            isSelected: selectedTab == .profile,
+                            selectionNamespace: footerSelectionAnimation,
+                            accessibilityIdentifier: "tab.profile"
+                        ) {
+                            selectTab(.profile)
+                        }
+                    }
+                    .padding(.leading, 10)
+                    .padding(.trailing, 10)
+                    .padding(.vertical, 7)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(AvradioTheme.footerGlass)
+                            .background(.ultraThinMaterial.opacity(0.95), in: Capsule(style: .continuous))
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .stroke(AvradioTheme.glassStroke, lineWidth: 1)
+                            }
+                        }
+                    .shadow(color: AvradioTheme.glassShadow, radius: 18, y: 10)
+
+                    AppShellFooterSearchButton(isSelected: selectedTab == .search) {
+                        searchAction()
+                    }
+                    .shadow(color: AvradioTheme.glassShadow, radius: 18, y: 10)
                 }
-                .shadow(color: AvradioTheme.glassShadow, radius: 18, y: 10)
+                .frame(maxWidth: 430)
             }
-            .frame(maxWidth: 372)
+            .padding(.horizontal, 18)
+            .padding(.bottom, -8)
         }
-        .padding(.horizontal, 18)
-        .padding(.bottom, -8)
         .ignoresSafeArea(edges: .bottom)
     }
 }
@@ -792,7 +844,7 @@ private struct AppShellFooterTabButton: View {
                     .symbolRenderingMode(.monochrome)
             }
             .foregroundStyle(isSelected ? AvradioTheme.highlight : AvradioTheme.textSecondary)
-            .frame(width: 82, height: 46)
+            .frame(width: 64, height: 46)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -848,6 +900,7 @@ private struct HomeScreen: View {
     let errorMessage: String?
     let recentStations: [Station]
     let favoriteStations: [Station]
+    let discoveries: [DiscoveredTrack]
     let feedContext: HomeFeedContext
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
@@ -1095,6 +1148,16 @@ private struct HomeScreen: View {
         let excludedIDs = Set(displayedRecentStations.map(\.id) + displayedFavoriteStations.map(\.id))
         return filteredStationsExcludingFeatured(from: stations)
             .filter { !excludedIDs.contains($0.id) }
+            .sorted { first, second in
+                let firstScore = discoverySignalScore(for: first)
+                let secondScore = discoverySignalScore(for: second)
+
+                if firstScore == secondScore {
+                    return first.name.localizedCaseInsensitiveCompare(second.name) == .orderedAscending
+                }
+
+                return firstScore > secondScore
+            }
     }
 
     private var featuredQueueSource: AudioPlayerService.PlaybackQueue.Source {
@@ -1122,6 +1185,22 @@ private struct HomeScreen: View {
     private func filteredStationsExcludingFeatured(from stations: [Station]) -> [Station] {
         guard let featuredStationID else { return stations }
         return stations.filter { $0.id != featuredStationID }
+    }
+
+    private func discoverySignalScore(for station: Station) -> Int {
+        discoveries.reduce(0) { score, discovery in
+            guard discovery.stationID == station.id else { return score }
+
+            if discovery.isMarkedInteresting {
+                return score + 3
+            }
+
+            if discovery.isHidden {
+                return score - 2
+            }
+
+            return score
+        }
     }
 
     private var featuredLabel: String {
@@ -1170,6 +1249,7 @@ private struct SearchScreen: View {
     let isLoading: Bool
     let errorMessage: String?
     let tags: [String]
+    let focusRequest: Int
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
     let nowPlayingTracks: [String: NowPlayingTrack]
@@ -1195,7 +1275,7 @@ private struct SearchScreen: View {
                         .foregroundStyle(AvradioTheme.textSecondary)
                 }
 
-                SearchField(query: $query)
+                SearchField(query: $query, focusRequest: focusRequest)
                 SearchCountryFilterButton(
                     title: selectedCountryTitle,
                     flag: selectedCountryFlag,
@@ -1335,23 +1415,15 @@ private struct SearchScreen: View {
 }
 
 private struct LibraryScreen: View {
-    @Environment(\.openURL) private var openURL
     @State private var query = ""
-    @State private var libraryMode: LibraryMode = .radios
-    @State private var discoveryFilter: DiscoveryFilter = .saved
-    @State private var isConfirmingClearDiscoveries = false
-    @State private var browserDestination: BrowserDestination?
 
     let favorites: [Station]
     let recents: [Station]
-    let discoveries: [DiscoveredTrack]
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
     let nowPlayingTracks: [String: NowPlayingTrack]
     let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
-    let removeDiscovery: (DiscoveredTrack) -> Void
-    let clearDiscoveries: () -> Void
     let showStationDetails: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
 
     var body: some View {
@@ -1380,19 +1452,7 @@ private struct LibraryScreen: View {
 
                 SearchField(query: $query, prompt: L10n.string("shell.library.searchPrompt"))
 
-                Picker(L10n.string("shell.library.mode.title"), selection: $libraryMode) {
-                    ForEach(LibraryMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                if libraryMode == .music {
-                    discoveryLibrarySection
-                }
-
-                if libraryMode == .radios {
-                    StationSection(title: L10n.string("shell.library.favorites.title"), subtitle: L10n.string("shell.library.favorites.subtitle"), accessibilityIdentifier: "library.section.favorites") {
+                StationSection(title: L10n.string("shell.library.favorites.title"), subtitle: L10n.string("shell.library.favorites.subtitle"), accessibilityIdentifier: "library.section.favorites") {
                     if filteredFavorites.isEmpty {
                         EmptyLibraryState(
                             title: favorites.isEmpty ? L10n.string("shell.library.favorites.empty") : L10n.string("shell.library.favorites.noMatch"),
@@ -1416,8 +1476,8 @@ private struct LibraryScreen: View {
                     }
                 }
 
-                    if !filteredRecents.isEmpty {
-                        StationSection(title: L10n.string("shell.library.recents.title"), subtitle: L10n.string("shell.library.recents.subtitle"), accessibilityIdentifier: "library.section.recents") {
+                if !filteredRecents.isEmpty {
+                    StationSection(title: L10n.string("shell.library.recents.title"), subtitle: L10n.string("shell.library.recents.subtitle"), accessibilityIdentifier: "library.section.recents") {
                         LazyVGrid(columns: stationGridColumns, spacing: 12) {
                             ForEach(filteredRecents) { station in
                                 StationCompactCard(
@@ -1432,12 +1492,96 @@ private struct LibraryScreen: View {
                         }
                     }
                 }
-                }
             }
             .padding(24)
             .padding(.bottom, bottomContentPadding)
         }
         .scrollIndicators(.hidden)
+        .background(AvradioTheme.shellBackground.ignoresSafeArea())
+    }
+
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var stationGridColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 104, maximum: 120), spacing: 12)
+        ]
+    }
+
+    private var filteredFavorites: [Station] {
+        filterStations(favorites)
+    }
+
+    private var filteredRecents: [Station] {
+        filterStations(recents)
+    }
+
+    private func filterStations(_ stations: [Station]) -> [Station] {
+        guard !trimmedQuery.isEmpty else { return stations }
+
+        return stations.filter { station in
+            station.name.localizedCaseInsensitiveContains(trimmedQuery) ||
+            station.country.localizedCaseInsensitiveContains(trimmedQuery) ||
+            station.tags.localizedCaseInsensitiveContains(trimmedQuery)
+        }
+    }
+}
+
+private struct MusicScreen: View {
+    @Environment(\.openURL) private var openURL
+    @State private var query = ""
+    @State private var discoveryFilter: DiscoveryFilter = .saved
+    @State private var isConfirmingClearDiscoveries = false
+    @State private var browserDestination: BrowserDestination?
+    @State private var hiddenDiscovery: DiscoveredTrack?
+
+    let discoveries: [DiscoveredTrack]
+    let bottomContentPadding: CGFloat
+    let openDiscoveryStation: (DiscoveredTrack) -> Void
+    let stationArtworkURL: (DiscoveredTrack) -> URL?
+    let toggleDiscoverySaved: (DiscoveredTrack) -> Void
+    let hideDiscovery: (DiscoveredTrack) -> Void
+    let restoreDiscovery: (DiscoveredTrack) -> Void
+    let removeDiscovery: (DiscoveredTrack) -> Void
+    let clearDiscoveries: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    ShellBrandHeader(
+                        statusTitle: musicStatusTitle
+                    )
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(L10n.string("shell.music.title"))
+                            .font(.system(size: 34, weight: .bold))
+                            .foregroundStyle(AvradioTheme.textPrimary)
+
+                        Text(L10n.string("shell.music.subtitle"))
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(AvradioTheme.textSecondary)
+                    }
+
+                    SearchField(query: $query, prompt: L10n.string("shell.music.searchPrompt"))
+                    MusicSignalSummary(
+                        savedCount: savedDiscoveries.count,
+                        historyCount: visibleDiscoveries.count,
+                        selectedFilter: discoveryFilter,
+                        selectFilter: { discoveryFilter = $0 }
+                    )
+
+                    discoveryLibrarySection
+                }
+                .padding(24)
+                .padding(.bottom, bottomContentPadding)
+            }
+            .scrollIndicators(.hidden)
+
+            hiddenDiscoveryUndoBanner
+        }
         .background(AvradioTheme.shellBackground.ignoresSafeArea())
         .confirmationDialog(
             L10n.string("shell.library.discoveries.clear.confirmTitle"),
@@ -1455,32 +1599,23 @@ private struct LibraryScreen: View {
         .sheet(item: $browserDestination) { destination in
             InAppBrowserView(destination: destination)
         }
+        .onAppear(perform: normalizeInitialDiscoveryFilter)
     }
 
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var stationGridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 104, maximum: 120), spacing: 12)
-        ]
-    }
-
     private var discoveryLibrarySection: some View {
-        StationSection(title: L10n.string("shell.library.discoveries.title"), subtitle: L10n.string("shell.library.discoveries.subtitle"), accessibilityIdentifier: "library.section.discoveries") {
+        StationSection(title: L10n.string("shell.music.discoveries.title"), subtitle: L10n.string("shell.music.discoveries.subtitle"), accessibilityIdentifier: "music.section.discoveries") {
             VStack(alignment: .leading, spacing: 16) {
-                discoveryToolbar
-
                 if filteredDiscoveries.isEmpty {
                     EmptyLibraryState(
-                        title: discoveries.isEmpty ? L10n.string("shell.library.discoveries.empty") : L10n.string("shell.library.discoveries.noMatch"),
-                        detail: discoveries.isEmpty
-                            ? L10n.string("shell.library.discoveries.empty.detail")
-                            : L10n.string("shell.library.discoveries.noMatch.detail")
+                        title: emptyDiscoveryTitle,
+                        detail: emptyDiscoveryDetail
                     )
                 } else {
-                    if discoveryFilter == .saved && !filteredArtistSummaries.isEmpty {
+                    if showsArtistSummaries && !filteredArtistSummaries.isEmpty {
                         discoverySubsectionTitle(L10n.string("shell.library.discoveries.artists.title"))
 
                         ScrollView(.horizontal) {
@@ -1494,20 +1629,20 @@ private struct LibraryScreen: View {
                         .scrollIndicators(.hidden)
                     }
 
-                    discoverySubsectionTitle(
-                        discoveryFilter == .saved
-                            ? L10n.string("shell.library.discoveries.songs.savedTitle")
-                            : L10n.string("shell.library.discoveries.songs.historyTitle")
-                    )
+                    discoverySongsHeader
 
                     VStack(spacing: 10) {
                         ForEach(filteredDiscoveries) { discovery in
                             DiscoveryTrackCard(
                                 discovery: discovery,
+                                stationArtworkURL: stationArtworkURL(discovery),
+                                openStation: { openDiscoveryStation(discovery) },
+                                toggleSaved: { toggleDiscoverySaved(discovery) },
                                 openYouTube: { openDiscoverySearch(discovery, suffix: nil, youtube: true) },
                                 openLyrics: { openDiscoverySearch(discovery, suffix: "lyrics", youtube: false) },
                                 openAppleMusic: { openAppleMusicSearch(discovery) },
                                 openSpotify: { openSpotifySearch(discovery) },
+                                hideAction: { hideDiscoveryWithUndo(discovery) },
                                 removeAction: { removeDiscovery(discovery) }
                             )
                         }
@@ -1517,32 +1652,19 @@ private struct LibraryScreen: View {
         }
     }
 
-    private var discoveryToolbar: some View {
+    private var discoverySongsHeader: some View {
         HStack(spacing: 10) {
-            Menu {
-                Picker(L10n.string("shell.library.discoveries.filter.title"), selection: $discoveryFilter) {
-                    ForEach(DiscoveryFilter.allCases) { filter in
-                        Text(filter.title).tag(filter)
-                    }
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(discoveryFilter.title)
-                        .font(.system(size: 14, weight: .semibold))
-
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .bold))
-                }
+            Text(discoveryFilter.songsTitle)
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(AvradioTheme.textPrimary)
-                .padding(.horizontal, 13)
-                .frame(height: 36)
-                .background(AvradioTheme.mutedSurface, in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("discoveries.filter")
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
+            discoveryActions
+        }
+    }
 
+    private var discoveryActions: some View {
+        HStack(spacing: 10) {
             ShareLink(item: discoveriesShareText) {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 14, weight: .bold))
@@ -1570,6 +1692,49 @@ private struct LibraryScreen: View {
         }
     }
 
+    @ViewBuilder
+    private var hiddenDiscoveryUndoBanner: some View {
+        if let hiddenDiscovery {
+            HStack(spacing: 12) {
+                Image(systemName: "eye.slash.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(AvradioTheme.textSecondary)
+
+                Text(L10n.string("shell.music.discovery.hidden"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    restoreDiscovery(hiddenDiscovery)
+                    withAnimation(.snappy(duration: 0.22)) {
+                        self.hiddenDiscovery = nil
+                    }
+                } label: {
+                    Text(L10n.string("common.undo"))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(AvradioTheme.highlight)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("discoveries.undoHide")
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(AvradioTheme.elevatedSurface, in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+            }
+            .shadow(color: AvradioTheme.softShadow.opacity(0.22), radius: 12, y: 5)
+            .padding(.horizontal, 24)
+            .padding(.bottom, max(98, bottomContentPadding - 18))
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("discoveries.hiddenUndo")
+        }
+    }
+
     private func discoverySubsectionTitle(_ title: String) -> some View {
         Text(title)
             .font(.system(size: 15, weight: .bold))
@@ -1577,16 +1742,38 @@ private struct LibraryScreen: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var filteredFavorites: [Station] {
-        filterStations(favorites)
+    private var savedDiscoveries: [DiscoveredTrack] {
+        visibleDiscoveries.filter(\.isMarkedInteresting)
     }
 
-    private var filteredRecents: [Station] {
-        filterStations(recents)
+    private var visibleDiscoveries: [DiscoveredTrack] {
+        discoveries.filter { !$0.isHidden }
+    }
+
+    private var musicStatusTitle: String {
+        if !savedDiscoveries.isEmpty {
+            return L10n.plural(
+                singular: "shell.music.status.saved.one",
+                plural: "shell.music.status.saved.other",
+                count: savedDiscoveries.count,
+                savedDiscoveries.count
+            )
+        }
+
+        if !visibleDiscoveries.isEmpty {
+            return L10n.plural(
+                singular: "shell.music.status.history.one",
+                plural: "shell.music.status.history.other",
+                count: visibleDiscoveries.count,
+                visibleDiscoveries.count
+            )
+        }
+
+        return L10n.string("shell.music.status.empty")
     }
 
     private var filteredDiscoveries: [DiscoveredTrack] {
-        let baseDiscoveries = discoveries.filter { discovery in
+        let baseDiscoveries = visibleDiscoveries.filter { discovery in
             switch discoveryFilter {
             case .saved:
                 return discovery.isMarkedInteresting
@@ -1605,7 +1792,14 @@ private struct LibraryScreen: View {
     }
 
     private var filteredArtistSummaries: [DiscoveryArtistSummary] {
-        let savedDiscoveries = discoveries.filter(\.isMarkedInteresting)
+        let savedDiscoveries = visibleDiscoveries.filter { discovery in
+            switch discoveryFilter {
+            case .saved:
+                return discovery.isMarkedInteresting
+            case .history:
+                return false
+            }
+        }
         let matchingDiscoveries = trimmedQuery.isEmpty ? savedDiscoveries : savedDiscoveries.filter { discovery in
             discovery.artist?.localizedCaseInsensitiveContains(trimmedQuery) == true ||
             discovery.title.localizedCaseInsensitiveContains(trimmedQuery)
@@ -1646,13 +1840,56 @@ private struct LibraryScreen: View {
         return ([L10n.string("shell.library.discoveries.shareTitle")] + lines).joined(separator: "\n")
     }
 
-    private func filterStations(_ stations: [Station]) -> [Station] {
-        guard !trimmedQuery.isEmpty else { return stations }
+    private var showsArtistSummaries: Bool {
+        discoveryFilter == .saved
+    }
 
-        return stations.filter { station in
-            station.name.localizedCaseInsensitiveContains(trimmedQuery) ||
-            station.country.localizedCaseInsensitiveContains(trimmedQuery) ||
-            station.tags.localizedCaseInsensitiveContains(trimmedQuery)
+    private var emptyDiscoveryTitle: String {
+        if visibleDiscoveries.isEmpty {
+            return L10n.string("shell.library.discoveries.empty")
+        }
+
+        if !trimmedQuery.isEmpty {
+            return L10n.string("shell.library.discoveries.noMatch")
+        }
+
+        switch discoveryFilter {
+        case .saved:
+            return L10n.string("shell.library.discoveries.savedEmpty")
+        case .history:
+            return L10n.string("shell.library.discoveries.noMatch")
+        }
+    }
+
+    private var emptyDiscoveryDetail: String {
+        if visibleDiscoveries.isEmpty {
+            return L10n.string("shell.library.discoveries.empty.detail")
+        }
+
+        if !trimmedQuery.isEmpty {
+            return L10n.string("shell.library.discoveries.noMatch.detail")
+        }
+
+        switch discoveryFilter {
+        case .saved:
+            return L10n.string("shell.library.discoveries.savedEmpty.detail")
+        case .history:
+            return L10n.string("shell.library.discoveries.noMatch.detail")
+        }
+    }
+
+    private func normalizeInitialDiscoveryFilter() {
+        guard discoveryFilter == .saved, savedDiscoveries.isEmpty, !visibleDiscoveries.isEmpty else {
+            return
+        }
+
+        discoveryFilter = .history
+    }
+
+    private func hideDiscoveryWithUndo(_ discovery: DiscoveredTrack) {
+        withAnimation(.snappy(duration: 0.22)) {
+            hiddenDiscovery = discovery
+            hideDiscovery(discovery)
         }
     }
 
@@ -1707,20 +1944,13 @@ private enum DiscoveryFilter: String, CaseIterable, Identifiable {
             return L10n.string("shell.library.discoveries.filter.history")
         }
     }
-}
 
-private enum LibraryMode: String, CaseIterable, Identifiable {
-    case radios
-    case music
-
-    var id: String { rawValue }
-
-    var title: String {
+    var songsTitle: String {
         switch self {
-        case .radios:
-            return L10n.string("shell.library.mode.radios")
-        case .music:
-            return L10n.string("shell.library.mode.music")
+        case .saved:
+            return L10n.string("shell.library.discoveries.songs.savedTitle")
+        case .history:
+            return L10n.string("shell.library.discoveries.songs.historyTitle")
         }
     }
 }
@@ -1905,42 +2135,49 @@ private struct MiniPlayerView: View {
 
 private struct DiscoveryTrackCard: View {
     let discovery: DiscoveredTrack
+    let stationArtworkURL: URL?
+    let openStation: () -> Void
+    let toggleSaved: () -> Void
     let openYouTube: () -> Void
     let openLyrics: () -> Void
     let openAppleMusic: () -> Void
     let openSpotify: () -> Void
+    let hideAction: () -> Void
     let removeAction: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            artwork
+            Button(action: openStation) {
+                HStack(spacing: 12) {
+                    artwork
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(discovery.title)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(AvradioTheme.textPrimary)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(discovery.title)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(AvradioTheme.textPrimary)
+                            .lineLimit(1)
 
-                    if discovery.isMarkedInteresting {
-                        Image(systemName: "bookmark.fill")
-                            .font(.system(size: 10, weight: .bold))
+                        Text(discovery.artistDisplayText)
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(AvradioTheme.highlight)
+                            .lineLimit(1)
+
+                        Text(discovery.stationName)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(AvradioTheme.textSecondary.opacity(0.82))
+                            .lineLimit(1)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Text(discovery.artistDisplayText)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(AvradioTheme.highlight)
-                    .lineLimit(1)
-
-                Text(discovery.stationName)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(AvradioTheme.textSecondary.opacity(0.82))
-                    .lineLimit(1)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityLabel("\(discovery.title), \(discovery.artistDisplayText), \(discovery.stationName)")
+            .accessibilityHint(L10n.string("shell.music.discovery.openStation.hint"))
+            .accessibilityIdentifier("discoveryTrack.openStation.\(discovery.discoveryID)")
 
+            discoverySaveButton
             discoveryMenu
         }
         .padding(12)
@@ -1957,6 +2194,46 @@ private struct DiscoveryTrackCard: View {
         .accessibilityIdentifier("discoveryTrack.\(discovery.discoveryID)")
     }
 
+    private var discoverySaveButton: some View {
+        discoveryStateButton(
+            systemImage: discovery.isMarkedInteresting ? "bookmark.fill" : "bookmark",
+            isActive: discovery.isMarkedInteresting,
+            activeColor: AvradioTheme.highlight,
+            accessibilityLabel: discovery.isMarkedInteresting
+                ? L10n.string("player.discovery.unsave")
+                : L10n.string("player.discovery.save"),
+            accessibilityIdentifier: "discoveryTrack.save.\(discovery.discoveryID)",
+            action: toggleSaved
+        )
+    }
+
+    private func discoveryStateButton(
+        systemImage: String,
+        isActive: Bool,
+        activeColor: Color,
+        accessibilityLabel: String,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(isActive ? activeColor : AvradioTheme.textSecondary)
+                .frame(width: 30, height: 30)
+                .background(
+                    Circle()
+                        .fill(isActive ? activeColor.opacity(0.14) : AvradioTheme.mutedSurface)
+                )
+                .overlay {
+                    Circle()
+                        .stroke(isActive ? activeColor.opacity(0.28) : AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
     private var discoveryMenu: some View {
         Menu {
             Button(L10n.string("player.discovery.youtube"), action: openYouTube)
@@ -1964,13 +2241,14 @@ private struct DiscoveryTrackCard: View {
             Button(L10n.string("player.discovery.appleMusic"), action: openAppleMusic)
             Button(L10n.string("player.discovery.spotify"), action: openSpotify)
 
+            Button(L10n.string("player.discovery.hide"), role: .destructive, action: hideAction)
             Button(L10n.string("player.discovery.remove"), role: .destructive, action: removeAction)
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AvradioTheme.textPrimary)
                 .rotationEffect(.degrees(90))
-                .frame(width: 38, height: 38)
+                .frame(width: 34, height: 34)
                 .background(AvradioTheme.mutedSurface, in: Circle())
         }
         .buttonStyle(.plain)
@@ -1981,21 +2259,29 @@ private struct DiscoveryTrackCard: View {
     @ViewBuilder
     private var artwork: some View {
         if let artworkURL = discovery.resolvedArtworkURL {
-            AsyncImage(url: artworkURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                default:
-                    fallbackArtwork
-                }
-            }
-            .frame(width: 54, height: 54)
-            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+            remoteArtwork(url: artworkURL, fallback: AnyView(fallbackArtwork))
+        } else if let stationArtworkURL {
+            remoteArtwork(url: stationArtworkURL, fallback: AnyView(fallbackArtwork))
+        } else if let stationArtworkURL = discovery.resolvedStationArtworkURL {
+            remoteArtwork(url: stationArtworkURL, fallback: AnyView(fallbackArtwork))
         } else {
             fallbackArtwork
         }
+    }
+
+    private func remoteArtwork(url: URL, fallback: AnyView) -> some View {
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+            default:
+                fallback
+            }
+        }
+        .frame(width: 54, height: 54)
+        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
     }
 
     private var fallbackArtwork: some View {
@@ -2007,6 +2293,81 @@ private struct DiscoveryTrackCard: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(AvradioTheme.highlight)
             }
+    }
+}
+
+private struct MusicSignalSummary: View {
+    let savedCount: Int
+    let historyCount: Int
+    let selectedFilter: DiscoveryFilter
+    let selectFilter: (DiscoveryFilter) -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            MusicSignalButton(
+                title: L10n.string("shell.music.signal.saved"),
+                value: savedCount,
+                systemImage: "bookmark.fill",
+                accessibilityIdentifier: "music.filter.saved",
+                isSelected: selectedFilter == .saved,
+                action: { selectFilter(.saved) }
+            )
+
+            MusicSignalButton(
+                title: L10n.string("shell.music.signal.history"),
+                value: historyCount,
+                systemImage: "clock.fill",
+                accessibilityIdentifier: "music.filter.history",
+                isSelected: selectedFilter == .history,
+                action: { selectFilter(.history) }
+            )
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private struct MusicSignalButton: View {
+    let title: String
+    let value: Int
+    let systemImage: String
+    let accessibilityIdentifier: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 12, weight: .bold))
+
+                    Text(title)
+                        .font(.system(size: 12, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+                .foregroundStyle(isSelected ? Color.white : AvradioTheme.textSecondary)
+
+                Text("\(value)")
+                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .foregroundStyle(isSelected ? Color.white : AvradioTheme.textPrimary)
+                    .monospacedDigit()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(isSelected ? AvradioTheme.highlight.opacity(0.82) : AvradioTheme.mutedSurface)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(isSelected ? AvradioTheme.highlight.opacity(0.95) : AvradioTheme.borderSubtle, lineWidth: 1)
+                    }
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(value)")
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
@@ -3324,10 +3685,14 @@ private struct SkeletonBlock: View {
 private struct SearchField: View {
     @Binding var query: String
     let prompt: String
+    let focusRequest: Int?
 
-    init(query: Binding<String>, prompt: String? = nil) {
+    @FocusState private var isFocused: Bool
+
+    init(query: Binding<String>, prompt: String? = nil, focusRequest: Int? = nil) {
         _query = query
         self.prompt = prompt ?? L10n.string("shell.search.field.defaultPrompt")
+        self.focusRequest = focusRequest
     }
 
     var body: some View {
@@ -3348,6 +3713,7 @@ private struct SearchField: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
+                .focused($isFocused)
 
             if !query.isEmpty {
                 Button(L10n.string("shell.search.field.clear")) {
@@ -3367,6 +3733,12 @@ private struct SearchField: View {
                         .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
                 }
         )
+        .task(id: focusRequest) {
+            guard focusRequest != nil else { return }
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+            isFocused = true
+        }
     }
 }
 

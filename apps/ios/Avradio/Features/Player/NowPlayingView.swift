@@ -136,6 +136,7 @@ struct NowPlayingView: View {
             isLoading: audioPlayer.isLoading,
             isFavorite: libraryStore.isFavorite(station),
             homepageURL: homepageURL,
+            discoveryShareText: discoveryShareText(for: station),
             onSaveDiscovery: { saveCurrentDiscovery(for: station) },
             onOpenYouTube: { openExternalSearch(baseURL: "https://www.youtube.com/results", queryItemName: "search_query") },
             onOpenLyrics: { openExternalSearch(baseURL: "https://www.google.com/search", queryItemName: "q", suffix: "lyrics") },
@@ -143,62 +144,14 @@ struct NowPlayingView: View {
             onToggleFavorite: { libraryStore.toggleFavorite(for: station) },
             onOpenWebsite: { url in openURL(url) }
         )
+            .id(station.id)
             .background {
                 Circle()
                     .fill(AvradioTheme.highlight.opacity(0.22))
                     .frame(width: size + 56, height: size + 56)
                     .blur(radius: 34)
             }
-            .overlay(alignment: .bottomLeading) {
-                if audioPlayer.currentTrackArtworkURL != nil {
-                    stationBadgeArtwork(for: station, size: 58)
-                        .padding(18)
-                }
-            }
             .frame(maxWidth: .infinity, alignment: .center)
-    }
-
-    @ViewBuilder
-    private func stationBadgeArtwork(for station: Station, size: CGFloat) -> some View {
-        let badgeCornerRadius: CGFloat = 16
-
-        Group {
-            if let artworkURL = stationArtworkURL(for: station) {
-                AsyncImage(url: artworkURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        StationArtworkView(
-                            station: station,
-                            size: size,
-                            surfaceStyle: .light,
-                            contentInsetRatio: 0.04,
-                            cornerRadiusRatio: badgeCornerRadius / size
-                        )
-                    }
-                }
-            } else {
-                StationArtworkView(
-                    station: station,
-                    size: size,
-                    surfaceStyle: .light,
-                    contentInsetRatio: 0.04,
-                    cornerRadiusRatio: badgeCornerRadius / size
-                )
-            }
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: badgeCornerRadius, style: .continuous))
-        .padding(1)
-        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: badgeCornerRadius + 3, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: badgeCornerRadius + 3, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
     }
 
     @ViewBuilder
@@ -315,8 +268,6 @@ struct NowPlayingView: View {
                     .multilineTextAlignment(.leading)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
-
-                Spacer(minLength: 12)
 
                 favoriteButton(for: station)
                 optionsMenu(for: station)
@@ -680,6 +631,7 @@ struct NowPlayingView: View {
 
     private var hasDiscoverableTrack: Bool {
         normalizedMetadata(audioPlayer.currentTrackTitle) != nil
+            && normalizedMetadata(audioPlayer.currentTrackArtist) != nil
     }
 
     private var isCurrentTrackSaved: Bool {
@@ -749,14 +701,26 @@ struct NowPlayingView: View {
         return "\(station.name)\n\(station.streamURL)"
     }
 
-    private var discoverySearchQuery: String? {
-        guard let title = normalizedMetadata(audioPlayer.currentTrackTitle) else { return nil }
-
-        if let artist = normalizedMetadata(audioPlayer.currentTrackArtist) {
-            return "\(artist) \(title)"
+    private func discoveryShareText(for station: Station) -> String {
+        guard
+            let title = normalizedMetadata(audioPlayer.currentTrackTitle),
+            let artist = normalizedMetadata(audioPlayer.currentTrackArtist)
+        else {
+            return stationShareText(for: station)
         }
 
-        return title
+        return L10n.string("player.discovery.shareText", title, artist, station.name)
+    }
+
+    private var discoverySearchQuery: String? {
+        guard
+            let title = normalizedMetadata(audioPlayer.currentTrackTitle),
+            let artist = normalizedMetadata(audioPlayer.currentTrackArtist)
+        else {
+            return nil
+        }
+
+        return "\(artist) \(title)"
     }
 
     private func normalizedMetadata(_ value: String?) -> String? {
@@ -820,6 +784,7 @@ private struct FlippingPlayerArtwork: View {
     let isLoading: Bool
     let isFavorite: Bool
     let homepageURL: URL?
+    let discoveryShareText: String
     let onSaveDiscovery: () -> Void
     let onOpenYouTube: () -> Void
     let onOpenLyrics: () -> Void
@@ -845,6 +810,10 @@ private struct FlippingPlayerArtwork: View {
                         isShowingOptions = true
                     }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(trackTitle ?? station.name))
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("player.artwork.front")
 
             artworkOptionsBack
                 .opacity(isShowingOptions ? 1 : 0)
@@ -872,7 +841,12 @@ private struct FlippingPlayerArtwork: View {
                 artworkFlipIndicator
                     .padding(18)
             }
-            .accessibilityIdentifier("player.artwork.front")
+            .overlay(alignment: .bottomLeading) {
+                if trackArtworkURL != nil {
+                    stationBadgeArtwork(size: 58)
+                        .padding(18)
+                }
+            }
     }
 
     private var artworkFlipIndicator: some View {
@@ -932,7 +906,9 @@ private struct FlippingPlayerArtwork: View {
                     .accessibilityIdentifier("player.artwork.options.close")
                 }
 
-                Spacer(minLength: 12)
+                discoveryEyebrow
+
+                Spacer(minLength: 8)
 
                 VStack(spacing: 7) {
                     Text(backTitle)
@@ -950,7 +926,7 @@ private struct FlippingPlayerArtwork: View {
                 }
                 .padding(.horizontal, 24)
 
-                Spacer(minLength: 18)
+                Spacer(minLength: 16)
 
                 artworkOptionButtons
             }
@@ -992,30 +968,45 @@ private struct FlippingPlayerArtwork: View {
     @ViewBuilder
     private var artworkOptionButtons: some View {
         if isDiscoverableTrack {
-            HStack(spacing: 14) {
-                artworkActionButton(
-                    systemImage: isCurrentTrackDiscovered ? "bookmark.fill" : "bookmark",
-                    accessibilityLabel: isCurrentTrackDiscovered ? L10n.string("player.discovery.saved") : L10n.string("player.discovery.save"),
-                    accessibilityIdentifier: "player.artwork.options.discovery",
-                    action: onSaveDiscovery
-                )
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    artworkLabeledActionButton(
+                        systemImage: isCurrentTrackDiscovered ? "bookmark.fill" : "bookmark",
+                        title: isCurrentTrackDiscovered ? L10n.string("player.discovery.savedShort") : L10n.string("player.discovery.saveShort"),
+                        accessibilityLabel: isCurrentTrackDiscovered ? L10n.string("player.discovery.saved") : L10n.string("player.discovery.save"),
+                        accessibilityIdentifier: "player.artwork.options.discovery",
+                        isProminent: true,
+                        action: onSaveDiscovery
+                    )
 
-                artworkActionButton(
-                    systemImage: "play.rectangle.fill",
-                    accessibilityLabel: L10n.string("player.discovery.youtube"),
-                    accessibilityIdentifier: "player.artwork.options.youtube",
-                    action: onOpenYouTube
-                )
+                    artworkLabeledShareLink(
+                        systemImage: "square.and.arrow.up",
+                        title: L10n.string("player.discovery.shareShort"),
+                        accessibilityLabel: L10n.string("player.discovery.share"),
+                        accessibilityIdentifier: "player.artwork.options.share"
+                    )
+                }
 
-                artworkActionButton(
-                    systemImage: "text.quote",
-                    accessibilityLabel: L10n.string("player.discovery.lyrics"),
-                    accessibilityIdentifier: "player.artwork.options.lyrics",
-                    action: onOpenLyrics
-                )
+                HStack(spacing: 10) {
+                    artworkLabeledActionButton(
+                        systemImage: "play.rectangle.fill",
+                        title: L10n.string("player.discovery.youtubeShort"),
+                        accessibilityLabel: L10n.string("player.discovery.youtube"),
+                        accessibilityIdentifier: "player.artwork.options.youtube",
+                        action: onOpenYouTube
+                    )
+
+                    artworkLabeledActionButton(
+                        systemImage: "text.quote",
+                        title: L10n.string("player.discovery.lyricsShort"),
+                        accessibilityLabel: L10n.string("player.discovery.lyrics"),
+                        accessibilityIdentifier: "player.artwork.options.lyrics",
+                        action: onOpenLyrics
+                    )
+                }
             }
         } else {
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 artworkActionButton(
                     systemImage: isLoading ? "hourglass" : (isPlaying ? "pause.fill" : "play.fill"),
                     accessibilityLabel: isLoading ? L10n.string("audio.status.loading") : (isPlaying ? L10n.string("player.control.pause") : L10n.string("player.control.play")),
@@ -1041,6 +1032,68 @@ private struct FlippingPlayerArtwork: View {
                 }
             }
         }
+    }
+
+    private var discoveryEyebrow: some View {
+        Text(discoveryStateTitle)
+            .font(.system(size: 11, weight: .black))
+            .tracking(1.1)
+            .foregroundStyle(AvradioTheme.highlight)
+            .padding(.horizontal, 12)
+            .frame(height: 28)
+            .background(.white.opacity(0.10), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(Color.white.opacity(0.13), lineWidth: 1)
+            }
+    }
+
+    private var discoveryStateTitle: String {
+        if isCurrentTrackDiscovered {
+            return L10n.string("player.discovery.stateSaved").uppercased(with: L10n.locale)
+        }
+        return L10n.string("player.discovery.stateNew").uppercased(with: L10n.locale)
+    }
+
+    @ViewBuilder
+    private func stationBadgeArtwork(size: CGFloat) -> some View {
+        let badgeCornerRadius: CGFloat = 16
+
+        Group {
+            if let artworkURL = station.displayArtworkURL {
+                AsyncImage(url: artworkURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        stationBadgeFallback(size: size, badgeCornerRadius: badgeCornerRadius)
+                    }
+                }
+            } else {
+                stationBadgeFallback(size: size, badgeCornerRadius: badgeCornerRadius)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: badgeCornerRadius, style: .continuous))
+        .padding(1)
+        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: badgeCornerRadius + 3, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: badgeCornerRadius + 3, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+    }
+
+    private func stationBadgeFallback(size: CGFloat, badgeCornerRadius: CGFloat) -> some View {
+        StationArtworkView(
+            station: station,
+            size: size,
+            surfaceStyle: .light,
+            contentInsetRatio: 0.04,
+            cornerRadiusRatio: badgeCornerRadius / size
+        )
     }
 
     private var loadingOverlay: some View {
@@ -1089,6 +1142,75 @@ private struct FlippingPlayerArtwork: View {
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private func artworkLabeledActionButton(
+        systemImage: String,
+        title: String,
+        accessibilityLabel: String,
+        accessibilityIdentifier: String,
+        isProminent: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .bold))
+
+                Text(title)
+                    .font(.system(size: 12, weight: .black))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            .foregroundStyle(isProminent ? Color.white : AvradioTheme.textInverse.opacity(0.92))
+            .frame(width: actionButtonWidth, height: 42)
+            .background(
+                isProminent
+                    ? AvradioTheme.highlight.opacity(0.78)
+                    : Color.white.opacity(0.12),
+                in: Capsule()
+            )
+            .overlay {
+                Capsule()
+                    .stroke(Color.white.opacity(isProminent ? 0.22 : 0.15), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private func artworkLabeledShareLink(
+        systemImage: String,
+        title: String,
+        accessibilityLabel: String,
+        accessibilityIdentifier: String
+    ) -> some View {
+        ShareLink(item: discoveryShareText) {
+            HStack(spacing: 7) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .bold))
+
+                Text(title)
+                    .font(.system(size: 12, weight: .black))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            .foregroundStyle(AvradioTheme.textInverse.opacity(0.92))
+            .frame(width: actionButtonWidth, height: 42)
+            .background(Color.white.opacity(0.12), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    private var actionButtonWidth: CGFloat {
+        size < 290 ? 112 : 124
     }
 
     @ViewBuilder

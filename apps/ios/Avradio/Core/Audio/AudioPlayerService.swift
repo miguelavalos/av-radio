@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import Foundation
 import MediaPlayer
+import Network
 import UIKit
 
 @MainActor
@@ -81,6 +82,10 @@ final class AudioPlayerService: NSObject, ObservableObject {
     private var routeChangeObserver: NSObjectProtocol?
     private var failedToEndObserver: NSObjectProtocol?
     private var playbackStalledObserver: NSObjectProtocol?
+    private let networkMonitor = NWPathMonitor()
+    private let networkMonitorQueue = DispatchQueue(label: "com.avradio.audio-network-monitor")
+    private var lastNetworkPathStatus: NWPath.Status?
+    private var userRequestedPlayback = false
     private var metadataOutput: AVPlayerItemMetadataOutput?
     private var metadataDelegate: StreamMetadataDelegate?
     private var sleepTimer: Timer?
@@ -120,6 +125,11 @@ final class AudioPlayerService: NSObject, ObservableObject {
         configureAudioSession()
         configureRemoteCommands()
         observeAudioSessionNotifications()
+        observeNetworkChanges()
+    }
+
+    deinit {
+        networkMonitor.cancel()
     }
 
     func applyUITestTrackMetadata(title: String?, artist: String?) {
@@ -146,6 +156,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
         }
 
         resetTransientStateForNewPlayback()
+        userRequestedPlayback = true
         currentStation = station
         restoreCachedNowPlaying(for: station)
         status = .loading
@@ -196,12 +207,14 @@ final class AudioPlayerService: NSObject, ObservableObject {
         activateSessionIfNeeded()
         player?.play()
         status = .loading
+        userRequestedPlayback = true
         lastErrorMessage = nil
         updateNowPlayingInfo()
     }
 
     func pause() {
         player?.pause()
+        userRequestedPlayback = false
         if currentStation != nil {
             status = .paused
         }
@@ -219,6 +232,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
         nowPlayingArtworkTask?.cancel()
         nowPlayingArtworkTask = nil
         player?.pause()
+        userRequestedPlayback = false
         player = nil
         playerItemStatusObserver = nil
         timeControlStatusObserver = nil
@@ -241,6 +255,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
 
     func retry() {
         guard let currentStation else { return }
+        userRequestedPlayback = true
         play(station: currentStation)
     }
 
@@ -411,7 +426,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
-                if self.isPlaying {
+                if self.userRequestedPlayback {
                     self.status = .loading
                     self.startLoadingTimeout()
                 }
@@ -448,6 +463,35 @@ final class AudioPlayerService: NSObject, ObservableObject {
         lastErrorMessage = message
         player?.pause()
         updateNowPlayingInfo()
+    }
+
+    private func observeNetworkChanges() {
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor in
+                self?.handleNetworkPathUpdate(path)
+            }
+        }
+        networkMonitor.start(queue: networkMonitorQueue)
+    }
+
+    private func handleNetworkPathUpdate(_ path: NWPath) {
+        let previousStatus = lastNetworkPathStatus
+        lastNetworkPathStatus = path.status
+
+        guard path.status == .satisfied,
+              previousStatus != nil,
+              previousStatus != .satisfied,
+              userRequestedPlayback,
+              currentStation != nil else {
+            return
+        }
+
+        switch status {
+        case .failed, .loading, .paused:
+            retry()
+        case .idle, .playing:
+            break
+        }
     }
 
     private func resetTransientStateForNewPlayback() {
@@ -837,7 +881,11 @@ final class AudioPlayerService: NSObject, ObservableObject {
                 }
 
                 if type == .began {
-                    self.pause()
+                    self.player?.pause()
+                    if self.currentStation != nil {
+                        self.status = .paused
+                    }
+                    self.updateNowPlayingInfo()
                     return
                 }
 

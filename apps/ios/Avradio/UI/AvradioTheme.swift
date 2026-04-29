@@ -79,12 +79,16 @@ enum AvradioTheme {
     static let darkSurface = brandBlack
     static let darkSurfaceAlt = neutral800
     static let footerGlass = dynamicColor(
-        light: UIColor.white.withAlphaComponent(0.28),
-        dark: UIColor.white.withAlphaComponent(0.12)
+        light: UIColor.white.withAlphaComponent(0.86),
+        dark: UIColor.white.withAlphaComponent(0.28)
     )
     static let footerGlassSelected = dynamicColor(
-        light: UIColor.white.withAlphaComponent(0.30),
-        dark: UIColor.white.withAlphaComponent(0.18)
+        light: UIColor.white.withAlphaComponent(0.92),
+        dark: UIColor.white.withAlphaComponent(0.34)
+    )
+    static let footerBackdrop = dynamicColor(
+        light: UIColor(red: 247 / 255, green: 249 / 255, blue: 248 / 255, alpha: 1),
+        dark: UIColor(red: 13 / 255, green: 13 / 255, blue: 13 / 255, alpha: 1)
     )
     static let glassStroke = dynamicColor(
         light: UIColor.white.withAlphaComponent(0.5),

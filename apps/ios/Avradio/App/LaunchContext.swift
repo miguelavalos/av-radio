@@ -4,6 +4,7 @@ struct LaunchContext {
     enum Tab: String {
         case search
         case library
+        case music
         case player
         case settings
     }
