@@ -12,6 +12,7 @@
 		0C799CBD3726544A4D341687 /* AvradioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F77065AA29100C9F1C79A16 /* AvradioApp.swift */; };
 		0EA536E51B9C6A55C13DF752 /* SearchQueueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC094A093EFF7ABFF788955E /* SearchQueueUITests.swift */; };
 		180F8E48A3E6675B2AFA0129 /* LaunchContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */; };
+		1B63E91E89F7447F8B2E90F1 /* InAppBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C246861E51642D4B14F752C /* InAppBrowserView.swift */; };
 		1E99EC0A3AE4FCEF48807340 /* AVAppsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22222D9C6C6F7ABAF8EB7626 /* AVAppsAPIClient.swift */; };
 		1F7CEF563A71B7B47F161E97 /* StationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8B90DE206EB81665E13922 /* StationService.swift */; };
 		2283DE9C92A3EFCE44E1631C /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = F17C3145DAD23B00F9300C1B /* ClerkKit */; };
@@ -20,6 +21,7 @@
 		36B0C9480D52616C1E761C3C /* AuthOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB441C7FFA5D9D6094E8A8 /* AuthOnboardingView.swift */; };
 		36CE732939A106FAF37965EB /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08ADAC84C439464C73FD306E /* PersistenceController.swift */; };
 		39582C64371A315F8CAAB495 /* HomeRefreshUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D557ED627719061DAC1D0085 /* HomeRefreshUITests.swift */; };
+		3A642D75538942C0913AF3CE /* DiscoveriesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72FD38E4F41442D48B5398E5 /* DiscoveriesUITests.swift */; };
 		51CE379CFC22F600026763D4 /* AVAppsAccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */; };
 		52E8BFEB422EA8213DDA85CB /* AvradioUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5975BBCAC364A805BA73B41F /* AvradioUITestCase.swift */; };
 		5643A09C70B5B09760A9EF0A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A81D2EE988CE3B964C6E2E1 /* RootView.swift */; };
@@ -73,6 +75,8 @@
 		5975BBCAC364A805BA73B41F /* AvradioUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioUITestCase.swift; sourceTree = "<group>"; };
 		5E6F367B3C242F23358C3481 /* TrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackArtworkService.swift; sourceTree = "<group>"; };
 		5F8142B9602D1D389AD8DA75 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		5C246861E51642D4B14F752C /* InAppBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppBrowserView.swift; sourceTree = "<group>"; };
+		72FD38E4F41442D48B5398E5 /* DiscoveriesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveriesUITests.swift; sourceTree = "<group>"; };
 		850B0F51DE8B45597DDA0079 /* AccessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessController.swift; sourceTree = "<group>"; };
 		863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAppsAccountService.swift; sourceTree = "<group>"; };
 		8ED913084AC8D906119907F2 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
@@ -120,6 +124,7 @@
 			isa = PBXGroup;
 			children = (
 				5975BBCAC364A805BA73B41F /* AvradioUITestCase.swift */,
+				72FD38E4F41442D48B5398E5 /* DiscoveriesUITests.swift */,
 				B6D9CAA15891A8D026894BBB /* HomeEmptyStateUITests.swift */,
 				D557ED627719061DAC1D0085 /* HomeRefreshUITests.swift */,
 				E1D079A9F075D1A27C4F4EDE /* HomeUITests.swift */,
@@ -255,6 +260,7 @@
 			isa = PBXGroup;
 			children = (
 				C016C1DBED538A066A92DC60 /* AvradioTheme.swift */,
+				5C246861E51642D4B14F752C /* InAppBrowserView.swift */,
 				DD59F5C58CDA836BE0C2F465 /* StationArtworkView.swift */,
 			);
 			path = UI;
@@ -428,6 +434,7 @@
 				180F8E48A3E6675B2AFA0129 /* LaunchContext.swift in Sources */,
 				916DCB42EFFE8833CE087CCB /* LibraryStore.swift in Sources */,
 				328AA80E680681C056D5C1C8 /* NowPlayingService.swift in Sources */,
+				1B63E91E89F7447F8B2E90F1 /* InAppBrowserView.swift in Sources */,
 				B5DD991407F22700885E9BDB /* NowPlayingView.swift in Sources */,
 				36CE732939A106FAF37965EB /* PersistenceController.swift in Sources */,
 				EA05A24B2F7AFF93E7534B7D /* ProfileScreen.swift in Sources */,
@@ -444,6 +451,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				52E8BFEB422EA8213DDA85CB /* AvradioUITestCase.swift in Sources */,
+				3A642D75538942C0913AF3CE /* DiscoveriesUITests.swift in Sources */,
 				FD2CB2B4D42D97825E9A929C /* HomeEmptyStateUITests.swift in Sources */,
 				39582C64371A315F8CAAB495 /* HomeRefreshUITests.swift in Sources */,
 				EE0995F84551EFB3C9C412BE /* HomeUITests.swift in Sources */,

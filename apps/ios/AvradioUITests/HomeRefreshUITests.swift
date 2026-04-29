@@ -11,8 +11,8 @@ final class HomeRefreshUITests: AvradioUITestCase {
 
         let recentsSection = app.otherElements["home.section.recents"]
         let favoritesSection = app.otherElements["home.section.favorites"]
-        let recentsFavoriteButton = recentsSection.descendants(matching: .button)["stationRow.favorite.bbc-radio-1"].firstMatch
-        let favoritesRow = favoritesSection.descendants(matching: .other)["stationRow.bbc-radio-1"].firstMatch
+        let recentsFavoriteButton = recentsSection.descendants(matching: .button)["stationRow.favorite.groove-salad"].firstMatch
+        let favoritesRow = favoritesSection.descendants(matching: .other)["stationRow.groove-salad"].firstMatch
 
         XCTAssertTrue(recentsSection.waitForExistence(timeout: 5))
         XCTAssertTrue(favoritesSection.exists)

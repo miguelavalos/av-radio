@@ -1,0 +1,81 @@
+import SwiftUI
+import UIKit
+import WebKit
+
+struct BrowserDestination: Identifiable {
+    let url: URL
+
+    var id: String {
+        url.absoluteString
+    }
+}
+
+struct InAppBrowserView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let destination: BrowserDestination
+    @State private var isShowingOpenWith = false
+
+    var body: some View {
+        NavigationStack {
+            WebBrowser(url: destination.url)
+                .ignoresSafeArea(edges: .bottom)
+                .navigationTitle(destination.url.host() ?? L10n.string("browser.title"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L10n.string("common.done")) {
+                            dismiss()
+                        }
+                    }
+
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            UIApplication.shared.open(destination.url)
+                        } label: {
+                            Image(systemName: "arrow.up.forward.app")
+                        }
+                        .accessibilityLabel(L10n.string("browser.openExternal"))
+                    }
+
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            isShowingOpenWith = true
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                        .accessibilityLabel(L10n.string("browser.openWith"))
+                    }
+                }
+        }
+        .sheet(isPresented: $isShowingOpenWith) {
+            OpenWithView(url: destination.url)
+        }
+    }
+}
+
+private struct WebBrowser: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.allowsBackForwardNavigationGestures = true
+        webView.load(URLRequest(url: url))
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        guard webView.url != url else { return }
+        webView.load(URLRequest(url: url))
+    }
+}
+
+private struct OpenWithView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}

@@ -9,6 +9,7 @@ struct PersistenceController {
         let schema = Schema([
             FavoriteStation.self,
             RecentStation.self,
+            DiscoveredTrack.self,
             AppSettings.self,
         ])
 

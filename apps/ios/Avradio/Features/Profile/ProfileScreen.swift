@@ -32,8 +32,8 @@ struct ProfileScreen: View {
                         .foregroundStyle(AvradioTheme.textSecondary)
                 }
 
-                accountManagementCard
                 profileSummaryCard
+                accountManagementCard
                 appPreferencesCard
                 localDataCard
                 helpAndLegalCard

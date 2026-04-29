@@ -5,6 +5,7 @@ import SwiftUI
 final class LibraryStore: ObservableObject {
     @Published private(set) var favorites: [FavoriteStation] = []
     @Published private(set) var recents: [RecentStation] = []
+    @Published private(set) var discoveries: [DiscoveredTrack] = []
     @Published private(set) var settings: AppSettings
 
     private let context: ModelContext
@@ -34,9 +35,13 @@ final class LibraryStore: ObservableObject {
         let recentDescriptor = FetchDescriptor<RecentStation>(
             sortBy: [SortDescriptor(\.lastPlayedAt, order: .reverse)]
         )
+        let discoveryDescriptor = FetchDescriptor<DiscoveredTrack>(
+            sortBy: [SortDescriptor(\.playedAt, order: .reverse)]
+        )
 
         favorites = (try? context.fetch(favoriteDescriptor)) ?? []
         recents = (try? context.fetch(recentDescriptor)) ?? []
+        discoveries = (try? context.fetch(discoveryDescriptor)) ?? []
 
         if let currentSettings = try? context.fetch(FetchDescriptor<AppSettings>()).first {
             settings = currentSettings
@@ -88,6 +93,106 @@ final class LibraryStore: ObservableObject {
         settings.lastPlayedStationID = station.id
         settings.updatedAt = .now
         trimRecents(limit: 20)
+        saveAndRefresh()
+    }
+
+    func isDiscoveredTrack(title: String?, artist: String?, station: Station?) -> Bool {
+        discovery(for: title, artist: artist, station: station) != nil
+    }
+
+    func isSavedDiscoveredTrack(title: String?, artist: String?, station: Station?) -> Bool {
+        discovery(for: title, artist: artist, station: station)?.isMarkedInteresting == true
+    }
+
+    private func discovery(for title: String?, artist: String?, station: Station?) -> DiscoveredTrack? {
+        guard
+            let station,
+            let normalizedTitle = normalizedTrackValue(title)
+        else {
+            return nil
+        }
+
+        let discoveryID = DiscoveredTrack.makeID(
+            title: normalizedTitle,
+            artist: normalizedTrackValue(artist),
+            stationID: station.id
+        )
+        return discoveries.first { $0.discoveryID == discoveryID }
+    }
+
+    func markTrackInteresting(title: String?, artist: String?, station: Station?, artworkURL: URL?) {
+        saveDiscoveredTrack(
+            title: title,
+            artist: artist,
+            station: station,
+            artworkURL: artworkURL,
+            markInteresting: true
+        )
+    }
+
+    func recordDiscoveredTrack(title: String?, artist: String?, station: Station?, artworkURL: URL?) {
+        saveDiscoveredTrack(
+            title: title,
+            artist: artist,
+            station: station,
+            artworkURL: artworkURL,
+            markInteresting: false
+        )
+    }
+
+    private func saveDiscoveredTrack(
+        title: String?,
+        artist: String?,
+        station: Station?,
+        artworkURL: URL?,
+        markInteresting: Bool
+    ) {
+        guard
+            let station,
+            let normalizedTitle = normalizedTrackValue(title)
+        else {
+            return
+        }
+
+        let normalizedArtist = normalizedTrackValue(artist)
+        let discoveryID = DiscoveredTrack.makeID(
+            title: normalizedTitle,
+            artist: normalizedArtist,
+            stationID: station.id
+        )
+
+        if let existing = discoveries.first(where: { $0.discoveryID == discoveryID }) {
+            existing.playedAt = .now
+            if markInteresting {
+                existing.markedInterestedAt = existing.markedInterestedAt ?? .now
+            }
+            existing.artworkURL = artworkURL?.absoluteString ?? existing.artworkURL
+        } else {
+            context.insert(
+                DiscoveredTrack(
+                    title: normalizedTitle,
+                    artist: normalizedArtist,
+                    station: station,
+                    artworkURL: artworkURL,
+                    markedInterestedAt: markInteresting ? .now : nil
+                )
+            )
+        }
+
+        trimDiscoveries(limit: 100)
+        saveAndRefresh()
+    }
+
+    func removeDiscovery(_ discovery: DiscoveredTrack) {
+        context.delete(discovery)
+        saveAndRefresh()
+    }
+
+    func clearDiscoveries() {
+        for discovery in discoveries {
+            context.delete(discovery)
+        }
+
         saveAndRefresh()
     }
 
@@ -207,6 +312,20 @@ final class LibraryStore: ObservableObject {
         for item in sorted.dropFirst(limit) {
             context.delete(item)
         }
+    }
+
+    private func trimDiscoveries(limit: Int) {
+        guard discoveries.count > limit else { return }
+        let sorted = discoveries.sorted { $0.playedAt > $1.playedAt }
+        for item in sorted.dropFirst(limit) {
+            context.delete(item)
+        }
+    }
+
+    private func normalizedTrackValue(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func saveAndRefresh() {

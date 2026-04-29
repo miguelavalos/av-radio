@@ -474,6 +474,82 @@ final class RecentStation {
 }
 
 @Model
+final class DiscoveredTrack {
+    @Attribute(.unique) var discoveryID: String
+    var title: String
+    var artist: String?
+    var stationID: String
+    var stationName: String
+    var artworkURL: String?
+    var playedAt: Date
+    var markedInterestedAt: Date?
+
+    init(
+        title: String,
+        artist: String?,
+        station: Station,
+        artworkURL: URL?,
+        playedAt: Date = .now,
+        markedInterestedAt: Date? = nil
+    ) {
+        let normalizedArtist = artist?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.discoveryID = Self.makeID(title: normalizedTitle, artist: normalizedArtist, stationID: station.id)
+        self.title = normalizedTitle
+        self.artist = normalizedArtist?.isEmpty == true ? nil : normalizedArtist
+        self.stationID = station.id
+        self.stationName = station.name
+        self.artworkURL = artworkURL?.absoluteString
+        self.playedAt = playedAt
+        self.markedInterestedAt = markedInterestedAt
+    }
+
+    static func makeID(title: String, artist: String?, stationID: String) -> String {
+        let rawValue = "\(artist ?? "")|\(title)|\(stationID)"
+        return rawValue
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
+            .lowercased()
+            .unicodeScalars
+            .map { CharacterSet.alphanumerics.contains($0) ? Character($0) : "-" }
+            .reduce(into: "") { result, character in
+                if character != "-" || result.last != "-" {
+                    result.append(character)
+                }
+            }
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+    }
+}
+
+extension DiscoveredTrack {
+    var isMarkedInteresting: Bool {
+        markedInterestedAt != nil
+    }
+
+    var artistDisplayText: String {
+        normalizedArtist ?? L10n.string("player.track.liveNow")
+    }
+
+    var searchQuery: String {
+        if let artist = normalizedArtist {
+            return "\(artist) \(title)"
+        }
+
+        return title
+    }
+
+    var resolvedArtworkURL: URL? {
+        guard let artworkURL else { return nil }
+        return URL(string: artworkURL)
+    }
+
+    private var normalizedArtist: String? {
+        guard let artist else { return nil }
+        let trimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+@Model
 final class AppSettings {
     var preferredCountry: String
     var preferredLanguage: String

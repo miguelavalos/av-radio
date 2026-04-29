@@ -56,11 +56,12 @@ struct AuthOnboardingView: View {
                     } else {
                         CallToActionSection(
                             accountIsAvailable: accountIsAvailable,
-                            action: {
-                            withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
-                                authOptionsArePresented = true
-                            }
-                        },
+                            listenAction: onSkip,
+                            accountAction: {
+                                withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
+                                    authOptionsArePresented = true
+                                }
+                            },
                             skipAction: onSkip
                         )
                         .padding(.horizontal, 24)
@@ -279,20 +280,20 @@ private struct HeroBadge: View {
 
 private struct CallToActionSection: View {
     let accountIsAvailable: Bool
-    let action: () -> Void
+    let listenAction: () -> Void
+    let accountAction: () -> Void
     let skipAction: () -> Void
 
     var body: some View {
         VStack(spacing: 18) {
-            Button(action: action) {
-                Text(accountIsAvailable ? L10n.string("auth.cta.continue") : L10n.string("auth.cta.localMode"))
+            Button(action: listenAction) {
+                Text(L10n.string("auth.cta.localMode"))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(AvradioTheme.brandBlack)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(AvradioTheme.highlight, in: Capsule())
             }
-            .disabled(!accountIsAvailable)
 
             Text(accountIsAvailable ? L10n.string("auth.cta.subtitle.available") : L10n.string("auth.cta.subtitle.unavailable"))
                 .font(.system(size: 13, weight: .medium))
@@ -301,7 +302,7 @@ private struct CallToActionSection: View {
                 .lineLimit(2)
                 .padding(.horizontal, 28)
 
-            Button(L10n.string("auth.cta.skip"), action: skipAction)
+            Button(accountIsAvailable ? L10n.string("auth.cta.continue") : L10n.string("auth.cta.skip"), action: accountIsAvailable ? accountAction : skipAction)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(AvradioTheme.textInverse.opacity(0.88))
         }

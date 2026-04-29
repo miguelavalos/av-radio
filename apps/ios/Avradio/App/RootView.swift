@@ -58,14 +58,14 @@ struct RootView: View {
         .task {
             await accessController.syncFromAccountProvider()
             await refreshLibrarySync()
-            presentAutomaticGuestOnboardingIfNeeded()
+            markAutomaticGuestOnboardingSeenIfNeeded()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
             Task {
                 await accessController.syncFromAccountProvider()
                 await refreshLibrarySync()
-                presentAutomaticGuestOnboardingIfNeeded()
+                markAutomaticGuestOnboardingSeenIfNeeded()
             }
         }
         .onChange(of: accessController.accessMode) { _, _ in
@@ -122,14 +122,11 @@ struct RootView: View {
         await libraryStore.refreshCloudLibraryIfNeeded()
     }
 
-    private func presentAutomaticGuestOnboardingIfNeeded() {
+    private func markAutomaticGuestOnboardingSeenIfNeeded() {
         guard !launchContext.shouldDisableOnboarding else { return }
-        guard automaticGuestOnboardingIsPresented == false else { return }
-        guard isShowingAccountOnboarding == false else { return }
         guard accessController.shouldAutoShowGuestOnboarding else { return }
 
         accessController.markGuestOnboardingPromptShown()
-        automaticGuestOnboardingIsPresented = true
     }
 }
 

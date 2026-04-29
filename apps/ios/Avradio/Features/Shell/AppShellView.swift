@@ -22,9 +22,12 @@ struct AppShellView: View {
     @State private var homeFeedContext: HomeFeedContext = .popularWorldwide
     @State private var homeSnapshot = HomeSnapshot()
     @State private var selectedStationDetail: SelectedStationDetail?
+    @State private var stationNowPlayingTracks: [String: NowPlayingTrack] = [:]
+    @State private var stationNowPlayingCache: [String: CachedStationNowPlaying] = [:]
     @State private var didBootstrap = false
 
     private let stationService = StationService()
+    private let stationNowPlayingService = NowPlayingService()
     private let genreTags = ["rock", "pop", "jazz", "news", "electronic", "ambient"]
 
     init(
@@ -96,6 +99,9 @@ struct AppShellView: View {
         .task(id: searchRequestKey) {
             await loadSearchResults()
         }
+        .task(id: stationNowPlayingRequestKey) {
+            await loadStationNowPlayingPreviews()
+        }
         .onChange(of: selectedTab) { _, newValue in
             guard newValue == .home else { return }
             refreshHomePresentation()
@@ -103,6 +109,9 @@ struct AppShellView: View {
         .onChange(of: audioPlayer.currentStation?.id) { _, stationID in
             guard stationID != nil, let station = audioPlayer.currentStation else { return }
             libraryStore.recordPlayback(of: station)
+        }
+        .onChange(of: currentTrackDiscoveryKey) { _, _ in
+            recordCurrentTrackDiscovery()
         }
     }
 
@@ -119,6 +128,7 @@ struct AppShellView: View {
                 feedContext: homeSnapshot.feedContext,
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
+                nowPlayingTracks: stationNowPlayingTracks,
                 refreshHome: refreshHomePresentationAndFeed,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
@@ -135,6 +145,7 @@ struct AppShellView: View {
                 tags: genreTags,
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
+                nowPlayingTracks: stationNowPlayingTracks,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
                 showStationDetails: showStationDetails
@@ -143,10 +154,14 @@ struct AppShellView: View {
             LibraryScreen(
                 favorites: favoriteStations,
                 recents: recentStations,
+                discoveries: libraryStore.discoveries,
                 bottomContentPadding: shellScrollBottomPadding,
                 favoriteStationIDs: favoriteStationIDs,
+                nowPlayingTracks: stationNowPlayingTracks,
                 playStation: playStation,
                 toggleFavorite: libraryStore.toggleFavorite(for:),
+                removeDiscovery: libraryStore.removeDiscovery(_:),
+                clearDiscoveries: libraryStore.clearDiscoveries,
                 showStationDetails: showStationDetails
             )
         case .profile:
@@ -177,6 +192,109 @@ struct AppShellView: View {
         // The footer is visually detached and floats above scroll content,
         // so scrollable screens need extra trailing space to bring the last row above it.
         audioPlayer.currentStation == nil ? 96 : 168
+    }
+
+    private var stationNowPlayingRequestKey: String {
+        let ids = stationNowPlayingCandidates.map(\.id).joined(separator: "|")
+        return "\(selectedTab)|\(ids)"
+    }
+
+    private var currentTrackDiscoveryKey: String {
+        [
+            audioPlayer.currentStation?.id ?? "",
+            audioPlayer.currentTrackArtist ?? "",
+            audioPlayer.currentTrackTitle ?? ""
+        ].joined(separator: "|")
+    }
+
+    private var stationNowPlayingCandidates: [Station] {
+        guard isProNowPlayingEnabled else { return [] }
+
+        switch selectedTab {
+        case .home:
+            return uniqueStations(
+                homeSnapshot.recentStations.prefix(6) +
+                homeSnapshot.favoriteStations.prefix(6) +
+                homeSnapshot.stations.prefix(8)
+            )
+        case .search:
+            return uniqueStations(searchResults.prefix(9))
+        case .library:
+            return uniqueStations(favoriteStations.prefix(9) + recentStations.prefix(6))
+        case .profile:
+            return []
+        }
+    }
+
+    private func uniqueStations<S: Sequence>(_ stations: S) -> [Station] where S.Element == Station {
+        var seenIDs = Set<String>()
+        var result: [Station] = []
+
+        for station in stations where !seenIDs.contains(station.id) {
+            seenIDs.insert(station.id)
+            result.append(station)
+        }
+
+        return result
+    }
+
+    private func loadStationNowPlayingPreviews() async {
+        guard isProNowPlayingEnabled else { return }
+        guard !launchContext.isUITesting else { return }
+
+        let supportedStations = stationNowPlayingCandidates
+            .filter { stationNowPlayingService.supports($0) }
+            .prefix(6)
+
+        guard !supportedStations.isEmpty else { return }
+
+        for station in supportedStations {
+            if Task.isCancelled { return }
+
+            if let cached = stationNowPlayingCache[station.id], cached.isFresh {
+                stationNowPlayingTracks[station.id] = cached.track
+                continue
+            }
+
+            guard let track = await stationNowPlayingService.fetchTrack(for: station) else { continue }
+            stationNowPlayingTracks[station.id] = track
+            stationNowPlayingCache[station.id] = CachedStationNowPlaying(track: track, fetchedAt: Date())
+        }
+    }
+
+    private var isProNowPlayingEnabled: Bool {
+        false
+    }
+
+    private func recordCurrentTrackDiscovery() {
+        guard
+            let station = audioPlayer.currentStation,
+            normalizedTrackValue(audioPlayer.currentTrackTitle) != nil
+        else {
+            return
+        }
+
+        libraryStore.recordDiscoveredTrack(
+            title: audioPlayer.currentTrackTitle,
+            artist: audioPlayer.currentTrackArtist,
+            station: station,
+            artworkURL: audioPlayer.currentTrackArtworkURL
+        )
+    }
+
+    private func applyUITestTrackMetadataIfNeeded() {
+        guard launchContext.isUITesting else { return }
+        guard launchContext.uiTestTrackTitle != nil || launchContext.uiTestTrackArtist != nil else { return }
+        audioPlayer.applyUITestTrackMetadata(
+            title: launchContext.uiTestTrackTitle,
+            artist: launchContext.uiTestTrackArtist
+        )
+    }
+
+    private func normalizedTrackValue(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func bootstrapIfNeeded() async {
@@ -211,6 +329,7 @@ struct AppShellView: View {
             if audioPlayer.currentStation?.id != demoStation.id {
                 playStation(demoStation)
             }
+            applyUITestTrackMetadataIfNeeded()
         }
     }
 
@@ -228,6 +347,21 @@ struct AppShellView: View {
 
         for station in samples {
             libraryStore.recordPlayback(of: station)
+        }
+
+        if launchContext.shouldUseLocalUITestDiscovery {
+            libraryStore.recordDiscoveredTrack(
+                title: "Midnight City",
+                artist: "M83",
+                station: samples[0],
+                artworkURL: nil
+            )
+            libraryStore.markTrackInteresting(
+                title: "Sweet Disposition",
+                artist: "The Temper Trap",
+                station: samples[1],
+                artworkURL: nil
+            )
         }
     }
 
@@ -502,6 +636,15 @@ private struct HomeSnapshot {
     var feedContext: HomeFeedContext = .popularWorldwide
 }
 
+private struct CachedStationNowPlaying {
+    let track: NowPlayingTrack
+    let fetchedAt: Date
+
+    var isFresh: Bool {
+        Date().timeIntervalSince(fetchedAt) < 60
+    }
+}
+
 private struct SelectedStationDetail: Identifiable {
     let station: Station
     let queueSource: AudioPlayerService.PlaybackQueue.Source
@@ -708,6 +851,7 @@ private struct HomeScreen: View {
     let feedContext: HomeFeedContext
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
+    let nowPlayingTracks: [String: NowPlayingTrack]
     let refreshHome: () async -> Void
     let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
@@ -740,29 +884,31 @@ private struct HomeScreen: View {
 
                 if !displayedRecentStations.isEmpty {
                     StationSection(title: L10n.string("shell.home.recents.title"), subtitle: L10n.string("shell.home.recents.subtitle"), accessibilityIdentifier: "home.section.recents") {
-                        ForEach(displayedRecentStations) { station in
-                            StationRowCard(
-                                station: station,
-                                isFavorite: favoriteStationIDs.contains(station.id),
-                                toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station, .homeRecents, recentStations) },
-                                detailsAction: { showStationDetails(station, .homeRecents, recentStations) }
-                            )
-                        }
+                        StationCompactCarousel(
+                            stations: displayedRecentStations,
+                            favoriteStationIDs: favoriteStationIDs,
+                            nowPlayingTracks: nowPlayingTracks,
+                            queueSource: .homeRecents,
+                            queueStations: recentStations,
+                            playStation: playStation,
+                            toggleFavorite: toggleFavorite,
+                            showStationDetails: showStationDetails
+                        )
                     }
                 }
 
                 if !displayedFavoriteStations.isEmpty {
                     StationSection(title: L10n.string("shell.home.favorites.title"), subtitle: L10n.string("shell.home.favorites.subtitle"), accessibilityIdentifier: "home.section.favorites") {
-                        ForEach(displayedFavoriteStations) { station in
-                            StationRowCard(
-                                station: station,
-                                isFavorite: favoriteStationIDs.contains(station.id),
-                                toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station, .homeFavorites, favoriteStations) },
-                                detailsAction: { showStationDetails(station, .homeFavorites, favoriteStations) }
-                            )
-                        }
+                        StationCompactCarousel(
+                            stations: displayedFavoriteStations,
+                            favoriteStationIDs: favoriteStationIDs,
+                            nowPlayingTracks: nowPlayingTracks,
+                            queueSource: .homeFavorites,
+                            queueStations: favoriteStations,
+                            playStation: playStation,
+                            toggleFavorite: toggleFavorite,
+                            showStationDetails: showStationDetails
+                        )
                     }
                 }
 
@@ -780,12 +926,15 @@ private struct HomeScreen: View {
                             subtitle: L10n.string("shell.home.featured.frontPage.subtitle"),
                             accessibilityIdentifier: "home.section.featured"
                         ) {
-                            StationRowCard(
-                                station: featuredStation,
-                                isFavorite: favoriteStationIDs.contains(featuredStation.id),
-                                toggleFavorite: { toggleFavorite(featuredStation) },
-                                playAction: { playStation(featuredStation, featuredQueueSource, featuredQueueStations) },
-                                detailsAction: { showStationDetails(featuredStation, featuredQueueSource, featuredQueueStations) }
+                            StationCompactCarousel(
+                                stations: [featuredStation],
+                                favoriteStationIDs: favoriteStationIDs,
+                                nowPlayingTracks: nowPlayingTracks,
+                                queueSource: featuredQueueSource,
+                                queueStations: featuredQueueStations,
+                                playStation: playStation,
+                                toggleFavorite: toggleFavorite,
+                                showStationDetails: showStationDetails
                             )
                         }
                     } else {
@@ -806,15 +955,16 @@ private struct HomeScreen: View {
                             subtitle: sectionSubtitle,
                             accessibilityIdentifier: "home.section.discovery"
                         ) {
-                            ForEach(displayedPopularStations) { station in
-                                StationRowCard(
-                                    station: station,
-                                    isFavorite: favoriteStationIDs.contains(station.id),
-                                    toggleFavorite: { toggleFavorite(station) },
-                                    playAction: { playStation(station, .homeDiscovery, displayedPopularStations) },
-                                    detailsAction: { showStationDetails(station, .homeDiscovery, displayedPopularStations) }
-                                )
-                            }
+                            StationCompactCarousel(
+                                stations: displayedPopularStations,
+                                favoriteStationIDs: favoriteStationIDs,
+                                nowPlayingTracks: nowPlayingTracks,
+                                queueSource: .homeDiscovery,
+                                queueStations: displayedPopularStations,
+                                playStation: playStation,
+                                toggleFavorite: toggleFavorite,
+                                showStationDetails: showStationDetails
+                            )
                         }
                     }
                 } else {
@@ -1022,6 +1172,7 @@ private struct SearchScreen: View {
     let tags: [String]
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
+    let nowPlayingTracks: [String: NowPlayingTrack]
     let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
     let showStationDetails: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
@@ -1078,13 +1229,29 @@ private struct SearchScreen: View {
                             SearchLoadingCard()
                         }
 
-                        ForEach(results) { station in
-                            StationRowCard(
-                                station: station,
-                                isFavorite: favoriteStationIDs.contains(station.id),
-                                toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station, .searchResults, results) },
-                                detailsAction: { showStationDetails(station, .searchResults, results) }
+                        if usesSearchGrid {
+                            LazyVGrid(columns: searchGridColumns, spacing: 12) {
+                                ForEach(results) { station in
+                                    StationCompactCard(
+                                        station: station,
+                                        isFavorite: favoriteStationIDs.contains(station.id),
+                                        nowPlayingTrack: nowPlayingTracks[station.id],
+                                        toggleFavorite: { toggleFavorite(station) },
+                                        playAction: { playStation(station, .searchResults, results) },
+                                        detailsAction: { showStationDetails(station, .searchResults, results) }
+                                    )
+                                }
+                            }
+                        } else {
+                            StationCompactCarousel(
+                                stations: results,
+                                favoriteStationIDs: favoriteStationIDs,
+                                nowPlayingTracks: nowPlayingTracks,
+                                queueSource: .searchResults,
+                                queueStations: results,
+                                playStation: playStation,
+                                toggleFavorite: toggleFavorite,
+                                showStationDetails: showStationDetails
                             )
                         }
                     } else if isLoading {
@@ -1120,6 +1287,16 @@ private struct SearchScreen: View {
 
     private var queryText: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var usesSearchGrid: Bool {
+        !queryText.isEmpty || activeTag != nil || selectedCountryCode != nil
+    }
+
+    private var searchGridColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 104, maximum: 120), spacing: 12)
+        ]
     }
 
     private func toggleTag(_ tag: String) {
@@ -1158,14 +1335,23 @@ private struct SearchScreen: View {
 }
 
 private struct LibraryScreen: View {
+    @Environment(\.openURL) private var openURL
     @State private var query = ""
+    @State private var libraryMode: LibraryMode = .radios
+    @State private var discoveryFilter: DiscoveryFilter = .saved
+    @State private var isConfirmingClearDiscoveries = false
+    @State private var browserDestination: BrowserDestination?
 
     let favorites: [Station]
     let recents: [Station]
+    let discoveries: [DiscoveredTrack]
     let bottomContentPadding: CGFloat
     let favoriteStationIDs: Set<String>
+    let nowPlayingTracks: [String: NowPlayingTrack]
     let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
     let toggleFavorite: (Station) -> Void
+    let removeDiscovery: (DiscoveredTrack) -> Void
+    let clearDiscoveries: () -> Void
     let showStationDetails: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
 
     var body: some View {
@@ -1194,7 +1380,19 @@ private struct LibraryScreen: View {
 
                 SearchField(query: $query, prompt: L10n.string("shell.library.searchPrompt"))
 
-                StationSection(title: L10n.string("shell.library.favorites.title"), subtitle: L10n.string("shell.library.favorites.subtitle"), accessibilityIdentifier: "library.section.favorites") {
+                Picker(L10n.string("shell.library.mode.title"), selection: $libraryMode) {
+                    ForEach(LibraryMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                if libraryMode == .music {
+                    discoveryLibrarySection
+                }
+
+                if libraryMode == .radios {
+                    StationSection(title: L10n.string("shell.library.favorites.title"), subtitle: L10n.string("shell.library.favorites.subtitle"), accessibilityIdentifier: "library.section.favorites") {
                     if filteredFavorites.isEmpty {
                         EmptyLibraryState(
                             title: favorites.isEmpty ? L10n.string("shell.library.favorites.empty") : L10n.string("shell.library.favorites.noMatch"),
@@ -1203,30 +1401,37 @@ private struct LibraryScreen: View {
                                 : L10n.string("shell.library.favorites.noMatch.detail")
                         )
                     } else {
-                        ForEach(filteredFavorites) { station in
-                            StationRowCard(
-                                station: station,
-                                isFavorite: favoriteStationIDs.contains(station.id),
-                                toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station, .libraryFavorites, favorites) },
-                                detailsAction: { showStationDetails(station, .libraryFavorites, favorites) }
-                            )
+                        LazyVGrid(columns: stationGridColumns, spacing: 12) {
+                            ForEach(filteredFavorites) { station in
+                                StationCompactCard(
+                                    station: station,
+                                    isFavorite: favoriteStationIDs.contains(station.id),
+                                    nowPlayingTrack: nowPlayingTracks[station.id],
+                                    toggleFavorite: { toggleFavorite(station) },
+                                    playAction: { playStation(station, .libraryFavorites, favorites) },
+                                    detailsAction: { showStationDetails(station, .libraryFavorites, favorites) }
+                                )
+                            }
                         }
                     }
                 }
 
-                if !filteredRecents.isEmpty {
-                    StationSection(title: L10n.string("shell.library.recents.title"), subtitle: L10n.string("shell.library.recents.subtitle"), accessibilityIdentifier: "library.section.recents") {
-                        ForEach(filteredRecents) { station in
-                            StationRowCard(
-                                station: station,
-                                isFavorite: favoriteStationIDs.contains(station.id),
-                                toggleFavorite: { toggleFavorite(station) },
-                                playAction: { playStation(station, .libraryRecents, recents) },
-                                detailsAction: { showStationDetails(station, .libraryRecents, recents) }
-                            )
+                    if !filteredRecents.isEmpty {
+                        StationSection(title: L10n.string("shell.library.recents.title"), subtitle: L10n.string("shell.library.recents.subtitle"), accessibilityIdentifier: "library.section.recents") {
+                        LazyVGrid(columns: stationGridColumns, spacing: 12) {
+                            ForEach(filteredRecents) { station in
+                                StationCompactCard(
+                                    station: station,
+                                    isFavorite: favoriteStationIDs.contains(station.id),
+                                    nowPlayingTrack: nowPlayingTracks[station.id],
+                                    toggleFavorite: { toggleFavorite(station) },
+                                    playAction: { playStation(station, .libraryRecents, recents) },
+                                    detailsAction: { showStationDetails(station, .libraryRecents, recents) }
+                                )
+                            }
                         }
                     }
+                }
                 }
             }
             .padding(24)
@@ -1234,10 +1439,142 @@ private struct LibraryScreen: View {
         }
         .scrollIndicators(.hidden)
         .background(AvradioTheme.shellBackground.ignoresSafeArea())
+        .confirmationDialog(
+            L10n.string("shell.library.discoveries.clear.confirmTitle"),
+            isPresented: $isConfirmingClearDiscoveries,
+            titleVisibility: .visible
+        ) {
+            Button(L10n.string("shell.library.discoveries.clear.confirmAction"), role: .destructive) {
+                clearDiscoveries()
+            }
+
+            Button(L10n.string("common.cancel"), role: .cancel) {}
+        } message: {
+            Text(L10n.string("shell.library.discoveries.clear.confirmMessage"))
+        }
+        .sheet(item: $browserDestination) { destination in
+            InAppBrowserView(destination: destination)
+        }
     }
 
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var stationGridColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 104, maximum: 120), spacing: 12)
+        ]
+    }
+
+    private var discoveryLibrarySection: some View {
+        StationSection(title: L10n.string("shell.library.discoveries.title"), subtitle: L10n.string("shell.library.discoveries.subtitle"), accessibilityIdentifier: "library.section.discoveries") {
+            VStack(alignment: .leading, spacing: 16) {
+                discoveryToolbar
+
+                if filteredDiscoveries.isEmpty {
+                    EmptyLibraryState(
+                        title: discoveries.isEmpty ? L10n.string("shell.library.discoveries.empty") : L10n.string("shell.library.discoveries.noMatch"),
+                        detail: discoveries.isEmpty
+                            ? L10n.string("shell.library.discoveries.empty.detail")
+                            : L10n.string("shell.library.discoveries.noMatch.detail")
+                    )
+                } else {
+                    if discoveryFilter == .saved && !filteredArtistSummaries.isEmpty {
+                        discoverySubsectionTitle(L10n.string("shell.library.discoveries.artists.title"))
+
+                        ScrollView(.horizontal) {
+                            HStack(spacing: 10) {
+                                ForEach(filteredArtistSummaries) { artist in
+                                    DiscoveryArtistCard(summary: artist)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .scrollIndicators(.hidden)
+                    }
+
+                    discoverySubsectionTitle(
+                        discoveryFilter == .saved
+                            ? L10n.string("shell.library.discoveries.songs.savedTitle")
+                            : L10n.string("shell.library.discoveries.songs.historyTitle")
+                    )
+
+                    VStack(spacing: 10) {
+                        ForEach(filteredDiscoveries) { discovery in
+                            DiscoveryTrackCard(
+                                discovery: discovery,
+                                openYouTube: { openDiscoverySearch(discovery, suffix: nil, youtube: true) },
+                                openLyrics: { openDiscoverySearch(discovery, suffix: "lyrics", youtube: false) },
+                                openAppleMusic: { openAppleMusicSearch(discovery) },
+                                openSpotify: { openSpotifySearch(discovery) },
+                                removeAction: { removeDiscovery(discovery) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var discoveryToolbar: some View {
+        HStack(spacing: 10) {
+            Menu {
+                Picker(L10n.string("shell.library.discoveries.filter.title"), selection: $discoveryFilter) {
+                    ForEach(DiscoveryFilter.allCases) { filter in
+                        Text(filter.title).tag(filter)
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(discoveryFilter.title)
+                        .font(.system(size: 14, weight: .semibold))
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundStyle(AvradioTheme.textPrimary)
+                .padding(.horizontal, 13)
+                .frame(height: 36)
+                .background(AvradioTheme.mutedSurface, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("discoveries.filter")
+
+            Spacer()
+
+            ShareLink(item: discoveriesShareText) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+                    .frame(width: 36, height: 36)
+                    .background(AvradioTheme.mutedSurface, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.string("shell.library.discoveries.share"))
+            .accessibilityIdentifier("discoveries.share")
+            .disabled(filteredDiscoveries.isEmpty)
+
+            Button {
+                isConfirmingClearDiscoveries = true
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color(red: 1, green: 0.17, blue: 0.38))
+                    .frame(width: 36, height: 36)
+                    .background(AvradioTheme.mutedSurface, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.string("shell.library.discoveries.clear"))
+            .accessibilityIdentifier("discoveries.clear")
+        }
+    }
+
+    private func discoverySubsectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(AvradioTheme.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var filteredFavorites: [Station] {
@@ -1248,6 +1585,67 @@ private struct LibraryScreen: View {
         filterStations(recents)
     }
 
+    private var filteredDiscoveries: [DiscoveredTrack] {
+        let baseDiscoveries = discoveries.filter { discovery in
+            switch discoveryFilter {
+            case .saved:
+                return discovery.isMarkedInteresting
+            case .history:
+                return true
+            }
+        }
+
+        guard !trimmedQuery.isEmpty else { return baseDiscoveries }
+
+        return baseDiscoveries.filter { discovery in
+            discovery.title.localizedCaseInsensitiveContains(trimmedQuery) ||
+            discovery.artist?.localizedCaseInsensitiveContains(trimmedQuery) == true ||
+            discovery.stationName.localizedCaseInsensitiveContains(trimmedQuery)
+        }
+    }
+
+    private var filteredArtistSummaries: [DiscoveryArtistSummary] {
+        let savedDiscoveries = discoveries.filter(\.isMarkedInteresting)
+        let matchingDiscoveries = trimmedQuery.isEmpty ? savedDiscoveries : savedDiscoveries.filter { discovery in
+            discovery.artist?.localizedCaseInsensitiveContains(trimmedQuery) == true ||
+            discovery.title.localizedCaseInsensitiveContains(trimmedQuery)
+        }
+
+        let grouped = Dictionary(grouping: matchingDiscoveries) { discovery in
+            discovery.artistDisplayText
+        }
+
+        return grouped
+            .map { artist, discoveries in
+                DiscoveryArtistSummary(
+                    name: artist,
+                    trackCount: discoveries.count,
+                    artworkURL: discoveries.compactMap(\.resolvedArtworkURL).first
+                )
+            }
+            .sorted { first, second in
+                if first.trackCount == second.trackCount {
+                    return first.name.localizedCaseInsensitiveCompare(second.name) == .orderedAscending
+                }
+
+                return first.trackCount > second.trackCount
+            }
+    }
+
+    private var discoveriesShareText: String {
+        let lines = filteredDiscoveries.map { discovery in
+            [
+                discovery.artistDisplayText,
+                discovery.title,
+                discovery.stationName
+            ]
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .joined(separator: " - ")
+        }
+
+        return ([L10n.string("shell.library.discoveries.shareTitle")] + lines).joined(separator: "\n")
+    }
+
     private func filterStations(_ stations: [Station]) -> [Station] {
         guard !trimmedQuery.isEmpty else { return stations }
 
@@ -1256,6 +1654,86 @@ private struct LibraryScreen: View {
             station.country.localizedCaseInsensitiveContains(trimmedQuery) ||
             station.tags.localizedCaseInsensitiveContains(trimmedQuery)
         }
+    }
+
+    private func openDiscoverySearch(_ discovery: DiscoveredTrack, suffix: String?, youtube: Bool) {
+        var query = discovery.searchQuery
+        if let suffix {
+            query += " \(suffix)"
+        }
+
+        var components = URLComponents(string: youtube ? "https://www.youtube.com/results" : "https://www.google.com/search")
+        components?.queryItems = [
+            URLQueryItem(name: youtube ? "search_query" : "q", value: query)
+        ]
+
+        guard let url = components?.url else { return }
+        browserDestination = BrowserDestination(url: url)
+    }
+
+    private func openAppleMusicSearch(_ discovery: DiscoveredTrack) {
+        var components = URLComponents(string: "https://music.apple.com/search")
+        components?.queryItems = [
+            URLQueryItem(name: "term", value: discovery.searchQuery)
+        ]
+
+        guard let url = components?.url else { return }
+        openURL(url)
+    }
+
+    private func openSpotifySearch(_ discovery: DiscoveredTrack) {
+        guard
+            let encodedQuery = discovery.searchQuery.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+            let url = URL(string: "https://open.spotify.com/search/\(encodedQuery)")
+        else {
+            return
+        }
+
+        openURL(url)
+    }
+}
+
+private enum DiscoveryFilter: String, CaseIterable, Identifiable {
+    case saved
+    case history
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .saved:
+            return L10n.string("shell.library.discoveries.filter.saved")
+        case .history:
+            return L10n.string("shell.library.discoveries.filter.history")
+        }
+    }
+}
+
+private enum LibraryMode: String, CaseIterable, Identifiable {
+    case radios
+    case music
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .radios:
+            return L10n.string("shell.library.mode.radios")
+        case .music:
+            return L10n.string("shell.library.mode.music")
+        }
+    }
+}
+
+private struct DiscoveryArtistSummary: Identifiable {
+    let name: String
+    let trackCount: Int
+    let artworkURL: URL?
+
+    var id: String {
+        name
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
+            .lowercased()
     }
 }
 
@@ -1422,6 +1900,182 @@ private struct MiniPlayerView: View {
         guard let value else { return nil }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private struct DiscoveryTrackCard: View {
+    let discovery: DiscoveredTrack
+    let openYouTube: () -> Void
+    let openLyrics: () -> Void
+    let openAppleMusic: () -> Void
+    let openSpotify: () -> Void
+    let removeAction: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            artwork
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(discovery.title)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(AvradioTheme.textPrimary)
+                        .lineLimit(1)
+
+                    if discovery.isMarkedInteresting {
+                        Image(systemName: "bookmark.fill")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(AvradioTheme.highlight)
+                    }
+                }
+
+                Text(discovery.artistDisplayText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AvradioTheme.highlight)
+                    .lineLimit(1)
+
+                Text(discovery.stationName)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AvradioTheme.textSecondary.opacity(0.82))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            discoveryMenu
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(AvradioTheme.cardSurface)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+        )
+        .shadow(color: AvradioTheme.softShadow.opacity(0.18), radius: 8, y: 3)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("discoveryTrack.\(discovery.discoveryID)")
+    }
+
+    private var discoveryMenu: some View {
+        Menu {
+            Button(L10n.string("player.discovery.youtube"), action: openYouTube)
+            Button(L10n.string("player.discovery.lyrics"), action: openLyrics)
+            Button(L10n.string("player.discovery.appleMusic"), action: openAppleMusic)
+            Button(L10n.string("player.discovery.spotify"), action: openSpotify)
+
+            Button(L10n.string("player.discovery.remove"), role: .destructive, action: removeAction)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(AvradioTheme.textPrimary)
+                .rotationEffect(.degrees(90))
+                .frame(width: 38, height: 38)
+                .background(AvradioTheme.mutedSurface, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.string("common.more"))
+        .accessibilityIdentifier("discoveryTrack.menu.\(discovery.discoveryID)")
+    }
+
+    @ViewBuilder
+    private var artwork: some View {
+        if let artworkURL = discovery.resolvedArtworkURL {
+            AsyncImage(url: artworkURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                default:
+                    fallbackArtwork
+                }
+            }
+            .frame(width: 54, height: 54)
+            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        } else {
+            fallbackArtwork
+        }
+    }
+
+    private var fallbackArtwork: some View {
+        RoundedRectangle(cornerRadius: 15, style: .continuous)
+            .fill(AvradioTheme.mutedSurface)
+            .frame(width: 54, height: 54)
+            .overlay {
+                Image(systemName: "music.note")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(AvradioTheme.highlight)
+            }
+    }
+}
+
+private struct DiscoveryArtistCard: View {
+    let summary: DiscoveryArtistSummary
+
+    var body: some View {
+        HStack(spacing: 10) {
+            artwork
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(summary.name)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+                    .lineLimit(1)
+
+                Text(L10n.plural(
+                    singular: "shell.library.discoveries.artistSongs.one",
+                    plural: "shell.library.discoveries.artistSongs.other",
+                    count: summary.trackCount,
+                    summary.trackCount
+                ))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AvradioTheme.textSecondary)
+                .lineLimit(1)
+            }
+            .frame(width: 96, alignment: .leading)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(AvradioTheme.cardSurface)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var artwork: some View {
+        if let artworkURL = summary.artworkURL {
+            AsyncImage(url: artworkURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                default:
+                    fallbackArtwork
+                }
+            }
+            .frame(width: 42, height: 42)
+            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        } else {
+            fallbackArtwork
+        }
+    }
+
+    private var fallbackArtwork: some View {
+        RoundedRectangle(cornerRadius: 13, style: .continuous)
+            .fill(AvradioTheme.mutedSurface)
+            .frame(width: 42, height: 42)
+            .overlay {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(AvradioTheme.highlight)
+            }
     }
 }
 
@@ -2097,11 +2751,52 @@ private enum StationRowMetrics {
     static let playButtonSize: CGFloat = 38
 }
 
-private struct StationRowCard: View {
+private enum StationCompactMetrics {
+    static let cardWidth: CGFloat = 112
+    static let cardHeight: CGFloat = 164
+    static let favoriteButtonSize: CGFloat = 30
+    static let playBadgeSize: CGFloat = 36
+    static let textLineHeight: CGFloat = 13
+}
+
+private struct StationCompactCarousel: View {
+    let stations: [Station]
+    let favoriteStationIDs: Set<String>
+    let nowPlayingTracks: [String: NowPlayingTrack]
+    let queueSource: AudioPlayerService.PlaybackQueue.Source
+    let queueStations: [Station]
+    let playStation: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
+    let toggleFavorite: (Station) -> Void
+    let showStationDetails: (Station, AudioPlayerService.PlaybackQueue.Source, [Station]?) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 12) {
+                ForEach(stations) { station in
+                    StationCompactCard(
+                        station: station,
+                        isFavorite: favoriteStationIDs.contains(station.id),
+                        nowPlayingTrack: nowPlayingTracks[station.id],
+                        toggleFavorite: { toggleFavorite(station) },
+                        playAction: { playStation(station, queueSource, queueStations) },
+                        detailsAction: { showStationDetails(station, queueSource, queueStations) }
+                    )
+                    .frame(width: StationCompactMetrics.cardWidth)
+                }
+            }
+            .padding(.horizontal, 1)
+            .padding(.vertical, 2)
+        }
+        .scrollClipDisabled()
+    }
+}
+
+private struct StationCompactCard: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerService
 
     let station: Station
     let isFavorite: Bool
+    let nowPlayingTrack: NowPlayingTrack?
     let toggleFavorite: () -> Void
     let playAction: () -> Void
     let detailsAction: () -> Void
@@ -2110,94 +2805,135 @@ private struct StationRowCard: View {
         audioPlayer.isCurrent(station) && audioPlayer.isPlaying
     }
 
-    private var detailText: String? {
+    private var detailText: String {
         station.cardDetailText(preferCountryName: station.flagEmoji == nil)
+            ?? L10n.string("shell.station.row.defaultDetail")
     }
 
-    private var resolvedDetailText: String {
-        detailText ?? L10n.string("shell.station.row.defaultDetail")
+    private var artistLine: String {
+        if audioPlayer.isCurrent(station), let artist = normalizedMetadata(audioPlayer.currentTrackArtist) {
+            return artist
+        }
+
+        if let artist = normalizedMetadata(nowPlayingTrack?.artist) {
+            return artist
+        }
+
+        return detailText
     }
 
-    private var leadingDetailSymbol: String? {
-        station.flagEmoji
+    private var titleLine: String {
+        if audioPlayer.isCurrent(station), let title = normalizedMetadata(audioPlayer.currentTrackTitle) {
+            return title
+        }
+
+        if let title = normalizedMetadata(nowPlayingTrack?.title) {
+            return title
+        }
+
+        if audioPlayer.isCurrent(station), let albumTitle = normalizedMetadata(audioPlayer.currentTrackAlbumTitle) {
+            return albumTitle
+        }
+
+        if let primaryTag = station.normalizedTags.first {
+            return primaryTag
+        }
+
+        return normalizedMetadata(station.language) ?? L10n.string("shell.station.codec.live")
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            StationThumbnailView(station: station, size: StationRowMetrics.artworkSize)
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text(station.name)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(AvradioTheme.textPrimary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 6) {
-                    if let leadingDetailSymbol {
-                        Text(leadingDetailSymbol)
-                            .font(.system(size: 12))
+        VStack(alignment: .leading, spacing: 7) {
+            ZStack(alignment: .topTrailing) {
+                Button {
+                    if audioPlayer.isCurrent(station) {
+                        audioPlayer.togglePlayback()
                     } else {
-                        Image(systemName: "globe.europe.africa.fill")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(AvradioTheme.textSecondary.opacity(0.72))
+                        playAction()
                     }
-
-                    Text(resolvedDetailText)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AvradioTheme.textSecondary.opacity(0.88))
-                        .lineLimit(1)
+                } label: {
+                    StationThumbnailView(station: station, size: StationCompactMetrics.cardWidth)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(isPlayingCurrentStation ? AvradioTheme.highlight.opacity(0.16) : .clear)
+                        }
+                        .overlay {
+                            if audioPlayer.isCurrent(station) {
+                                ZStack {
+                                    Circle()
+                                        .fill(.ultraThinMaterial)
+                                    Circle()
+                                        .stroke(AvradioTheme.highlight.opacity(0.42), lineWidth: 1)
+                                    Image(systemName: isPlayingCurrentStation ? "pause.fill" : "play.fill")
+                                        .font(.system(size: 14, weight: .black))
+                                        .foregroundStyle(isPlayingCurrentStation ? AvradioTheme.highlight : AvradioTheme.textPrimary)
+                                }
+                                .frame(width: StationCompactMetrics.playBadgeSize, height: StationCompactMetrics.playBadgeSize)
+                            }
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .stroke(isPlayingCurrentStation ? AvradioTheme.highlight : AvradioTheme.borderSubtle, lineWidth: isPlayingCurrentStation ? 2 : 1)
+                        }
                 }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("stationRow.play.\(station.id)")
+
+                favoriteButton
+                    .padding(6)
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(station.name)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+                    .lineLimit(1)
+                    .frame(height: 15, alignment: .leading)
+
+                Text(artistLine)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(audioPlayer.isCurrent(station) ? AvradioTheme.highlight : AvradioTheme.textSecondary.opacity(0.9))
+                    .lineLimit(1)
+                    .frame(height: 14, alignment: .leading)
+
+                Text(titleLine)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(AvradioTheme.textSecondary.opacity(0.74))
+                    .lineLimit(1)
+                    .frame(height: 13, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .layoutPriority(1)
-
-            Spacer(minLength: 14)
-
-            Button(action: toggleFavorite) {
-                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textSecondary)
-                    .frame(width: StationRowMetrics.favoriteButtonSize, height: StationRowMetrics.favoriteButtonSize)
-                    .background(AvradioTheme.mutedSurface, in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("stationRow.favorite.\(station.id)")
-
-            Button {
-                if audioPlayer.isCurrent(station) {
-                    audioPlayer.togglePlayback()
-                } else {
-                    playAction()
-                }
-            } label: {
-                Image(systemName: isPlayingCurrentStation ? "pause.fill" : "play.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(isPlayingCurrentStation ? AvradioTheme.textPrimary : AvradioTheme.textSecondary)
-                    .frame(width: StationRowMetrics.playButtonSize, height: StationRowMetrics.playButtonSize)
-                    .background(
-                        AnyShapeStyle(AvradioTheme.mutedSurface),
-                        in: Circle()
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("stationRow.play.\(station.id)")
+            .contentShape(Rectangle())
+            .onTapGesture(perform: detailsAction)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("stationRow.\(station.id)")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 15)
-        .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(AvradioTheme.cardSurface)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                }
-        )
-        .shadow(color: AvradioTheme.softShadow.opacity(0.28), radius: 12, y: 4)
-        .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: StationCompactMetrics.cardHeight, alignment: .top)
+        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .onTapGesture(perform: detailsAction)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("stationRow.\(station.id)")
+    }
+
+    private var favoriteButton: some View {
+        Button(action: toggleFavorite) {
+            Image(systemName: isFavorite ? "heart.fill" : "heart")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
+                .frame(width: StationCompactMetrics.favoriteButtonSize, height: StationCompactMetrics.favoriteButtonSize)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay {
+                    Circle()
+                        .stroke(AvradioTheme.borderSubtle.opacity(0.65), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("stationRow.favorite.\(station.id)")
+    }
+
+    private func normalizedMetadata(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -2214,65 +2950,50 @@ private struct StationDetailSheet: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                HStack(alignment: .top, spacing: 16) {
-                    StationThumbnailView(station: station, size: 92)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(station.name)
-                            .font(.system(size: 28, weight: .black))
-                            .foregroundStyle(AvradioTheme.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if !station.primaryDetailLine.isEmpty {
-                            Text(station.primaryDetailLine)
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(AvradioTheme.textSecondary)
-                        }
-
-                        if !station.normalizedTags.isEmpty {
-                            WrapTagsRow(tags: Array(station.normalizedTags.prefix(4)))
-                        }
-                    }
-                }
-
-                HStack(spacing: 10) {
-                    Button {
-                        playAction()
-                        dismiss()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                            Text(isPlaying ? L10n.string("audio.status.playing") : L10n.string("player.control.play"))
-                        }
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("stationDetail.play")
-
-                    Button(action: toggleFavorite) {
-                        Image(systemName: isFavorite ? "heart.fill" : "heart")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
-                            .frame(width: 50, height: 50)
-                            .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(alignment: .top, spacing: 16) {
+                        StationThumbnailView(station: station, size: 104)
                             .overlay {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 25, style: .continuous)
+                                    .stroke(isPlaying ? AvradioTheme.highlight : AvradioTheme.borderSubtle, lineWidth: isPlaying ? 2 : 1)
                             }
-                    }
-                    .buttonStyle(.plain)
 
-                    if let homepageURL {
-                        Button {
-                            openURL(homepageURL)
-                        } label: {
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.system(size: 18, weight: .bold))
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(station.name)
+                                .font(.system(size: 28, weight: .black))
                                 .foregroundStyle(AvradioTheme.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if !station.primaryDetailLine.isEmpty {
+                                Text(station.primaryDetailLine)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(AvradioTheme.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            playAction()
+                            dismiss()
+                        } label: {
+                            Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(isPlaying ? L10n.string("player.control.pause") : L10n.string("player.control.play"))
+                        .accessibilityIdentifier("stationDetail.play")
+
+                        Button(action: toggleFavorite) {
+                            Image(systemName: isFavorite ? "heart.fill" : "heart")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
                                 .frame(width: 50, height: 50)
                                 .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 .overlay {
@@ -2281,6 +3002,41 @@ private struct StationDetailSheet: View {
                                 }
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(isFavorite ? L10n.string("player.menu.removeFavorite") : L10n.string("player.menu.addFavorite"))
+
+                        if let homepageURL {
+                            Button {
+                                openURL(homepageURL)
+                            } label: {
+                                Image(systemName: "arrow.up.right.square")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundStyle(AvradioTheme.textPrimary)
+                                    .frame(width: 50, height: 50)
+                                    .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(L10n.string("player.menu.openWebsite"))
+                        }
+                    }
+                }
+                .padding(18)
+                .background(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(AvradioTheme.cardSurface)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                        }
+                )
+                .shadow(color: AvradioTheme.softShadow.opacity(0.22), radius: 12, y: 4)
+
+                if !station.normalizedTags.isEmpty {
+                    DetailSection(title: L10n.string("shell.stationDetail.section.tags")) {
+                        WrapTagsRow(tags: station.normalizedTags)
                     }
                 }
 

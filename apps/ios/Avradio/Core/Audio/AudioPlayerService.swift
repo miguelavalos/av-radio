@@ -122,6 +122,15 @@ final class AudioPlayerService: NSObject, ObservableObject {
         observeAudioSessionNotifications()
     }
 
+    func applyUITestTrackMetadata(title: String?, artist: String?) {
+        guard ProcessInfo.processInfo.environment["AVRADIO_UI_TESTS"] == "1" else { return }
+        currentTrackTitle = title
+        currentTrackArtist = artist
+        currentTrackSource = title == nil && artist == nil ? nil : .fallback
+        persistCurrentNowPlayingState()
+        updateNowPlayingInfo()
+    }
+
     func play(station: Station, queue: PlaybackQueue? = nil) {
         if case .loading = status, currentStation?.id == station.id {
             return
@@ -567,7 +576,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
         nowPlayingPollingTask?.cancel()
         nowPlayingPollingTask = Task { [weak self] in
             guard let self else { return }
-            guard await nowPlayingService.supports(station) else { return }
+            guard nowPlayingService.supports(station) else { return }
 
             try? await Task.sleep(for: .seconds(4))
 
