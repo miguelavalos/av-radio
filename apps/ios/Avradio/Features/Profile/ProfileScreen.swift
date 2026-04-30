@@ -36,6 +36,9 @@ struct ProfileScreen: View {
                 accountManagementCard
                 appPreferencesCard
                 localDataCard
+                if accessController.capabilities.canUseCloudSync {
+                    cloudSyncCard
+                }
                 helpAndLegalCard
 
                 if accessController.accessMode != .guest {
@@ -105,6 +108,50 @@ struct ProfileScreen: View {
         }
         .padding(22)
         .background(profileCardBackground)
+    }
+
+    private var cloudSyncCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            sectionHeader(
+                title: L10n.string("profile.sync.title"),
+                subtitle: L10n.string("profile.sync.subtitle")
+            )
+
+            VStack(alignment: .leading, spacing: 12) {
+                ShellRow(
+                    systemImage: cloudSyncIcon,
+                    title: L10n.string("profile.sync.status.title"),
+                    detail: cloudSyncStatusDetail
+                )
+                .accessibilityIdentifier("profile.sync.status")
+
+                if let lastSyncedAt = cloudSyncLastSyncedAt {
+                    ShellRow(
+                        systemImage: "clock.badge.checkmark",
+                        title: L10n.string("profile.sync.lastSynced.title"),
+                        detail: lastSyncedAt.formatted(date: .abbreviated, time: .shortened)
+                    )
+                    .accessibilityIdentifier("profile.sync.lastSynced")
+                }
+            }
+
+            ProfileSecondaryButton(
+                title: libraryStore.cloudSyncStatus == .syncing
+                    ? L10n.string("profile.sync.retry.syncing")
+                    : L10n.string("profile.sync.retry"),
+                isLoading: libraryStore.cloudSyncStatus == .syncing,
+                action: {
+                    Task {
+                        await libraryStore.refreshCloudLibraryIfNeeded()
+                    }
+                }
+            )
+            .disabled(libraryStore.cloudSyncStatus == .syncing)
+            .accessibilityIdentifier("profile.sync.retry")
+        }
+        .padding(22)
+        .background(profileCardBackground)
+        .accessibilityIdentifier("profile.sync.card")
     }
 
     private var accountManagementCard: some View {
@@ -231,21 +278,31 @@ struct ProfileScreen: View {
                 ShellRow(
                     systemImage: "heart.text.square",
                     title: L10n.string("shell.library.favorites.title"),
-                    detail: L10n.plural(
-                        singular: "profile.local.favorites.count.one",
-                        plural: "profile.local.favorites.count.other",
+                    detail: localCountDetail(
                         count: libraryStore.favorites.count,
-                        libraryStore.favorites.count
+                        limit: accessController.limits.favoriteStations,
+                        singular: "profile.local.favorites.count.one",
+                        plural: "profile.local.favorites.count.other"
                     )
                 )
                 ShellRow(
                     systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90",
                     title: L10n.string("shell.home.recents.title"),
-                    detail: L10n.plural(
-                        singular: "profile.local.recents.count.one",
-                        plural: "profile.local.recents.count.other",
+                    detail: localCountDetail(
                         count: libraryStore.recents.count,
-                        libraryStore.recents.count
+                        limit: accessController.limits.recentStations,
+                        singular: "profile.local.recents.count.one",
+                        plural: "profile.local.recents.count.other"
+                    )
+                )
+                ShellRow(
+                    systemImage: "music.note.list",
+                    title: L10n.string("profile.local.savedMusic.title"),
+                    detail: localCountDetail(
+                        count: libraryStore.savedDiscoveriesCount,
+                        limit: accessController.limits.savedTracks,
+                        singular: "profile.local.savedMusic.count.one",
+                        plural: "profile.local.savedMusic.count.other"
                     )
                 )
                 ShellRow(
@@ -267,6 +324,17 @@ struct ProfileScreen: View {
         }
         .padding(22)
         .background(profileCardBackground)
+    }
+
+    private func localCountDetail(count: Int, limit: Int?, singular: String, plural: String) -> String {
+        let base = L10n.plural(
+            singular: singular,
+            plural: plural,
+            count: count,
+            count
+        )
+        guard let limit else { return base }
+        return L10n.string("profile.local.limit.used", base, count, limit)
     }
 
     private var helpAndLegalCard: some View {
@@ -424,6 +492,43 @@ struct ProfileScreen: View {
         case .signedInFree, .signedInPro:
             L10n.string("profile.account.status.signedIn")
         }
+    }
+
+    private var cloudSyncIcon: String {
+        switch libraryStore.cloudSyncStatus {
+        case .idle:
+            "icloud"
+        case .syncing:
+            "arrow.triangle.2.circlepath.icloud"
+        case .synced:
+            "checkmark.icloud"
+        case .conflict:
+            "exclamationmark.icloud"
+        case .failed:
+            "xmark.icloud"
+        }
+    }
+
+    private var cloudSyncStatusDetail: String {
+        switch libraryStore.cloudSyncStatus {
+        case .idle:
+            L10n.string("profile.sync.status.idle")
+        case .syncing:
+            L10n.string("profile.sync.status.syncing")
+        case .synced:
+            L10n.string("profile.sync.status.synced")
+        case .conflict:
+            L10n.string("profile.sync.status.conflict")
+        case .failed:
+            L10n.string("profile.sync.status.failed")
+        }
+    }
+
+    private var cloudSyncLastSyncedAt: Date? {
+        if case .synced(let date) = libraryStore.cloudSyncStatus {
+            return date
+        }
+        return nil
     }
 
     private var languageSelection: Binding<AppLanguage> {

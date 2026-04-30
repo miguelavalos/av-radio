@@ -12,14 +12,13 @@ This guide is for local Android builds while keeping the same local config patte
 
 1. Android Studio Koala or later, or a working local Android SDK + JDK 17
 2. `bun` 1.3.13 or later
-3. A local `.infisical/bootstrap.env`
+3. Private Avalsys Varlock/Infisical bootstrap available locally
 4. `apps/android/local.properties` generated locally through Varlock
 
 Generate the local config:
 
 ```bash
 bun install
-cp .infisical/bootstrap.env.example .infisical/bootstrap.env
 bun run android:config
 ```
 
@@ -33,26 +32,8 @@ bun run android:config:production
 
 ## Generated values
 
-The generated file should provide the same product-facing values already used on iOS:
-
-```properties
-AVRADIO_APPLICATION_ID=com.example.avradio.dev
-AVRADIO_AUTH_PROVIDER=clerk
-CLERK_PUBLISHABLE_KEY=pk_test_your_publishable_key
-AVRADIO_PREMIUM_PRODUCT_IDS=com.example.avradio.pro.monthly,com.example.avradio.pro.yearly
-AVRADIO_SUPPORT_EMAIL=support@avalsys.com
-AVRADIO_ACCOUNT_MANAGEMENT_URL=https://accounts.avalsys.com/user
-AVRADIO_TERMS_URL=https://av-radio.avalsys.com/terms
-AVRADIO_PRIVACY_URL=https://av-radio.avalsys.com/privacy
-```
-
-Optional auth handoff overrides can also live there:
-
-```properties
-AVRADIO_AUTH_WEB_URL=
-AVRADIO_AUTH_CALLBACK_SCHEME=avradio
-AVRADIO_AUTH_CALLBACK_HOST=auth
-```
+The generated file provides the same product-facing values already used on iOS.
+Do not document or hand-maintain those values in this public repository; update the private Varlock/Infisical source instead.
 
 ## Build locally
 

@@ -44,9 +44,6 @@ avapps_api_base_url="$(printenv_value AVAPPS_API_BASE_URL)"
 if [ -z "${avapps_api_base_url:-}" ]; then
   avapps_api_base_url="$(printenv_value AVRADIO_AVAPPS_API_BASE_URL)"
 fi
-if [ -z "${avapps_api_base_url:-}" ] && [ "$profile" = "local" ]; then
-  avapps_api_base_url="http://127.0.0.1:8788"
-fi
 account_management_url="$(printenv_value AVRADIO_ACCOUNT_MANAGEMENT_URL)"
 terms_url="$(printenv_value AVRADIO_TERMS_URL)"
 privacy_url="$(printenv_value AVRADIO_PRIVACY_URL)"

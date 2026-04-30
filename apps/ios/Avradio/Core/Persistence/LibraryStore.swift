@@ -1,12 +1,21 @@
 import SwiftData
 import SwiftUI
 
+enum CloudSyncStatus: Equatable {
+    case idle
+    case syncing
+    case synced(Date)
+    case conflict
+    case failed
+}
+
 @MainActor
 final class LibraryStore: ObservableObject {
     @Published private(set) var favorites: [FavoriteStation] = []
     @Published private(set) var recents: [RecentStation] = []
     @Published private(set) var discoveries: [DiscoveredTrack] = []
     @Published private(set) var settings: AppSettings
+    @Published private(set) var cloudSyncStatus: CloudSyncStatus = .idle
 
     private let context: ModelContext
     private var appDataService: AVRadioAppDataService?
@@ -62,7 +71,7 @@ final class LibraryStore: ObservableObject {
         saveAndRefresh()
     }
 
-    func recordPlayback(of station: Station) {
+    func recordPlayback(of station: Station, recentLimit: Int? = nil) {
         if let existing = recents.first(where: { $0.stationID == station.id }) {
             existing.name = station.name
             existing.country = station.country
@@ -92,7 +101,7 @@ final class LibraryStore: ObservableObject {
 
         settings.lastPlayedStationID = station.id
         settings.updatedAt = .now
-        trimRecents(limit: 20)
+        trimRecents(limit: recentLimit ?? 20)
         saveAndRefresh()
     }
 
@@ -102,6 +111,10 @@ final class LibraryStore: ObservableObject {
 
     func isSavedDiscoveredTrack(title: String?, artist: String?, station: Station?) -> Bool {
         discovery(for: title, artist: artist, station: station)?.isMarkedInteresting == true
+    }
+
+    var savedDiscoveriesCount: Int {
+        discoveries.filter(\.isMarkedInteresting).count
     }
 
     private func discovery(for title: String?, artist: String?, station: Station?) -> DiscoveredTrack? {
@@ -120,25 +133,40 @@ final class LibraryStore: ObservableObject {
         return discoveries.first { $0.discoveryID == discoveryID }
     }
 
-    func markTrackInteresting(title: String?, artist: String?, station: Station?, artworkURL: URL?) {
+    func canMarkTrackInteresting(title: String?, artist: String?, station: Station?, limit: Int?) -> Bool {
+        guard let limit else { return true }
+        if isSavedDiscoveredTrack(title: title, artist: artist, station: station) {
+            return true
+        }
+
+        return savedDiscoveriesCount < limit
+    }
+
+    func markTrackInteresting(title: String?, artist: String?, station: Station?, artworkURL: URL?, discoveryLimit: Int? = nil) {
         saveDiscoveredTrack(
             title: title,
             artist: artist,
             station: station,
             artworkURL: artworkURL,
-            markInteresting: true
+            markInteresting: true,
+            discoveryLimit: discoveryLimit
         )
     }
 
-    func toggleDiscoverySaved(_ discovery: DiscoveredTrack) {
+    func toggleDiscoverySaved(_ discovery: DiscoveredTrack, savedLimit: Int? = nil) -> Bool {
         if discovery.isMarkedInteresting {
             discovery.markedInterestedAt = nil
         } else {
+            if let savedLimit, savedDiscoveriesCount >= savedLimit {
+                return false
+            }
+
             discovery.markedInterestedAt = .now
             discovery.hiddenAt = nil
         }
 
         saveAndRefresh()
+        return true
     }
 
     func hideDiscovery(_ discovery: DiscoveredTrack) {
@@ -152,13 +180,14 @@ final class LibraryStore: ObservableObject {
         saveAndRefresh()
     }
 
-    func recordDiscoveredTrack(title: String?, artist: String?, station: Station?, artworkURL: URL?) {
+    func recordDiscoveredTrack(title: String?, artist: String?, station: Station?, artworkURL: URL?, discoveryLimit: Int? = nil) {
         saveDiscoveredTrack(
             title: title,
             artist: artist,
             station: station,
             artworkURL: artworkURL,
-            markInteresting: false
+            markInteresting: false,
+            discoveryLimit: discoveryLimit
         )
     }
 
@@ -167,7 +196,8 @@ final class LibraryStore: ObservableObject {
         artist: String?,
         station: Station?,
         artworkURL: URL?,
-        markInteresting: Bool
+        markInteresting: Bool,
+        discoveryLimit: Int? = nil
     ) {
         guard
             let station,
@@ -203,7 +233,7 @@ final class LibraryStore: ObservableObject {
             )
         }
 
-        trimDiscoveries(limit: 100)
+        trimDiscoveries(limit: discoveryLimit ?? 100)
         saveAndRefresh()
     }
 
@@ -297,10 +327,12 @@ final class LibraryStore: ObservableObject {
 
     func refreshCloudLibraryIfNeeded() async {
         guard let appDataService, appDataService.isConfigured() else {
+            cloudSyncStatus = .idle
             return
         }
 
         do {
+            cloudSyncStatus = .syncing
             let remoteDocument = try await appDataService.pullLibrary()
             let localSnapshot = librarySnapshot()
             let localHasContent = localSnapshot.hasMeaningfulContent
@@ -310,6 +342,7 @@ final class LibraryStore: ObservableObject {
                 if localHasContent {
                     try await appDataService.pushLibrary(localSnapshot)
                 }
+                cloudSyncStatus = .synced(.now)
                 return
             }
 
@@ -318,20 +351,55 @@ final class LibraryStore: ObservableObject {
                 if localHasContent {
                     try await appDataService.pushLibrary(localSnapshot)
                 }
+                cloudSyncStatus = .synced(.now)
                 return
             }
 
             if !localHasContent || remoteDocument.updatedAt > localUpdatedAt {
                 applyRemoteSnapshot(remoteSnapshot)
+                cloudSyncStatus = .synced(.now)
                 return
             }
 
             if localUpdatedAt > remoteDocument.updatedAt {
                 try await appDataService.pushLibrary(localSnapshot)
             }
+            cloudSyncStatus = .synced(.now)
+        } catch AVRadioAppDataError.conflict {
+            cloudSyncStatus = .conflict
         } catch {
+            cloudSyncStatus = .failed
             return
         }
+    }
+
+    func overwriteCloudLibraryWithLocalData() async {
+        guard let appDataService, appDataService.isConfigured() else {
+            cloudSyncStatus = .idle
+            return
+        }
+
+        do {
+            cloudSyncStatus = .syncing
+            try await appDataService.overwriteLibrary(librarySnapshot())
+            cloudSyncStatus = .synced(.now)
+        } catch AVRadioAppDataError.conflict {
+            cloudSyncStatus = .conflict
+        } catch {
+            cloudSyncStatus = .failed
+        }
+    }
+
+    func clearCloudSyncStatus() {
+        cloudSyncStatus = .idle
+    }
+
+    func setCloudSyncStatusForUITests(_ status: CloudSyncStatus) {
+        guard ProcessInfo.processInfo.environment["AVRADIO_UI_TESTS"] == "1" else {
+            return
+        }
+
+        cloudSyncStatus = status
     }
 
     private func trimRecents(limit: Int) {
@@ -370,7 +438,15 @@ final class LibraryStore: ObservableObject {
         let snapshot = librarySnapshot()
         pushTask?.cancel()
         pushTask = Task { [snapshot] in
-            try? await appDataService.pushLibrary(snapshot)
+            do {
+                cloudSyncStatus = .syncing
+                try await appDataService.pushLibrary(snapshot)
+                cloudSyncStatus = .synced(.now)
+            } catch AVRadioAppDataError.conflict {
+                cloudSyncStatus = .conflict
+            } catch {
+                cloudSyncStatus = .failed
+            }
         }
     }
 

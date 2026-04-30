@@ -9,6 +9,8 @@ final class AccessController: ObservableObject {
     @Published private(set) var accountSession: AccountSession?
     @Published private(set) var subscriptionProducts: [SubscriptionProduct]
     @Published private(set) var subscriptionProductsAreLoading: Bool
+    @Published private(set) var limits: AccessLimits
+    @Published var upgradePrompt: UpgradePrompt?
 
     let accountService: AVAppsAccountService
 
@@ -17,6 +19,7 @@ final class AccessController: ObservableObject {
     private let guestOnboardingPolicy: GuestOnboardingPolicy
     private let now: () -> Date
     private let guestOnboardingLastPromptAtKey = "avradio.guestOnboarding.lastPromptAt"
+    private let dailyUsagePrefix = "avradio.featureUsage."
 
     init(
         accountService: AVAppsAccountService = DefaultAVAppsAccountService(),
@@ -43,6 +46,8 @@ final class AccessController: ObservableObject {
         self.accountSession = nil
         self.subscriptionProducts = []
         self.subscriptionProductsAreLoading = false
+        self.limits = AccessLimits.forMode(.guest)
+        self.upgradePrompt = nil
         self.accessMode = .guest
         resolveAccessState()
     }
@@ -130,6 +135,38 @@ final class AccessController: ObservableObject {
         }
     }
 
+    func limitState(for feature: LimitedFeature, currentUsage: Int) -> FeatureLimitState {
+        FeatureLimitState(feature: feature, currentUsage: currentUsage, limit: limits.limit(for: feature))
+    }
+
+    func dailyLimitState(for feature: LimitedFeature) -> FeatureLimitState {
+        limitState(for: feature, currentUsage: dailyUsageCount(for: feature))
+    }
+
+    func canUseDailyFeature(_ feature: LimitedFeature) -> Bool {
+        return dailyLimitState(for: feature).isAllowed
+    }
+
+    func recordDailyFeatureUse(_ feature: LimitedFeature) {
+        let bucket = dailyUsageBucket(for: feature)
+        userDefaults.set(bucket.dayIdentifier, forKey: dailyUsageDayKey(for: feature))
+        userDefaults.set(bucket.count + 1, forKey: dailyUsageCountKey(for: feature))
+    }
+
+    func presentUpgradePrompt(for feature: LimitedFeature, currentUsage: Int? = nil) {
+        let state = FeatureLimitState(
+            feature: feature,
+            currentUsage: currentUsage ?? dailyUsageCount(for: feature),
+            limit: limits.limit(for: feature)
+        )
+
+        upgradePrompt = UpgradePrompt(
+            feature: feature,
+            title: upgradeTitle(for: feature),
+            message: upgradeMessage(for: state)
+        )
+    }
+
     private func resolveAccessState() {
         applyResolvedAccess(entitlementService.resolveAccess(for: accountUser))
     }
@@ -139,6 +176,7 @@ final class AccessController: ObservableObject {
             planTier = .free
             accessMode = .guest
             capabilities = AccessCapabilities.forMode(.guest)
+            limits = limitsWithUITestOverrides(.forMode(.guest))
             accountSession = nil
             return
         }
@@ -146,12 +184,129 @@ final class AccessController: ObservableObject {
         planTier = resolvedAccess.planTier
         accessMode = resolvedAccess.accessMode
         capabilities = resolvedAccess.capabilities
+        limits = limitsWithUITestOverrides(resolvedAccess.limits)
         accountSession = AccountSession(
             user: accountUser,
             planTier: planTier,
             accessMode: accessMode,
             capabilities: capabilities
         )
+    }
+
+    private func limitsWithUITestOverrides(_ resolvedLimits: AccessLimits) -> AccessLimits {
+        let environment = ProcessInfo.processInfo.environment
+        guard environment["AVRADIO_UI_TESTS"] == "1" else {
+            return resolvedLimits
+        }
+
+        let favoriteStations = environment["AVRADIO_UI_TEST_FAVORITE_LIMIT"]
+            .flatMap(Int.init)
+            ?? resolvedLimits.favoriteStations
+        let lyricsSearchesPerDay = environment["AVRADIO_UI_TEST_LYRICS_LIMIT"]
+            .flatMap(Int.init)
+            ?? resolvedLimits.lyricsSearchesPerDay
+        let youtubeSearchesPerDay = environment["AVRADIO_UI_TEST_YOUTUBE_LIMIT"]
+            .flatMap(Int.init)
+            ?? resolvedLimits.youtubeSearchesPerDay
+        let appleMusicSearchesPerDay = environment["AVRADIO_UI_TEST_APPLE_MUSIC_LIMIT"]
+            .flatMap(Int.init)
+            ?? resolvedLimits.appleMusicSearchesPerDay
+        let spotifySearchesPerDay = environment["AVRADIO_UI_TEST_SPOTIFY_LIMIT"]
+            .flatMap(Int.init)
+            ?? resolvedLimits.spotifySearchesPerDay
+        let discoverySharesPerDay = environment["AVRADIO_UI_TEST_DISCOVERY_SHARE_LIMIT"]
+            .flatMap(Int.init)
+            ?? resolvedLimits.discoverySharesPerDay
+
+        return AccessLimits(
+            favoriteStations: favoriteStations,
+            recentStations: resolvedLimits.recentStations,
+            discoveredTracks: resolvedLimits.discoveredTracks,
+            savedTracks: resolvedLimits.savedTracks,
+            lyricsSearchesPerDay: lyricsSearchesPerDay,
+            youtubeSearchesPerDay: youtubeSearchesPerDay,
+            appleMusicSearchesPerDay: appleMusicSearchesPerDay,
+            spotifySearchesPerDay: spotifySearchesPerDay,
+            discoverySharesPerDay: discoverySharesPerDay
+        )
+    }
+
+    private func dailyUsageCount(for feature: LimitedFeature) -> Int {
+        let bucket = dailyUsageBucket(for: feature)
+        return bucket.count
+    }
+
+    private func dailyUsageBucket(for feature: LimitedFeature) -> (dayIdentifier: String, count: Int) {
+        let dayIdentifier = Self.dayIdentifier(for: now())
+        let storedDay = userDefaults.string(forKey: dailyUsageDayKey(for: feature))
+        guard storedDay == dayIdentifier else {
+            return (dayIdentifier, 0)
+        }
+
+        return (dayIdentifier, userDefaults.integer(forKey: dailyUsageCountKey(for: feature)))
+    }
+
+    private func dailyUsageDayKey(for feature: LimitedFeature) -> String {
+        "\(dailyUsagePrefix)\(feature.rawValue).day"
+    }
+
+    private func dailyUsageCountKey(for feature: LimitedFeature) -> String {
+        "\(dailyUsagePrefix)\(feature.rawValue).count"
+    }
+
+    private static func dayIdentifier(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func upgradeTitle(for feature: LimitedFeature) -> String {
+        switch feature {
+        case .favoriteStations:
+            L10n.string("limits.upgrade.favoriteStations.title")
+        case .savedTracks:
+            L10n.string("limits.upgrade.savedTracks.title")
+        case .discoveredTracks:
+            L10n.string("limits.upgrade.discoveredTracks.title")
+        case .lyricsSearch:
+            L10n.string("limits.upgrade.lyrics.title")
+        case .youtubeSearch:
+            L10n.string("limits.upgrade.youtube.title")
+        case .appleMusicSearch:
+            L10n.string("limits.upgrade.appleMusic.title")
+        case .spotifySearch:
+            L10n.string("limits.upgrade.spotify.title")
+        case .discoveryShare:
+            L10n.string("limits.upgrade.discoveryShare.title")
+        }
+    }
+
+    private func upgradeMessage(for state: FeatureLimitState) -> String {
+        guard let limit = state.limit else {
+            return L10n.string("limits.upgrade.default.message")
+        }
+
+        switch state.feature {
+        case .favoriteStations:
+            return L10n.string("limits.upgrade.favoriteStations.message", limit)
+        case .savedTracks:
+            return L10n.string("limits.upgrade.savedTracks.message", limit)
+        case .discoveredTracks:
+            return L10n.string("limits.upgrade.discoveredTracks.message", limit)
+        case .lyricsSearch:
+            return L10n.string("limits.upgrade.lyrics.message", limit)
+        case .youtubeSearch:
+            return L10n.string("limits.upgrade.youtube.message", limit)
+        case .appleMusicSearch:
+            return L10n.string("limits.upgrade.appleMusic.message", limit)
+        case .spotifySearch:
+            return L10n.string("limits.upgrade.spotify.message", limit)
+        case .discoveryShare:
+            return L10n.string("limits.upgrade.discoveryShare.message", limit)
+        }
     }
 }
 

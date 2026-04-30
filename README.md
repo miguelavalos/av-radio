@@ -44,7 +44,7 @@ docs/
   - favorites, recents, queue, and sleep timer
   - onboarding and multiple auth modes
   - backend-backed access refresh when configured
-  - shared `library` sync when backend access enables cloud sync
+  - backend-backed app-data sync when access enables cloud sync
 - `apps/macos` exists as a native companion target
 - the repo remains local-first overall, and platform/backend adoption is still narrower than in `public/av-series`
 - current product focus is `av-radio iOS`; Android and macOS should be treated as lower-priority follow-up work unless explicitly promoted
@@ -55,12 +55,10 @@ docs/
 
 1. Install repo tooling:
    `bun install`
-2. Create the shared Infisical bootstrap:
-   `cp .infisical/bootstrap.env.example .infisical/bootstrap.env`
-3. Resolve the local iOS config through Varlock + Infisical:
+2. Resolve the local iOS config through the private `av-apps` Varlock + Infisical bootstrap:
    `bun run ios:config`
-4. This writes `apps/ios/Config/Local.xcconfig` with the client-side values needed for your build.
-5. Open `apps/ios/Avradio.xcodeproj` in Xcode and run the `Avradio` scheme.
+3. This writes `apps/ios/Config/Local.xcconfig` with the client-side values needed for your build.
+4. Open `apps/ios/Avradio.xcodeproj` in Xcode and run the `Avradio` scheme.
 
 ### Android
 
@@ -77,12 +75,14 @@ For internal builds, keep the real values out of git and regenerate local config
 
 ## Local Secrets
 
-This project follows the same shared bootstrap pattern used in the internal repos:
+This public repo does not carry Infisical bootstrap examples or generated local config.
 
-- `.infisical/bootstrap.env.example` is committed
-- `.infisical/bootstrap.env` stays local-only
-- `.env.schema` is the canonical repo contract
+- private bootstrap material belongs in Avalsys private infrastructure
+- generated native local files stay local-only
 - native local files are generated through `varlock printenv`, not manual `infisical export` parsing
+- do not add `.env.example`, bootstrap examples, or placeholder secrets to this public repo
+
+Run `bun run config:hygiene` before pushing config-related changes.
 
 See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](docs/install-android.md) for setup details.
 
@@ -90,8 +90,8 @@ See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](doc
 
 - iOS can use `AVAPPS_API_BASE_URL` to refresh signed-in access through `GET /v1/me/access`
 - Android can do the same through generated local runtime config
-- shared backend sync is currently limited to `library`
-- billing-provider reconciliation into shared entitlements is still pending
+- backend-backed app-data sync is available when account access enables cloud sync
+- subscription/provider reconciliation is owned by the private AV Apps backend; this public client consumes the resulting access state
 
 ## Third-Party Services And Data Sources
 
@@ -110,8 +110,8 @@ See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](doc
 
 ## Pending work
 
-1. Reconcile App Store and Google Play purchases into shared backend entitlements.
-2. Extend sync beyond `library` and define conflict/merge behavior across devices.
+1. Keep App Store and Google Play production reconciliation owned in private AV Apps infrastructure.
+2. Continue expanding product-specific cloud sync UX and conflict/merge handling across devices.
 3. Keep active AV Radio work focused on `iOS`, using Android/macOS mainly as secondary references until priorities change.
 4. Keep iOS and Android access behavior aligned on backend-owned capabilities.
 5. Decide later whether macOS becomes a maintained first-class target or stays a companion/experimental app.

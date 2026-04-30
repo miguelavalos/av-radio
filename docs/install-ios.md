@@ -19,14 +19,13 @@ Current note:
 2. An Apple account available in `Xcode > Settings > Accounts`
 3. Command line tools selected from that Xcode
 4. `bun` 1.3.13 or later
-5. A local `.infisical/bootstrap.env`
+5. Private Avalsys Varlock/Infisical bootstrap available locally
 6. `apps/ios/Config/Local.xcconfig` generated through Varlock
 
 Generate the local config:
 
 ```bash
 bun install
-cp .infisical/bootstrap.env.example .infisical/bootstrap.env
 bun run ios:config
 ```
 
@@ -37,7 +36,7 @@ bun run ios:config:production
 ```
 
 `Local.xcconfig` is gitignored and should be regenerated locally instead of hand-maintained.
-Do not copy production values into tracked files. See `docs/private-config-and-infisical.md`.
+Do not copy production values, placeholder secrets, or bootstrap examples into tracked files. See `docs/private-config-and-infisical.md`.
 
 ## Run on simulator
 

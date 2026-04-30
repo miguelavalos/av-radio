@@ -136,38 +136,8 @@ For release preparation:
 bun run android:config:production
 ```
 
-Gradle still accepts environment overrides, but the normal local workflow should use `apps/android/local.properties`.
-
-The generated config provides:
-
-- `AVRADIO_APPLICATION_ID=com.example.avradio.dev`
-- `AVRADIO_AUTH_PROVIDER=clerk`
-- `AVRADIO_AUTH_PROVIDER=web`
-- `AVRADIO_AUTH_PROVIDER=demo`
-- `AVRADIO_AUTH_PROVIDER=none`
-- `CLERK_PUBLISHABLE_KEY=pk_test_...`
-- `AVAPPS_API_BASE_URL=https://api.example.com`
-- `AVRADIO_AUTH_WEB_URL=https://accounts.your-domain.tld/sign-in`
-- `AVRADIO_AUTH_CALLBACK_SCHEME=avradio`
-- `AVRADIO_AUTH_CALLBACK_HOST=auth`
-- `AVRADIO_PREMIUM_PRODUCT_IDS=com.example.avradio.pro.monthly,com.example.avradio.pro.yearly`
-- `AVRADIO_SUPPORT_EMAIL=support@avalsys.com`
-- `AVRADIO_ACCOUNT_MANAGEMENT_URL=https://accounts.avalsys.com/user`
-- `AVRADIO_TERMS_URL=https://av-radio.avalsys.com/terms`
-- `AVRADIO_PRIVACY_URL=https://av-radio.avalsys.com/privacy`
-
-Examples:
-
-- Clerk like iOS:
-  `AVRADIO_AUTH_PROVIDER=clerk`
-  `CLERK_PUBLISHABLE_KEY=pk_test_...`
-- local demo mode:
-  `AVRADIO_AUTH_PROVIDER=demo`
-- external web handoff:
-  `AVRADIO_AUTH_PROVIDER=web`
-  `AVRADIO_AUTH_WEB_URL=https://accounts.your-domain.tld/sign-in`
-  callback target example:
-  `avradio://auth/callback?user_id=123&name=AV%20Listener&email=listener%40example.com&plan=pro`
+The normal local workflow should use generated `apps/android/local.properties`.
+Do not document or hand-maintain generated values in this public repository; update the private Varlock/Infisical source instead.
 
 The public repo currently supports:
 

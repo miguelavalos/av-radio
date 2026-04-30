@@ -76,6 +76,33 @@ struct RootView: View {
                 isShowingAccountOnboarding = false
             }
         }
+        .alert(
+            L10n.string("sync.conflict.title"),
+            isPresented: Binding(
+                get: { libraryStore.cloudSyncStatus == .conflict },
+                set: { isPresented in
+                    if !isPresented {
+                        libraryStore.clearCloudSyncStatus()
+                    }
+                }
+            )
+        ) {
+            Button(L10n.string("sync.conflict.refresh"), role: .none) {
+                Task {
+                    await refreshCloudSyncConflict()
+                }
+            }
+            Button(L10n.string("sync.conflict.keepDevice"), role: .destructive) {
+                Task {
+                    await libraryStore.overwriteCloudLibraryWithLocalData()
+                }
+            }
+            Button(L10n.string("common.cancel"), role: .cancel) {
+                libraryStore.clearCloudSyncStatus()
+            }
+        } message: {
+            Text(L10n.string("sync.conflict.message"))
+        }
     }
 
     private var shouldShowOnboarding: Bool {
@@ -105,6 +132,20 @@ struct RootView: View {
     }
 
     private func refreshLibrarySync() async {
+        if launchContext.isUITesting, let status = launchContext.uiTestCloudSyncStatus {
+            switch status {
+            case "conflict":
+                libraryStore.setCloudSyncStatusForUITests(.conflict)
+            case "failed":
+                libraryStore.setCloudSyncStatusForUITests(.failed)
+            case "synced":
+                libraryStore.setCloudSyncStatusForUITests(.synced(.now))
+            default:
+                libraryStore.setCloudSyncStatusForUITests(.idle)
+            }
+            return
+        }
+
         guard accessController.capabilities.canUseCloudSync else {
             libraryStore.setAppDataService(nil)
             return
@@ -122,11 +163,95 @@ struct RootView: View {
         await libraryStore.refreshCloudLibraryIfNeeded()
     }
 
+    private func refreshCloudSyncConflict() async {
+        if launchContext.isUITesting, launchContext.uiTestCloudSyncStatus == "conflict" {
+            libraryStore.setCloudSyncStatusForUITests(.synced(.now))
+            return
+        }
+
+        await refreshLibrarySync()
+    }
+
     private func markAutomaticGuestOnboardingSeenIfNeeded() {
         guard !launchContext.shouldDisableOnboarding else { return }
         guard accessController.shouldAutoShowGuestOnboarding else { return }
 
         accessController.markGuestOnboardingPromptShown()
+    }
+}
+
+struct UpgradeRecommendationSheet: View {
+    let prompt: UpgradePrompt
+    let isGuest: Bool
+    let accountIsAvailable: Bool
+    let onPrimaryAction: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(spacing: 14) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(AvradioTheme.textInverse)
+                    .frame(width: 48, height: 48)
+                    .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.string("limits.upgrade.eyebrow"))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(AvradioTheme.highlight)
+                        .textCase(.uppercase)
+
+                    Text(prompt.title)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(AvradioTheme.textPrimary)
+                }
+            }
+
+            Text(prompt.message)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(AvradioTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("limits.upgrade.message")
+
+            VStack(spacing: 12) {
+                Button(action: onPrimaryAction) {
+                    Text(primaryButtonTitle)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(AvradioTheme.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .disabled(isGuest && !accountIsAvailable)
+                .accessibilityIdentifier("limits.upgrade.primary")
+
+                Button(action: onDismiss) {
+                    Text(L10n.string("limits.upgrade.notNow"))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(AvradioTheme.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AvradioTheme.mutedSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .accessibilityIdentifier("limits.upgrade.dismiss")
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(AvradioTheme.shellBackground.ignoresSafeArea())
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("limits.upgrade.sheet.\(prompt.feature.rawValue)")
+    }
+
+    private var primaryButtonTitle: String {
+        if isGuest {
+            accountIsAvailable
+                ? L10n.string("limits.upgrade.connectAccount")
+                : L10n.string("limits.upgrade.profile")
+        } else {
+            L10n.string("limits.upgrade.profile")
+        }
     }
 }
 

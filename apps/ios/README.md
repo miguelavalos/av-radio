@@ -5,7 +5,7 @@ SwiftUI iOS app for AV Radio.
 ## Local Config
 
 1. From the repo root, run `bun install`.
-2. Create `.infisical/bootstrap.env` from `.infisical/bootstrap.env.example`.
+2. Make sure the private `av-apps` Varlock/Infisical bootstrap is available.
 3. Generate `Config/Local.xcconfig` from the repo root with `bun run ios:config`.
 4. Open `Avradio.xcodeproj` in Xcode.
 

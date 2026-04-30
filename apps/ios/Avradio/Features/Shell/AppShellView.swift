@@ -67,6 +67,7 @@ struct AppShellView: View {
         )
         .sheet(isPresented: $isShowingNowPlaying) {
             NowPlayingView()
+                .environmentObject(accessController)
                 .environmentObject(audioPlayer)
                 .environmentObject(libraryStore)
                 .presentationDetents([.large])
@@ -84,9 +85,30 @@ struct AppShellView: View {
                         queue: detail.queueStations
                     )
                 },
-                toggleFavorite: { libraryStore.toggleFavorite(for: detail.station) }
+                toggleFavorite: { toggleFavorite(detail.station) }
             )
             .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(item: Binding(
+            get: { isShowingNowPlaying ? nil : accessController.upgradePrompt },
+            set: { accessController.upgradePrompt = $0 }
+        )) { prompt in
+            UpgradeRecommendationSheet(
+                prompt: prompt,
+                isGuest: accessController.accessMode == .guest,
+                accountIsAvailable: accessController.accountIsAvailable,
+                onPrimaryAction: {
+                    accessController.upgradePrompt = nil
+                    if accessController.accessMode == .guest {
+                        startSignInFlow(true)
+                    }
+                },
+                onDismiss: {
+                    accessController.upgradePrompt = nil
+                }
+            )
+            .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
         .task {
@@ -110,7 +132,7 @@ struct AppShellView: View {
         }
         .onChange(of: audioPlayer.currentStation?.id) { _, stationID in
             guard stationID != nil, let station = audioPlayer.currentStation else { return }
-            libraryStore.recordPlayback(of: station)
+            libraryStore.recordPlayback(of: station, recentLimit: accessController.limits.recentStations)
         }
         .onChange(of: currentTrackDiscoveryKey) { _, _ in
             recordCurrentTrackDiscovery()
@@ -134,7 +156,7 @@ struct AppShellView: View {
                 nowPlayingTracks: stationNowPlayingTracks,
                 refreshHome: refreshHomePresentationAndFeed,
                 playStation: playStation,
-                toggleFavorite: libraryStore.toggleFavorite(for:),
+                toggleFavorite: toggleFavorite(_:),
                 showStationDetails: showStationDetails
             )
         case .search:
@@ -151,7 +173,7 @@ struct AppShellView: View {
                 favoriteStationIDs: favoriteStationIDs,
                 nowPlayingTracks: stationNowPlayingTracks,
                 playStation: playStation,
-                toggleFavorite: libraryStore.toggleFavorite(for:),
+                toggleFavorite: toggleFavorite(_:),
                 showStationDetails: showStationDetails
             )
         case .library:
@@ -162,7 +184,7 @@ struct AppShellView: View {
                 favoriteStationIDs: favoriteStationIDs,
                 nowPlayingTracks: stationNowPlayingTracks,
                 playStation: playStation,
-                toggleFavorite: libraryStore.toggleFavorite(for:),
+                toggleFavorite: toggleFavorite(_:),
                 showStationDetails: showStationDetails
             )
         case .music:
@@ -171,7 +193,7 @@ struct AppShellView: View {
                 bottomContentPadding: shellScrollBottomPadding,
                 openDiscoveryStation: openDiscoveryStation(_:),
                 stationArtworkURL: { discovery in libraryStore.station(for: discovery.stationID)?.displayArtworkURL },
-                toggleDiscoverySaved: libraryStore.toggleDiscoverySaved(_:),
+                toggleDiscoverySaved: toggleDiscoverySaved(_:),
                 hideDiscovery: libraryStore.hideDiscovery(_:),
                 restoreDiscovery: libraryStore.restoreDiscovery(_:),
                 removeDiscovery: libraryStore.removeDiscovery(_:),
@@ -279,7 +301,7 @@ struct AppShellView: View {
     }
 
     private var isProNowPlayingEnabled: Bool {
-        false
+        accessController.capabilities.canAccessPremiumFeatures
     }
 
     private func recordCurrentTrackDiscovery() {
@@ -295,7 +317,8 @@ struct AppShellView: View {
             title: audioPlayer.currentTrackTitle,
             artist: audioPlayer.currentTrackArtist,
             station: station,
-            artworkURL: audioPlayer.currentTrackArtworkURL
+            artworkURL: audioPlayer.currentTrackArtworkURL,
+            discoveryLimit: accessController.limits.discoveredTracks
         )
     }
 
@@ -350,6 +373,10 @@ struct AppShellView: View {
             }
             applyUITestTrackMetadataIfNeeded()
         }
+
+        if launchContext.isUITesting, let feature = launchContext.uiTestUpgradePromptFeature {
+            accessController.presentUpgradePrompt(for: feature)
+        }
     }
 
     private func seedUITestDataIfNeeded() {
@@ -365,7 +392,7 @@ struct AppShellView: View {
         }
 
         for station in samples {
-            libraryStore.recordPlayback(of: station)
+            libraryStore.recordPlayback(of: station, recentLimit: accessController.limits.recentStations)
         }
 
         if launchContext.shouldUseLocalUITestDiscovery {
@@ -394,7 +421,43 @@ struct AppShellView: View {
             stations: queue ?? [station]
         )
         audioPlayer.play(station: station, queue: playbackQueue)
-        libraryStore.recordPlayback(of: station)
+        libraryStore.recordPlayback(of: station, recentLimit: accessController.limits.recentStations)
+    }
+
+    private func toggleFavorite(_ station: Station) {
+        if libraryStore.isFavorite(station) {
+            libraryStore.toggleFavorite(for: station)
+            return
+        }
+
+        let state = accessController.limitState(
+            for: .favoriteStations,
+            currentUsage: libraryStore.favorites.count
+        )
+        guard state.isAllowed else {
+            accessController.presentUpgradePrompt(for: .favoriteStations, currentUsage: state.currentUsage)
+            return
+        }
+
+        libraryStore.toggleFavorite(for: station)
+    }
+
+    private func toggleDiscoverySaved(_ discovery: DiscoveredTrack) {
+        if discovery.isMarkedInteresting {
+            _ = libraryStore.toggleDiscoverySaved(discovery)
+            return
+        }
+
+        let state = accessController.limitState(
+            for: .savedTracks,
+            currentUsage: libraryStore.savedDiscoveriesCount
+        )
+        guard state.isAllowed else {
+            accessController.presentUpgradePrompt(for: .savedTracks, currentUsage: state.currentUsage)
+            return
+        }
+
+        _ = libraryStore.toggleDiscoverySaved(discovery, savedLimit: state.limit)
     }
 
     private func showStationDetails(
@@ -1531,9 +1594,11 @@ private struct LibraryScreen: View {
 
 private struct MusicScreen: View {
     @Environment(\.openURL) private var openURL
+    @EnvironmentObject private var accessController: AccessController
     @State private var query = ""
     @State private var musicMode: MusicLibraryMode = .songs
     @State private var isConfirmingClearDiscoveries = false
+    @State private var isShowingDiscoveriesShare = false
     @State private var browserDestination: BrowserDestination?
     @State private var hiddenDiscovery: DiscoveredTrack?
     @State private var selectedArtistName: String?
@@ -1603,6 +1668,9 @@ private struct MusicScreen: View {
         }
         .sheet(item: $browserDestination) { destination in
             InAppBrowserView(destination: destination)
+        }
+        .sheet(isPresented: $isShowingDiscoveriesShare) {
+            ShareSheetView(items: [discoveriesShareText])
         }
         .onAppear(perform: normalizeInitialDiscoveryFilter)
         .onChange(of: query) { _, _ in
@@ -1712,6 +1780,9 @@ private struct MusicScreen: View {
     }
 
     private func openArtistSearch(_ artistName: String, youtube: Bool) {
+        let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
+        guard useDailyFeatureIfAllowed(feature) else { return }
+
         var components = URLComponents(string: youtube ? "https://www.youtube.com/results" : "https://www.google.com/search")
         components?.queryItems = [
             URLQueryItem(name: youtube ? "search_query" : "q", value: artistName)
@@ -1722,6 +1793,8 @@ private struct MusicScreen: View {
     }
 
     private func openAppleMusicArtistSearch(_ artistName: String) {
+        guard useDailyFeatureIfAllowed(.appleMusicSearch) else { return }
+
         var components = URLComponents(string: "https://music.apple.com/search")
         components?.queryItems = [
             URLQueryItem(name: "term", value: artistName)
@@ -1732,6 +1805,8 @@ private struct MusicScreen: View {
     }
 
     private func openSpotifyArtistSearch(_ artistName: String) {
+        guard useDailyFeatureIfAllowed(.spotifySearch) else { return }
+
         guard
             let encodedQuery = artistName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
             let url = URL(string: "https://open.spotify.com/search/\(encodedQuery)")
@@ -1755,7 +1830,10 @@ private struct MusicScreen: View {
 
     private var discoveryActions: some View {
         HStack(spacing: 10) {
-            ShareLink(item: discoveriesShareText) {
+            Button {
+                guard useDailyFeatureIfAllowed(.discoveryShare) else { return }
+                isShowingDiscoveriesShare = true
+            } label: {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(AvradioTheme.textPrimary)
@@ -2015,6 +2093,9 @@ private struct MusicScreen: View {
     }
 
     private func openDiscoverySearch(_ discovery: DiscoveredTrack, suffix: String?, youtube: Bool) {
+        let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
+        guard useDailyFeatureIfAllowed(feature) else { return }
+
         var query = discovery.searchQuery
         if let suffix {
             query += " \(suffix)"
@@ -2030,6 +2111,8 @@ private struct MusicScreen: View {
     }
 
     private func openAppleMusicSearch(_ discovery: DiscoveredTrack) {
+        guard useDailyFeatureIfAllowed(.appleMusicSearch) else { return }
+
         var components = URLComponents(string: "https://music.apple.com/search")
         components?.queryItems = [
             URLQueryItem(name: "term", value: discovery.searchQuery)
@@ -2040,6 +2123,8 @@ private struct MusicScreen: View {
     }
 
     private func openSpotifySearch(_ discovery: DiscoveredTrack) {
+        guard useDailyFeatureIfAllowed(.spotifySearch) else { return }
+
         guard
             let encodedQuery = discovery.searchQuery.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
             let url = URL(string: "https://open.spotify.com/search/\(encodedQuery)")
@@ -2048,6 +2133,16 @@ private struct MusicScreen: View {
         }
 
         openURL(url)
+    }
+
+    private func useDailyFeatureIfAllowed(_ feature: LimitedFeature) -> Bool {
+        guard accessController.canUseDailyFeature(feature) else {
+            accessController.presentUpgradePrompt(for: feature)
+            return false
+        }
+
+        accessController.recordDailyFeatureUse(feature)
+        return true
     }
 }
 

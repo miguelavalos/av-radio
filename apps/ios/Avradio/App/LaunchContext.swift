@@ -21,35 +21,30 @@ struct LaunchContext {
     let shouldUseLocalUITestSearch: Bool
     let uiTestTrackTitle: String?
     let uiTestTrackArtist: String?
+    let uiTestUpgradePromptFeature: LimitedFeature?
+    let uiTestCloudSyncStatus: String?
 
     static let current = LaunchContext(environment: ProcessInfo.processInfo.environment)
 
     init(environment: [String: String]) {
         isUITesting = environment["AVRADIO_UI_TESTS"] == "1"
-            || environment["AIRADIO_UI_TESTS"] == "1"
         shouldDisableSplash = isUITesting
             || environment["AVRADIO_DISABLE_SPLASH"] == "1"
-            || environment["AIRADIO_DISABLE_SPLASH"] == "1"
         shouldDisableOnboarding = isUITesting
             || environment["AVRADIO_DISABLE_ONBOARDING"] == "1"
-            || environment["AIRADIO_DISABLE_ONBOARDING"] == "1"
         shouldSeedUITestLibrary = environment["AVRADIO_UI_TESTS_DISABLE_LIBRARY_SEED"] != "1"
-            && environment["AIRADIO_UI_TESTS_DISABLE_LIBRARY_SEED"] != "1"
         shouldUseLocalUITestDiscovery = environment["AVRADIO_UI_TESTS_LOCAL_DISCOVERY"] == "1"
-            || environment["AIRADIO_UI_TESTS_LOCAL_DISCOVERY"] == "1"
         shouldUseLocalUITestSearch = environment["AVRADIO_UI_TESTS_LOCAL_SEARCH"] == "1"
-            || environment["AIRADIO_UI_TESTS_LOCAL_SEARCH"] == "1"
         uiTestTrackTitle = environment["AVRADIO_UI_TEST_TRACK_TITLE"]?.nilIfEmpty
-            ?? environment["AIRADIO_UI_TEST_TRACK_TITLE"]?.nilIfEmpty
         uiTestTrackArtist = environment["AVRADIO_UI_TEST_TRACK_ARTIST"]?.nilIfEmpty
-            ?? environment["AIRADIO_UI_TEST_TRACK_ARTIST"]?.nilIfEmpty
+        uiTestUpgradePromptFeature = environment["AVRADIO_UI_TEST_UPGRADE_PROMPT_FEATURE"]
+            .flatMap(LimitedFeature.init(rawValue:))
+        uiTestCloudSyncStatus = environment["AVRADIO_UI_TEST_CLOUD_SYNC_STATUS"]?.nilIfEmpty
         preferredTab = environment["AVRADIO_OPEN_TAB"].flatMap(Tab.init(rawValue:))
-            ?? environment["AIRADIO_OPEN_TAB"].flatMap(Tab.init(rawValue:))
-        seedFavorite = environment["AVRADIO_SEED_FAVORITE"] == "1" || environment["AIRADIO_SEED_FAVORITE"] == "1"
+        seedFavorite = environment["AVRADIO_SEED_FAVORITE"] == "1"
         preferredSearchQuery = environment["AVRADIO_SEARCH_QUERY"]?.nilIfEmpty
-            ?? environment["AIRADIO_SEARCH_QUERY"]?.nilIfEmpty
 
-        if environment["AVRADIO_DEMO_MODE"] == "1" || environment["AIRADIO_DEMO_MODE"] == "1" {
+        if environment["AVRADIO_DEMO_MODE"] == "1" {
             demoStation = Station(
                 id: "demo-groove-salad",
                 name: "SomaFM Groove Salad",

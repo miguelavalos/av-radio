@@ -5,6 +5,7 @@ struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @EnvironmentObject private var accessController: AccessController
     @EnvironmentObject private var audioPlayer: AudioPlayerService
     @EnvironmentObject private var libraryStore: LibraryStore
 
@@ -64,6 +65,22 @@ struct NowPlayingView: View {
         .presentationBackground(.clear)
         .sheet(item: $browserDestination) { destination in
             InAppBrowserView(destination: destination)
+        }
+        .overlay {
+            if let prompt = accessController.upgradePrompt {
+                UpgradeRecommendationSheet(
+                    prompt: prompt,
+                    isGuest: accessController.accessMode == .guest,
+                    accountIsAvailable: accessController.accountIsAvailable,
+                    onPrimaryAction: {
+                        accessController.upgradePrompt = nil
+                    },
+                    onDismiss: {
+                        accessController.upgradePrompt = nil
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
     }
 
@@ -138,10 +155,11 @@ struct NowPlayingView: View {
             homepageURL: homepageURL,
             discoveryShareText: discoveryShareText(for: station),
             onSaveDiscovery: { saveCurrentDiscovery(for: station) },
-            onOpenYouTube: { openExternalSearch(baseURL: "https://www.youtube.com/results", queryItemName: "search_query") },
-            onOpenLyrics: { openExternalSearch(baseURL: "https://www.google.com/search", queryItemName: "q", suffix: "lyrics") },
+            onShareDiscovery: { useDailyFeatureIfAllowed(.discoveryShare) },
+            onOpenYouTube: { openExternalSearch(.youtubeSearch, baseURL: "https://www.youtube.com/results", queryItemName: "search_query") },
+            onOpenLyrics: { openExternalSearch(.lyricsSearch, baseURL: "https://www.google.com/search", queryItemName: "q", suffix: "lyrics") },
             onTogglePlayback: audioPlayer.togglePlayback,
-            onToggleFavorite: { libraryStore.toggleFavorite(for: station) },
+            onToggleFavorite: { toggleFavorite(station) },
             onOpenWebsite: { url in openURL(url) }
         )
             .id(station.id)
@@ -274,7 +292,7 @@ struct NowPlayingView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(station.name)
+            Text(trackTitleLine(for: station))
                 .font(.system(size: compact ? 21 : 25, weight: .black, design: .rounded))
                 .foregroundStyle(AvradioTheme.textInverse)
                 .multilineTextAlignment(.leading)
@@ -282,7 +300,7 @@ struct NowPlayingView: View {
                 .minimumScaleFactor(0.82)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(stationSupportingLine(for: station))
+            Text(trackSupportingLine(for: station))
                 .font(compact ? .subheadline : .body)
                 .foregroundStyle(AvradioTheme.textInverse.opacity(0.68))
                 .multilineTextAlignment(.leading)
@@ -447,7 +465,7 @@ struct NowPlayingView: View {
 
     private func favoriteButton(for station: Station) -> some View {
         Button {
-            libraryStore.toggleFavorite(for: station)
+            toggleFavorite(station)
         } label: {
             Image(systemName: libraryStore.isFavorite(station) ? "heart.fill" : "heart")
                 .font(.system(size: 16, weight: .bold))
@@ -616,11 +634,31 @@ struct NowPlayingView: View {
     }
 
     private func stationMetaLine(for station: Station) -> String {
+        if normalizedMetadata(audioPlayer.currentTrackTitle) != nil {
+            return station.name
+        }
+
         let meta = station.shortMeta.trimmingCharacters(in: .whitespacesAndNewlines)
         return meta.isEmpty ? L10n.string("player.track.liveNow") : meta
     }
 
-    private func stationSupportingLine(for station: Station) -> String {
+    private func trackTitleLine(for station: Station) -> String {
+        if let title = normalizedMetadata(audioPlayer.currentTrackTitle) {
+            return title
+        }
+
+        return station.name
+    }
+
+    private func trackSupportingLine(for station: Station) -> String {
+        if let artist = normalizedMetadata(audioPlayer.currentTrackArtist) {
+            return artist
+        }
+
+        if let albumTitle = normalizedMetadata(audioPlayer.currentTrackAlbumTitle) {
+            return albumTitle
+        }
+
         let tags = station.normalizedTags.prefix(2).joined(separator: " · ")
         if !tags.isEmpty {
             return tags
@@ -660,16 +698,32 @@ struct NowPlayingView: View {
     }
 
     private func saveCurrentDiscovery(for station: Station) {
+        let state = accessController.limitState(
+            for: .savedTracks,
+            currentUsage: libraryStore.savedDiscoveriesCount
+        )
+        guard libraryStore.canMarkTrackInteresting(
+            title: audioPlayer.currentTrackTitle,
+            artist: audioPlayer.currentTrackArtist,
+            station: station,
+            limit: state.limit
+        ) else {
+            accessController.presentUpgradePrompt(for: .savedTracks, currentUsage: state.currentUsage)
+            return
+        }
+
         libraryStore.markTrackInteresting(
             title: audioPlayer.currentTrackTitle,
             artist: audioPlayer.currentTrackArtist,
             station: station,
-            artworkURL: audioPlayer.currentTrackArtworkURL
+            artworkURL: audioPlayer.currentTrackArtworkURL,
+            discoveryLimit: accessController.limits.discoveredTracks
         )
     }
 
-    private func openExternalSearch(baseURL: String, queryItemName: String, suffix: String? = nil) {
+    private func openExternalSearch(_ feature: LimitedFeature, baseURL: String, queryItemName: String, suffix: String? = nil) {
         guard var query = discoverySearchQuery else { return }
+        guard useDailyFeatureIfAllowed(feature) else { return }
         if let suffix {
             query += " \(suffix)"
         }
@@ -681,6 +735,34 @@ struct NowPlayingView: View {
 
         guard let url = components?.url else { return }
         browserDestination = BrowserDestination(url: url)
+    }
+
+    private func toggleFavorite(_ station: Station) {
+        if libraryStore.isFavorite(station) {
+            libraryStore.toggleFavorite(for: station)
+            return
+        }
+
+        let state = accessController.limitState(
+            for: .favoriteStations,
+            currentUsage: libraryStore.favorites.count
+        )
+        guard state.isAllowed else {
+            accessController.presentUpgradePrompt(for: .favoriteStations, currentUsage: state.currentUsage)
+            return
+        }
+
+        libraryStore.toggleFavorite(for: station)
+    }
+
+    private func useDailyFeatureIfAllowed(_ feature: LimitedFeature) -> Bool {
+        guard accessController.canUseDailyFeature(feature) else {
+            accessController.presentUpgradePrompt(for: feature)
+            return false
+        }
+
+        accessController.recordDailyFeatureUse(feature)
+        return true
     }
 
     private func openStationSearch(for station: Station) {
@@ -752,7 +834,7 @@ struct NowPlayingView: View {
 
     private func recordCurrentPlayback() {
         guard let station = audioPlayer.currentStation else { return }
-        libraryStore.recordPlayback(of: station)
+        libraryStore.recordPlayback(of: station, recentLimit: accessController.limits.recentStations)
     }
 
     private func resetHorizontalDrag() {
@@ -786,6 +868,7 @@ private struct FlippingPlayerArtwork: View {
     let homepageURL: URL?
     let discoveryShareText: String
     let onSaveDiscovery: () -> Void
+    let onShareDiscovery: () -> Bool
     let onOpenYouTube: () -> Void
     let onOpenLyrics: () -> Void
     let onTogglePlayback: () -> Void
@@ -793,6 +876,7 @@ private struct FlippingPlayerArtwork: View {
     let onOpenWebsite: (URL) -> Void
 
     @State private var isShowingOptions = false
+    @State private var isShowingDiscoveryShare = false
 
     var body: some View {
         ZStack {
@@ -828,6 +912,9 @@ private struct FlippingPlayerArtwork: View {
         }
         .frame(width: size, height: size)
         .contentShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .sheet(isPresented: $isShowingDiscoveryShare) {
+            ShareSheetView(items: [discoveryShareText])
+        }
     }
 
     private var artworkFront: some View {
@@ -902,9 +989,11 @@ private struct FlippingPlayerArtwork: View {
                             }
                     }
                     .buttonStyle(.plain)
+                    .frame(width: 38, height: 38)
                     .accessibilityLabel(L10n.string("player.close.accessibility.label"))
                     .accessibilityIdentifier("player.artwork.options.close")
                 }
+                .frame(height: 38)
 
                 discoveryEyebrow
 
@@ -934,11 +1023,6 @@ private struct FlippingPlayerArtwork: View {
         }
         .frame(width: size, height: size)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .onTapGesture {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                isShowingOptions = false
-            }
-        }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -979,12 +1063,15 @@ private struct FlippingPlayerArtwork: View {
                         action: onSaveDiscovery
                     )
 
-                    artworkLabeledShareLink(
+                    artworkLabeledActionButton(
                         systemImage: "square.and.arrow.up",
                         title: L10n.string("player.discovery.shareShort"),
                         accessibilityLabel: L10n.string("player.discovery.share"),
                         accessibilityIdentifier: "player.artwork.options.share"
-                    )
+                    ) {
+                        guard onShareDiscovery() else { return }
+                        isShowingDiscoveryShare = true
+                    }
                 }
 
                 HStack(spacing: 10) {
@@ -1173,35 +1260,6 @@ private struct FlippingPlayerArtwork: View {
             .overlay {
                 Capsule()
                     .stroke(Color.white.opacity(isProminent ? 0.22 : 0.15), lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityIdentifier(accessibilityIdentifier)
-    }
-
-    private func artworkLabeledShareLink(
-        systemImage: String,
-        title: String,
-        accessibilityLabel: String,
-        accessibilityIdentifier: String
-    ) -> some View {
-        ShareLink(item: discoveryShareText) {
-            HStack(spacing: 7) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 15, weight: .bold))
-
-                Text(title)
-                    .font(.system(size: 12, weight: .black))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-            }
-            .foregroundStyle(AvradioTheme.textInverse.opacity(0.92))
-            .frame(width: actionButtonWidth, height: 42)
-            .background(Color.white.opacity(0.12), in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
             }
         }
         .buttonStyle(.plain)

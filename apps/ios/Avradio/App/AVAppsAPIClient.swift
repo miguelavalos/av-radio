@@ -9,6 +9,16 @@ struct AppAccess: Decodable {
     let accessMode: AccessMode
     let planTier: PlanTier
     let capabilities: AccessCapabilities
+    let limits: AccessLimits
+}
+
+private struct RegisterSubscriptionAccountTokenRequest: Encodable {
+    let provider: String
+    let appAccountToken: String
+}
+
+private struct RegisterSubscriptionAccountTokenResponse: Decodable {
+    let generatedAt: String
 }
 
 enum AVAppsAPIClientError: LocalizedError {
@@ -52,10 +62,25 @@ final class AVAppsAPIClient {
         try await request(path: "/v1/me/access")
     }
 
+    func registerAppleSubscriptionAccountToken(_ appAccountToken: UUID, appId: String = "avradio") async throws {
+        let body = try JSONEncoder().encode(
+            RegisterSubscriptionAccountTokenRequest(
+                provider: "apple",
+                appAccountToken: appAccountToken.uuidString.lowercased()
+            )
+        )
+        let _: RegisterSubscriptionAccountTokenResponse = try await request(
+            path: "/v1/apps/\(appId)/subscriptions/account-token",
+            method: "PUT",
+            body: body
+        )
+    }
+
     func request<T: Decodable>(
         path: String,
         method: String = "GET",
-        body: Data? = nil
+        body: Data? = nil,
+        headers: [String: String] = [:]
     ) async throws -> T {
         guard let token = try await getToken(), !token.isEmpty else {
             throw AVAppsAPIClientError.missingToken
@@ -70,6 +95,9 @@ final class AVAppsAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
         if let body {
             request.httpBody = body
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")

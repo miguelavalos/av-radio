@@ -70,12 +70,20 @@ private struct WebBrowser: UIViewRepresentable {
     }
 }
 
-private struct OpenWithView: UIViewControllerRepresentable {
-    let url: URL
+struct ShareSheetView: UIViewControllerRepresentable {
+    let items: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+private struct OpenWithView: View {
+    let url: URL
+
+    var body: some View {
+        ShareSheetView(items: [url])
+    }
 }

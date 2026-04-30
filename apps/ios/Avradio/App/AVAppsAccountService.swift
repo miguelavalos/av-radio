@@ -25,10 +25,16 @@ enum AVAppsAccountServiceError: LocalizedError {
 
 struct DefaultAVAppsAccountService: AVAppsAccountService {
     var isAvailable: Bool {
-        AppConfig.isAVAppsAccountAvailable
+        guard !Self.shouldForceGuestForUITests else { return false }
+        if Self.uiTestAccountUser != nil { return true }
+        return AppConfig.isAVAppsAccountAvailable
     }
 
     var currentUser: AccountUser? {
+        guard !Self.shouldForceGuestForUITests else { return nil }
+        if let uiTestAccountUser = Self.uiTestAccountUser {
+            return uiTestAccountUser
+        }
         guard isAvailable, let user = Clerk.shared.user else {
             return nil
         }
@@ -75,5 +81,24 @@ struct DefaultAVAppsAccountService: AVAppsAccountService {
     func signOut() async throws {
         guard isAvailable else { return }
         try await Clerk.shared.auth.signOut()
+    }
+
+    private static var shouldForceGuestForUITests: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        let isUITesting = environment["AVRADIO_UI_TESTS"] == "1"
+        return isUITesting && environment["AVRADIO_UI_TESTS_FORCE_GUEST"] == "1"
+    }
+
+    private static var uiTestAccountUser: AccountUser? {
+        let environment = ProcessInfo.processInfo.environment
+        let isUITesting = environment["AVRADIO_UI_TESTS"] == "1"
+        guard isUITesting else { return nil }
+        guard environment["AVRADIO_UI_TESTS_ACCOUNT_MODE"] != nil else { return nil }
+
+        return AccountUser(
+            id: "ui-test-user",
+            displayName: "UI Test User",
+            emailAddress: "ui-test@example.test"
+        )
     }
 }

@@ -89,6 +89,9 @@ final class StoreKitEntitlementService: EntitlementService {
 
     func resolveAccess(for user: AccountUser?) -> ResolvedAccess {
         guard let user else { return .guest }
+        if let uiTestAccess = Self.uiTestResolvedAccess() {
+            return uiTestAccess
+        }
         let cached = userDefaults.string(forKey: cacheKey(for: user.id)) ?? ""
         let planTier = PlanTier(rawValue: cached) ?? .free
         return resolvedAccess(for: user, planTier: planTier)
@@ -96,12 +99,16 @@ final class StoreKitEntitlementService: EntitlementService {
 
     func refreshAccess(for user: AccountUser?) async -> ResolvedAccess {
         guard let user else { return .guest }
+        if let uiTestAccess = Self.uiTestResolvedAccess() {
+            cache(uiTestAccess.planTier, for: user.id)
+            return uiTestAccess
+        }
         guard isSubscriptionConfigured else {
             cache(.free, for: user.id)
             return resolvedAccess(for: user, planTier: .free)
         }
 
-        let accountToken = appAccountToken(for: user)
+        let accountToken = Self.appAccountToken(for: user)
         var resolvedTier: PlanTier = .free
 
         for await entitlement in Transaction.currentEntitlements {
@@ -123,7 +130,7 @@ final class StoreKitEntitlementService: EntitlementService {
         }
 
         let product = try await loadProduct(id: productID)
-        let result = try await product.purchase(options: [.appAccountToken(appAccountToken(for: user))])
+        let result = try await product.purchase(options: [.appAccountToken(Self.appAccountToken(for: user))])
 
         switch result {
         case .success(let verification):
@@ -155,7 +162,22 @@ final class StoreKitEntitlementService: EntitlementService {
         return ResolvedAccess(
             planTier: planTier,
             accessMode: accessMode,
-            capabilities: AccessCapabilities.forMode(accessMode)
+            capabilities: AccessCapabilities.forMode(accessMode),
+            limits: AccessLimits.forMode(accessMode)
+        )
+    }
+
+    private static func uiTestResolvedAccess() -> ResolvedAccess? {
+        let environment = ProcessInfo.processInfo.environment
+        let isUITesting = environment["AVRADIO_UI_TESTS"] == "1"
+        guard isUITesting, let mode = environment["AVRADIO_UI_TESTS_ACCOUNT_MODE"] else { return nil }
+
+        let accessMode: AccessMode = mode == "pro" ? .signedInPro : .signedInFree
+        return ResolvedAccess(
+            planTier: accessMode == .signedInPro ? .pro : .free,
+            accessMode: accessMode,
+            capabilities: .forMode(accessMode),
+            limits: .forMode(accessMode)
         )
     }
 
@@ -185,7 +207,7 @@ final class StoreKitEntitlementService: EntitlementService {
         planTierCachePrefix + userID
     }
 
-    private func appAccountToken(for user: AccountUser) -> UUID {
+    static func appAccountToken(for user: AccountUser) -> UUID {
         let digest = SHA256.hash(data: Data(user.id.utf8))
         var bytes = Array(digest.prefix(16))
         bytes[6] = (bytes[6] & 0x0F) | 0x40
@@ -240,6 +262,9 @@ final class PlatformBackedEntitlementService: EntitlementService {
         }
 
         do {
+            try await apiClient.registerAppleSubscriptionAccountToken(
+                StoreKitEntitlementService.appAccountToken(for: user)
+            )
             let payload = try await apiClient.fetchMeAccess()
             guard let avRadioAccess = payload.apps.first(where: { $0.appId == "avradio" }) else {
                 return fallbackAccess
@@ -249,7 +274,8 @@ final class PlatformBackedEntitlementService: EntitlementService {
                 ResolvedAccess(
                     planTier: avRadioAccess.planTier,
                     accessMode: avRadioAccess.accessMode,
-                    capabilities: avRadioAccess.capabilities
+                    capabilities: avRadioAccess.capabilities,
+                    limits: avRadioAccess.limits
                 ),
                 fallbackAccess: fallbackAccess
             )

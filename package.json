@@ -5,6 +5,7 @@
   "scripts": {
     "varlock:load": "zsh -lc 'eval \"$(./scripts/resolve-infisical-bootstrap-env.sh local)\" && ./node_modules/.bin/varlock load'",
     "varlock:load:production": "zsh -lc 'eval \"$(./scripts/resolve-infisical-bootstrap-env.sh production)\" && ./node_modules/.bin/varlock load'",
+    "config:hygiene": "./scripts/check-public-config-hygiene.sh",
     "ios:config": "./scripts/generate-local-xcconfig.sh local",
     "ios:config:production": "./scripts/generate-local-xcconfig.sh production",
     "android:config": "./scripts/generate-android-local-properties.sh local",

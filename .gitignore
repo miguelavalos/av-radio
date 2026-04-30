@@ -2,7 +2,6 @@
 .idea/
 .vscode/
 .infisical/*
-!.infisical/bootstrap.env.example
 .codex/
 
 # Xcode
