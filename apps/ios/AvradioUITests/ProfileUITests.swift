@@ -2,6 +2,19 @@ import XCTest
 
 @MainActor
 final class ProfileUITests: AvradioUITestCase {
+    func testSignedInFreeProfileStaysLocalFirstWithoutCloudSync() {
+        let app = launchApp(
+            preferredTab: "settings",
+            extraEnvironment: [
+                "AVRADIO_UI_TESTS_ACCOUNT_MODE": "free"
+            ]
+        )
+
+        XCTAssertTrue(app.staticTexts["UI Test User"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["ui-test@example.test"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["profile.sync.card"].exists)
+    }
+
     func testProProfileShowsCloudSyncStatusAndRetry() {
         let app = launchApp(
             preferredTab: "settings",

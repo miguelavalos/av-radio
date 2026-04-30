@@ -22,7 +22,9 @@ done
 
 content_pattern='pk_(live|test)_[A-Za-z0-9_]+|sk_(live|test)_[A-Za-z0-9_]+|real_publishable_key|CLERK_SECRET_KEY=|AVAPPS_SUBSCRIPTION_SYNC_TOKEN=|https://api\.av-apps\.avalsys\.com|avapps_api_base_url=.*127\.0\.0\.1:8788'
 
-if git ls-files -z | xargs -0 rg -n --no-messages "$content_pattern"; then
+if git ls-files -z \
+  | grep -z -v '^scripts/check-public-config-hygiene\.sh$' \
+  | xargs -0 rg -n --no-messages "$content_pattern"; then
   printf 'Forbidden config/secrets pattern found in tracked files.\n' >&2
   exit 1
 fi

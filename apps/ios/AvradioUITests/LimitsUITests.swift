@@ -31,6 +31,37 @@ final class LimitsUITests: AvradioUITestCase {
     }
 
     func testYouTubeLimitShowsUpgradePromptInNowPlaying() {
+        assertNowPlayingUpgradePrompt(
+            feature: "youtubeSearch",
+            limitEnvironmentKey: "AVRADIO_UI_TEST_YOUTUBE_LIMIT"
+        )
+    }
+
+    func testLyricsLimitShowsUpgradePromptInNowPlaying() {
+        assertNowPlayingUpgradePrompt(
+            feature: "lyricsSearch",
+            limitEnvironmentKey: "AVRADIO_UI_TEST_LYRICS_LIMIT"
+        )
+    }
+
+    func testAppleMusicLimitShowsUpgradePromptInNowPlaying() {
+        assertNowPlayingUpgradePrompt(
+            feature: "appleMusicSearch",
+            limitEnvironmentKey: "AVRADIO_UI_TEST_APPLE_MUSIC_LIMIT"
+        )
+    }
+
+    func testSpotifyLimitShowsUpgradePromptInNowPlaying() {
+        assertNowPlayingUpgradePrompt(
+            feature: "spotifySearch",
+            limitEnvironmentKey: "AVRADIO_UI_TEST_SPOTIFY_LIMIT"
+        )
+    }
+
+    private func assertNowPlayingUpgradePrompt(
+        feature: String,
+        limitEnvironmentKey: String
+    ) {
         let app = launchApp(
             preferredTab: "player",
             extraEnvironment: [
@@ -38,17 +69,17 @@ final class LimitsUITests: AvradioUITestCase {
                 "AVRADIO_DEMO_MODE": "1",
                 "AVRADIO_UI_TEST_TRACK_TITLE": "Midnight City",
                 "AVRADIO_UI_TEST_TRACK_ARTIST": "M83",
-                "AVRADIO_UI_TEST_YOUTUBE_LIMIT": "0",
-                "AVRADIO_UI_TEST_UPGRADE_PROMPT_FEATURE": "youtubeSearch"
+                limitEnvironmentKey: "0",
+                "AVRADIO_UI_TEST_UPGRADE_PROMPT_FEATURE": feature
             ]
         )
 
         let artworkFront = app.descendants(matching: .any)["player.artwork.front"].firstMatch
         XCTAssertTrue(artworkFront.waitForExistence(timeout: 5))
 
-        let upgradeMessage = app.descendants(matching: .any)["limits.upgrade.message"].firstMatch
-        XCTAssertTrue(upgradeMessage.waitForExistence(timeout: 5))
+        let upgradeSheet = app.descendants(matching: .any)["limits.upgrade.sheet.\(feature)"].firstMatch
+        XCTAssertTrue(upgradeSheet.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["limits.upgrade.message"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["limits.upgrade.dismiss"].exists)
     }
-
 }
