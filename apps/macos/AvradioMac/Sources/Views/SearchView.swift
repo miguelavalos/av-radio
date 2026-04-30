@@ -53,14 +53,16 @@ struct SearchView: View {
 
                     StationSection(title: sectionTitle, subtitle: sectionSubtitle) {
                         if !results.isEmpty {
-                            ForEach(results) { station in
-                                StationRowCard(
-                                    station: station,
-                                    isFavorite: isFavorite(station),
-                                    toggleFavorite: { toggleFavorite(station) },
-                                    playAction: { playAction(station) },
-                                    detailsAction: { showDetails(station) }
-                                )
+                            LazyVGrid(columns: stationGridColumns, spacing: 12) {
+                                ForEach(results) { station in
+                                    StationRowCard(
+                                        station: station,
+                                        isFavorite: isFavorite(station),
+                                        toggleFavorite: { toggleFavorite(station) },
+                                        playAction: { playAction(station) },
+                                        detailsAction: { showDetails(station) }
+                                    )
+                                }
                             }
                         } else if isLoading {
                             EmptyStateCard(title: "Searching stations", detail: "Querying Radio Browser...")
@@ -94,6 +96,12 @@ struct SearchView: View {
 
     private var queryText: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var stationGridColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 132, maximum: 170), spacing: 12)
+        ]
     }
 
     private var sectionTitle: String {
@@ -146,13 +154,9 @@ struct SearchView: View {
         HStack(spacing: 12) {
             TextField("Artist, station, country or genre", text: $query)
                 .textFieldStyle(.plain)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .avCardSurface(cornerRadius: 18)
                 .onSubmit(searchAction)
 
             Button(action: searchAction) {

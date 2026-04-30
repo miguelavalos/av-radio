@@ -1128,12 +1128,8 @@ private struct InspectorSection<Content: View>: View {
                 content
             }
         }
-        .padding(12)
-        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-        }
+        .padding(14)
+        .avCardSurface(cornerRadius: 18)
     }
 }
 
@@ -1205,9 +1201,9 @@ private struct PlayerActionButton: View {
             }
             .foregroundStyle(isActive ? Color.white : AvradioTheme.textPrimary)
             .frame(maxWidth: .infinity, minHeight: 58)
-            .background(isActive ? AvradioTheme.highlight : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+            .background(isActive ? AvradioTheme.highlight : AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(isActive ? Color.clear : AvradioTheme.borderSubtle, lineWidth: 1)
             }
         }
@@ -1232,9 +1228,9 @@ private struct PlayerErrorBanner: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(Color.red.opacity(0.18), lineWidth: 1)
         }
     }
@@ -1253,7 +1249,7 @@ private struct FlowTagCloud: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .frame(maxWidth: .infinity)
-                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
     }

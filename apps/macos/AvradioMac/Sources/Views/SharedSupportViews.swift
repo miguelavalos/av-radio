@@ -94,12 +94,8 @@ struct LibraryMetricCard: View {
                 .foregroundStyle(AvradioTheme.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-        }
+        .padding(14)
+        .avCardSurface(cornerRadius: 18)
     }
 }
 
@@ -124,12 +120,8 @@ struct SettingsCard<Content: View>: View {
                 content
             }
         }
-        .padding(16)
-        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-        }
+        .padding(18)
+        .avCardSurface(cornerRadius: 22)
     }
 }
 
@@ -284,11 +276,7 @@ struct ShellHeader: View {
                     .scaledToFit()
                     .frame(width: 26, height: 26)
                     .padding(10)
-                    .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                    }
+                    .avRoundedControl(cornerRadius: 14)
 
                 (
                     Text("AV ").foregroundStyle(AvradioTheme.textPrimary) +
@@ -361,13 +349,13 @@ struct SearchCountryFilterButton: View {
                 }
                 .foregroundStyle(isActive ? AvradioTheme.highlight : AvradioTheme.textPrimary)
                 .padding(.horizontal, 12)
-                .frame(height: 34)
+                .frame(height: 38)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(isActive ? AvradioTheme.highlight.opacity(0.08) : AvradioTheme.cardSurface)
                 )
                 .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(isActive ? AvradioTheme.highlight.opacity(0.22) : AvradioTheme.borderSubtle, lineWidth: 1)
                 }
             }
@@ -379,15 +367,8 @@ struct SearchCountryFilterButton: View {
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AvradioTheme.highlight)
                         .padding(.horizontal, 10)
-                        .frame(height: 34)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(AvradioTheme.cardSurface)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                        }
+                        .frame(height: 38)
+                        .avRoundedControl(cornerRadius: 14)
                 }
                 .buttonStyle(.plain)
             }
@@ -496,20 +477,15 @@ struct CountryRow: View {
                     .foregroundStyle(AvradioTheme.highlight)
             }
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(AvradioTheme.cardSurface)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(
-                            isSelected ? AvradioTheme.highlight.opacity(0.22) :
-                                (isHovered ? AvradioTheme.highlight.opacity(0.14) : AvradioTheme.borderSubtle),
-                            lineWidth: 1
-                        )
-                }
+        .padding(14)
+        .avCardSurface(
+            cornerRadius: 20,
+            borderColor: isSelected ? AvradioTheme.highlight.opacity(0.26) :
+                (isHovered ? AvradioTheme.highlight.opacity(0.16) : AvradioTheme.borderSubtle),
+            shadowOpacity: 0,
+            shadowRadius: 0,
+            shadowY: 0
         )
-        .shadow(color: isHovered ? AvradioTheme.softShadow.opacity(0.1) : .clear, radius: 6, y: 2)
         .animation(.easeOut(duration: 0.16), value: isHovered)
         .onHover { hovering in
             isHovered = hovering

@@ -13,7 +13,7 @@ struct FeaturedStationCard: View {
         GeometryReader { proxy in
             let compact = proxy.size.width < 520
 
-            VStack(alignment: .leading, spacing: compact ? 12 : 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top) {
                     Text(label)
                         .font(.caption.weight(.bold))
@@ -28,56 +28,45 @@ struct FeaturedStationCard: View {
                 }
 
                 if compact {
-                    VStack(alignment: .leading, spacing: 14) {
-                        StationArtworkView(station: station, size: 76)
+                    VStack(alignment: .leading, spacing: 16) {
+                        StationArtworkView(station: station, size: 86)
                         featuredCopy
                     }
                 } else {
-                    HStack(alignment: .top, spacing: 14) {
-                        StationArtworkView(station: station, size: 86)
+                    HStack(alignment: .top, spacing: 16) {
+                        StationArtworkView(station: station, size: 96)
                         featuredCopy
                     }
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Button(action: playAction) {
                         HStack(spacing: 8) {
                             Image(systemName: "play.fill")
                             Text("Play")
                         }
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 36)
-                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .frame(height: 48)
+                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
                     .buttonStyle(.plain)
 
                     Button(action: favoriteAction) {
                         Image(systemName: isFavorite ? "heart.fill" : "heart")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
-                            .frame(width: 36, height: 36)
-                            .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                            }
+                            .frame(width: 48, height: 48)
+                            .avRoundedControl(cornerRadius: 18)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(compact ? 14 : 16)
+            .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(AvradioTheme.cardSurface)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                    }
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .avCardSurface(cornerRadius: 30)
+            .contentShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
             .onTapGesture(perform: detailsAction)
         }
         .frame(minHeight: 168)
@@ -86,7 +75,7 @@ struct FeaturedStationCard: View {
     private var featuredCopy: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(station.name)
-                .font(.system(size: 21, weight: .bold))
+                .font(.system(size: 24, weight: .black))
                 .foregroundStyle(AvradioTheme.textPrimary)
                 .lineLimit(2)
 
@@ -162,14 +151,14 @@ struct LiveNowPanel: View {
                 }
             }
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(AvradioTheme.cardSurface)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                }
+        .padding(18)
+        .avCardSurface(
+            cornerRadius: 24,
+            fill: AvradioTheme.darkSurface,
+            borderColor: AvradioTheme.borderSubtle.opacity(0.48),
+            shadowOpacity: 0.72,
+            shadowRadius: 16,
+            shadowY: 8
         )
     }
 
@@ -221,61 +210,15 @@ struct StationRowCard: View {
     let toggleFavorite: () -> Void
     let playAction: () -> Void
     let detailsAction: () -> Void
-    @State private var isHovered = false
 
     var body: some View {
         GeometryReader { proxy in
-            let compact = proxy.size.width < 540
+            let width = proxy.size.width
+            let artworkSize = min(max(width, 118), 170)
+            let isPlayingCurrentStation = audioPlayer.isCurrent(station) && audioPlayer.isPlaying
 
-            HStack(spacing: compact ? 10 : 12) {
-                StationArtworkView(station: station, size: compact ? 46 : 50)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .top, spacing: 8) {
-                        Text(station.name)
-                            .font(.system(size: compact ? 14 : 15, weight: .semibold))
-                            .foregroundStyle(AvradioTheme.textPrimary)
-                            .lineLimit(2)
-
-                        if audioPlayer.isCurrent(station) {
-                            Text(audioPlayer.isPlaying ? "LIVE" : "PAUSED")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(audioPlayer.isPlaying ? AvradioTheme.highlight : AvradioTheme.textSecondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(
-                                    Capsule()
-                                        .fill(audioPlayer.isPlaying ? AvradioTheme.highlight.opacity(0.12) : AvradioTheme.mutedSurface)
-                                )
-                        }
-                    }
-
-                    Text(station.detailLine.isEmpty ? station.shortMeta : station.detailLine)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AvradioTheme.textSecondary.opacity(0.88))
-                        .lineLimit(1)
-
-                    if !compact, !station.tagsList.isEmpty {
-                        Text(station.tagsList.prefix(3).joined(separator: " · "))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(AvradioTheme.highlight)
-                            .lineLimit(1)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Spacer(minLength: 8)
-
-                HStack(spacing: 8) {
-                    Button(action: toggleFavorite) {
-                        Image(systemName: isFavorite ? "heart.fill" : "heart")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textSecondary)
-                            .frame(width: 30, height: 30)
-                            .background(AvradioTheme.mutedSurface, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-
+            VStack(alignment: .leading, spacing: 8) {
+                ZStack(alignment: .topTrailing) {
                     Button {
                         if audioPlayer.isCurrent(station) {
                             audioPlayer.togglePlayback()
@@ -283,36 +226,106 @@ struct StationRowCard: View {
                             playAction()
                         }
                     } label: {
-                        Image(systemName: audioPlayer.isCurrent(station) && audioPlayer.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 32, height: 32)
-                            .background(audioPlayer.isCurrent(station) ? AvradioTheme.brandGraphite : AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        StationArtworkView(station: station, size: artworkSize)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: artworkSize * 0.24, style: .continuous)
+                                    .fill(isPlayingCurrentStation ? AvradioTheme.highlight.opacity(0.16) : .clear)
+                            }
+                            .overlay {
+                                if audioPlayer.isCurrent(station) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                        Circle()
+                                            .stroke(AvradioTheme.highlight.opacity(0.42), lineWidth: 1)
+                                        Image(systemName: isPlayingCurrentStation ? "pause.fill" : "play.fill")
+                                            .font(.system(size: 15, weight: .black))
+                                            .foregroundStyle(isPlayingCurrentStation ? AvradioTheme.highlight : AvradioTheme.textPrimary)
+                                    }
+                                    .frame(width: 40, height: 40)
+                                }
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: artworkSize * 0.24, style: .continuous)
+                                    .stroke(isPlayingCurrentStation ? AvradioTheme.highlight : AvradioTheme.borderSubtle, lineWidth: isPlayingCurrentStation ? 2 : 1)
+                            }
                     }
                     .buttonStyle(.plain)
+
+                    Button(action: toggleFavorite) {
+                        Image(systemName: isFavorite ? "heart.fill" : "heart")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
+                            .frame(width: 30, height: 30)
+                            .background(.ultraThinMaterial, in: Circle())
+                            .overlay {
+                                Circle()
+                                    .stroke(AvradioTheme.borderSubtle.opacity(0.65), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .padding(6)
                 }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(station.name)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(AvradioTheme.textPrimary)
+                        .lineLimit(1)
+                        .frame(height: 16, alignment: .leading)
+
+                    Text(artistLine)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(audioPlayer.isCurrent(station) ? AvradioTheme.highlight : AvradioTheme.textSecondary.opacity(0.9))
+                        .lineLimit(1)
+                        .frame(height: 14, alignment: .leading)
+
+                    Text(titleLine)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(AvradioTheme.textSecondary.opacity(0.74))
+                        .lineLimit(1)
+                        .frame(height: 13, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: detailsAction)
             }
-            .padding(.horizontal, compact ? 10 : 12)
-            .padding(.vertical, compact ? 9 : 10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(
-                        audioPlayer.isCurrent(station) ? AvradioTheme.highlight.opacity(0.22) :
-                            (isHovered ? AvradioTheme.highlight.opacity(0.14) : AvradioTheme.borderSubtle),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(color: AvradioTheme.softShadow.opacity(isHovered ? 0.12 : 0), radius: 8, y: 2)
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .animation(.easeOut(duration: 0.14), value: isHovered)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .onTapGesture(perform: detailsAction)
-            .onHover { hovering in
-                isHovered = hovering
-            }
         }
-        .frame(minHeight: 72)
+        .frame(height: 232)
+    }
+
+    private var artistLine: String {
+        if audioPlayer.isCurrent(station), let artist = normalized(audioPlayer.currentTrackArtist) {
+            return artist
+        }
+
+        if let flag = station.flagEmoji {
+            return "\(flag) \(station.country)"
+        }
+
+        let detail = station.detailLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        return detail.isEmpty ? station.shortMeta : detail
+    }
+
+    private var titleLine: String {
+        if audioPlayer.isCurrent(station), let title = normalized(audioPlayer.currentTrackTitle) {
+            return title
+        }
+
+        if let primaryTag = station.tagsList.first {
+            return primaryTag
+        }
+
+        return normalized(station.language) ?? "Live"
+    }
+
+    private func normalized(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -334,10 +347,6 @@ struct EmptyStateCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(22)
-        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-        }
+        .avCardSurface(cornerRadius: 22)
     }
 }

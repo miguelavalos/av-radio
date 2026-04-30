@@ -69,28 +69,32 @@ struct LibraryView: View {
                                 detail: favorites.isEmpty ? "Save stations from Home or Search." : "Try another filter query."
                             )
                         } else {
-                            ForEach(sortedFavorites) { station in
-                                StationRowCard(
-                                    station: station,
-                                    isFavorite: true,
-                                    toggleFavorite: { toggleFavorite(station) },
-                                    playAction: { playAction(station) },
-                                    detailsAction: { showDetails(station) }
-                                )
+                            LazyVGrid(columns: stationGridColumns, spacing: 12) {
+                                ForEach(sortedFavorites) { station in
+                                    StationRowCard(
+                                        station: station,
+                                        isFavorite: true,
+                                        toggleFavorite: { toggleFavorite(station) },
+                                        playAction: { playAction(station) },
+                                        detailsAction: { showDetails(station) }
+                                    )
+                                }
                             }
                         }
                     }
 
                     if !sortedRecents.isEmpty {
                         StationSection(title: "Recents", subtitle: recentsSubtitle) {
-                            ForEach(sortedRecents) { station in
-                                StationRowCard(
-                                    station: station,
-                                    isFavorite: favorites.contains(where: { $0.id == station.id }),
-                                    toggleFavorite: { toggleFavorite(station) },
-                                    playAction: { playAction(station) },
-                                    detailsAction: { showDetails(station) }
-                                )
+                            LazyVGrid(columns: stationGridColumns, spacing: 12) {
+                                ForEach(sortedRecents) { station in
+                                    StationRowCard(
+                                        station: station,
+                                        isFavorite: favorites.contains(where: { $0.id == station.id }),
+                                        toggleFavorite: { toggleFavorite(station) },
+                                        playAction: { playAction(station) },
+                                        detailsAction: { showDetails(station) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -110,6 +114,12 @@ struct LibraryView: View {
 
     private var sortedFavorites: [Station] {
         sortStations(filterStations(favorites), preserveOrder: false)
+    }
+
+    private var stationGridColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 132, maximum: 170), spacing: 12)
+        ]
     }
 
     private var sortedRecents: [Station] {
@@ -171,13 +181,9 @@ struct LibraryView: View {
     private var librarySearchField: some View {
         TextField("Filter stations in your library", text: $query)
             .textFieldStyle(.plain)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .avCardSurface(cornerRadius: 18)
     }
 
     private var sortPicker: some View {

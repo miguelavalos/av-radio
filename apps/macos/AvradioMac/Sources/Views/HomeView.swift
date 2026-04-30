@@ -36,28 +36,32 @@ struct HomeView: View {
 
                     if !displayedRecentStations.isEmpty {
                         StationSection(title: "Recents", subtitle: "Resume recent playback.") {
-                            ForEach(displayedRecentStations) { station in
-                                StationRowCard(
-                                    station: station,
-                                    isFavorite: favorites.contains(where: { $0.id == station.id }),
-                                    toggleFavorite: { toggleFavorite(station) },
-                                    playAction: { playAction(station) },
-                                    detailsAction: { showDetails(station) }
-                                )
+                            LazyVGrid(columns: stationGridColumns, spacing: 12) {
+                                ForEach(displayedRecentStations) { station in
+                                    StationRowCard(
+                                        station: station,
+                                        isFavorite: favorites.contains(where: { $0.id == station.id }),
+                                        toggleFavorite: { toggleFavorite(station) },
+                                        playAction: { playAction(station) },
+                                        detailsAction: { showDetails(station) }
+                                    )
+                                }
                             }
                         }
                     }
 
                     if !displayedFavoriteStations.isEmpty {
                         StationSection(title: "Favorites", subtitle: "Pinned stations.") {
-                            ForEach(displayedFavoriteStations) { station in
-                                StationRowCard(
-                                    station: station,
-                                    isFavorite: true,
-                                    toggleFavorite: { toggleFavorite(station) },
-                                    playAction: { playAction(station) },
-                                    detailsAction: { showDetails(station) }
-                                )
+                            LazyVGrid(columns: stationGridColumns, spacing: 12) {
+                                ForEach(displayedFavoriteStations) { station in
+                                    StationRowCard(
+                                        station: station,
+                                        isFavorite: true,
+                                        toggleFavorite: { toggleFavorite(station) },
+                                        playAction: { playAction(station) },
+                                        detailsAction: { showDetails(station) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -69,14 +73,16 @@ struct HomeView: View {
                     } else if !stations.isEmpty {
                         if !displayedPopularStations.isEmpty {
                             StationSection(title: sectionTitle, subtitle: sectionSubtitle) {
-                                ForEach(displayedPopularStations) { station in
-                                    StationRowCard(
-                                        station: station,
-                                        isFavorite: favorites.contains(where: { $0.id == station.id }),
-                                        toggleFavorite: { toggleFavorite(station) },
-                                        playAction: { playAction(station) },
-                                        detailsAction: { showDetails(station) }
-                                    )
+                                LazyVGrid(columns: stationGridColumns, spacing: 12) {
+                                    ForEach(displayedPopularStations) { station in
+                                        StationRowCard(
+                                            station: station,
+                                            isFavorite: favorites.contains(where: { $0.id == station.id }),
+                                            toggleFavorite: { toggleFavorite(station) },
+                                            playAction: { playAction(station) },
+                                            detailsAction: { showDetails(station) }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -117,6 +123,12 @@ struct HomeView: View {
 
     private var displayedRecentStations: [Station] {
         recents
+    }
+
+    private var stationGridColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 132, maximum: 170), spacing: 12)
+        ]
     }
 
     private var displayedFavoriteStations: [Station] {

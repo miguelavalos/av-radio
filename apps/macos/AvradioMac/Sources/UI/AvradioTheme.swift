@@ -113,3 +113,36 @@ enum AvradioTheme {
         })
     }
 }
+
+extension View {
+    func avCardSurface(
+        cornerRadius: CGFloat = 22,
+        fill: Color = AvradioTheme.cardSurface,
+        borderColor: Color = AvradioTheme.borderSubtle,
+        shadowOpacity: Double = 0,
+        shadowRadius: CGFloat = 0,
+        shadowY: CGFloat = 0
+    ) -> some View {
+        background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(fill)
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(borderColor, lineWidth: 1)
+                }
+        )
+        .shadow(color: AvradioTheme.softShadow.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+    }
+
+    func avRoundedControl(
+        fill: Color = AvradioTheme.elevatedSurface,
+        cornerRadius: CGFloat = 18,
+        borderColor: Color = AvradioTheme.borderSubtle
+    ) -> some View {
+        background(fill, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(borderColor, lineWidth: 1)
+            }
+    }
+}

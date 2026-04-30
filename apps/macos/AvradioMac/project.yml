@@ -17,10 +17,10 @@ targets:
     sources:
       - path: Sources
       - path: Assets.xcassets
-        type: folder
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.avalsys.avradio.mac
         PRODUCT_NAME: AV Radio
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: 5.10
         CODE_SIGNING_ALLOWED: NO

@@ -45,10 +45,7 @@ struct MusicView: View {
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8).stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                        }
+                        .avCardSurface(cornerRadius: 18)
 
                     Picker("Mode", selection: $mode) {
                         ForEach(MusicLibraryMode.allCases) { mode in
@@ -77,7 +74,7 @@ struct MusicView: View {
                         }
                     }
                     .padding(12)
-                    .background(AvradioTheme.highlight.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+                    .background(AvradioTheme.highlight.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
 
                 switch mode {
@@ -148,10 +145,7 @@ struct MusicView: View {
                         }
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8).stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                        }
+                        .avCardSurface(cornerRadius: 20)
                     }
                 }
             }
@@ -312,10 +306,7 @@ private struct DiscoveryTrackRow: View {
             .buttonStyle(.borderless)
         }
         .padding(12)
-        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8).stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-        }
+        .avCardSurface(cornerRadius: 22, shadowOpacity: 0.18, shadowRadius: 8, shadowY: 3)
     }
 
     @ViewBuilder
@@ -330,14 +321,14 @@ private struct DiscoveryTrackRow: View {
                 }
             }
             .frame(width: 48, height: 48)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
         } else {
             fallbackArtwork
         }
     }
 
     private var fallbackArtwork: some View {
-        RoundedRectangle(cornerRadius: 8)
+        RoundedRectangle(cornerRadius: 15, style: .continuous)
             .fill(AvradioTheme.mutedSurface)
             .frame(width: 48, height: 48)
             .overlay {

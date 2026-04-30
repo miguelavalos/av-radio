@@ -28,12 +28,13 @@ struct MiniPlayerBar: View {
             PlayerIconButton(systemImage: playbackSymbol, highlighted: true, action: audioPlayer.togglePlayback)
             PlayerIconButton(systemImage: "arrow.up.left.and.arrow.down.right", action: openPlayer)
         }
-        .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(AvradioTheme.borderSubtle.opacity(0.8), lineWidth: 1)
         }
+        .shadow(color: AvradioTheme.softShadow.opacity(0.16), radius: 10, y: 3)
     }
 
     private var nowPlayingTitle: String {
@@ -404,7 +405,7 @@ struct StationDetailSheet: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 8))
+                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
                     .buttonStyle(.plain)
 
@@ -413,11 +414,7 @@ struct StationDetailSheet: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
                             .frame(width: 50, height: 50)
-                            .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                            }
+                            .avRoundedControl(cornerRadius: 18)
                     }
                     .buttonStyle(.plain)
 
@@ -429,11 +426,7 @@ struct StationDetailSheet: View {
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(AvradioTheme.textPrimary)
                                 .frame(width: 50, height: 50)
-                                .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-                                }
+                                .avRoundedControl(cornerRadius: 18)
                         }
                         .buttonStyle(.plain)
                     }
@@ -481,9 +474,9 @@ private struct PlayerArtworkTile: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
                 .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
         }
     }
@@ -501,10 +494,10 @@ private struct PlayerIconButton: View {
                 .font(.system(size: size * 0.38, weight: .semibold))
                 .foregroundStyle(highlighted ? .white : AvradioTheme.textPrimary)
                 .frame(width: size, height: size)
-                .background(highlighted ? AvradioTheme.highlight : AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8))
+                .background(highlighted ? AvradioTheme.highlight : AvradioTheme.elevatedSurface, in: Circle())
                 .overlay {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(highlighted ? Color.clear : AvradioTheme.borderSubtle, lineWidth: 1)
+                    Circle()
+                        .stroke(highlighted ? Color.clear : AvradioTheme.borderSubtle.opacity(0.7), lineWidth: 1)
                 }
         }
         .buttonStyle(.plain)
@@ -524,11 +517,7 @@ private struct PlayerSection<Content: View>: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-            }
+            .avCardSurface(cornerRadius: 22)
         }
     }
 }
@@ -579,11 +568,7 @@ private struct DetailBlock<Content: View>: View {
                 content
             }
             .padding(18)
-            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
-            }
+            .avCardSurface(cornerRadius: 22)
         }
     }
 }
