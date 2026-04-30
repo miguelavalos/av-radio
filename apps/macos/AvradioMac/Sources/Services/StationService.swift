@@ -3,7 +3,9 @@ import Foundation
 struct StationService {
     struct SearchFilters {
         var query: String
+        var country: String = ""
         var countryCode: String = ""
+        var language: String = ""
         var tag: String = ""
         var limit: Int = 30
         var allowsEmptySearch: Bool = false
@@ -29,30 +31,35 @@ struct StationService {
 
     func searchStations(filters: SearchFilters) async throws -> [Station] {
         let trimmedQuery = filters.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCountry = filters.country.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCountryCode = filters.countryCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedLanguage = filters.language.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedTag = filters.tag.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard filters.allowsEmptySearch || !trimmedQuery.isEmpty || !trimmedCountryCode.isEmpty || !trimmedTag.isEmpty else {
+        guard filters.allowsEmptySearch || !trimmedQuery.isEmpty || !trimmedCountry.isEmpty || !trimmedCountryCode.isEmpty || !trimmedLanguage.isEmpty || !trimmedTag.isEmpty else {
             return []
         }
 
         var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
         components?.queryItems = [
-            URLQueryItem(name: "name", value: trimmedQuery.isEmpty ? nil : trimmedQuery),
-            URLQueryItem(name: "countrycode", value: trimmedCountryCode.isEmpty ? nil : trimmedCountryCode),
-            URLQueryItem(name: "tag", value: trimmedTag.isEmpty ? nil : trimmedTag),
+            trimmedQuery.isEmpty ? nil : URLQueryItem(name: "name", value: trimmedQuery),
+            trimmedCountry.isEmpty ? nil : URLQueryItem(name: "country", value: trimmedCountry),
+            trimmedCountryCode.isEmpty ? nil : URLQueryItem(name: "countrycode", value: trimmedCountryCode),
+            trimmedLanguage.isEmpty ? nil : URLQueryItem(name: "language", value: trimmedLanguage),
+            trimmedTag.isEmpty ? nil : URLQueryItem(name: "tag", value: trimmedTag),
             URLQueryItem(name: "hidebroken", value: "true"),
             URLQueryItem(name: "order", value: "clickcount"),
             URLQueryItem(name: "reverse", value: "true"),
             URLQueryItem(name: "limit", value: String(filters.limit))
         ]
+        .compactMap { $0 }
 
         guard let url = components?.url else {
             throw URLError(.badURL)
         }
 
         var request = URLRequest(url: url)
-        request.setValue("AVRadioMac/0.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("AVRadio/0.1", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
 
         let (data, response) = try await session.data(for: request)
@@ -61,7 +68,41 @@ struct StationService {
         }
 
         let stations = try JSONDecoder().decode([RadioBrowserStationDTO].self, from: data)
-        return stations.compactMap(\.station)
+        let resolvedStations = stations.compactMap(\.station)
+
+        guard !trimmedTag.isEmpty else {
+            return resolvedStations
+        }
+
+        let exactTagMatches = resolvedStations.filter { station in
+            station.matchesTag(trimmedTag)
+        }
+
+        if !exactTagMatches.isEmpty {
+            return Array(exactTagMatches.prefix(filters.limit))
+        }
+
+        return resolvedStations
+    }
+}
+
+private extension Station {
+    func matchesTag(_ rawTag: String) -> Bool {
+        let requestedTag = normalizedTagToken(rawTag)
+        guard !requestedTag.isEmpty else { return false }
+
+        return tags
+            .split(separator: ",")
+            .map { normalizedTagToken(String($0)) }
+            .contains(requestedTag)
+    }
+
+    func normalizedTagToken(_ value: String) -> String {
+        value
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .replacingOccurrences(of: "-", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
     }
 }
 
@@ -72,6 +113,7 @@ private struct RadioBrowserStationDTO: Decodable {
     let countrycode: String?
     let state: String?
     let language: String?
+    let languagecodes: String?
     let tags: String?
     let url: String?
     let url_resolved: String?
@@ -79,6 +121,15 @@ private struct RadioBrowserStationDTO: Decodable {
     let bitrate: Int?
     let codec: String?
     let homepage: String?
+    let votes: Int?
+    let clickcount: Int?
+    let clicktrend: Int?
+    let hls: Int?
+    let has_extended_info: Bool?
+    let ssl_error: Int?
+    let lastcheckoktime_iso8601: String?
+    let geo_lat: Double?
+    let geo_long: Double?
     let lastcheckok: Int?
 
     var station: Station? {
@@ -93,12 +144,22 @@ private struct RadioBrowserStationDTO: Decodable {
             countryCode: normalizedOptional(countrycode),
             state: normalizedOptional(state),
             language: normalized(language, fallback: "Unknown language"),
+            languageCodes: normalizedOptional(languagecodes),
             tags: normalized(tags, fallback: "radio"),
             streamURL: stream,
             faviconURL: normalizedOptionalURL(favicon),
             bitrate: bitrate,
             codec: normalizedOptional(codec),
-            homepageURL: normalizedOptionalURL(homepage)
+            homepageURL: normalizedOptionalURL(homepage),
+            votes: votes,
+            clickCount: clickcount,
+            clickTrend: clicktrend,
+            isHLS: hls.map { $0 == 1 },
+            hasExtendedInfo: has_extended_info,
+            hasSSLError: ssl_error.map { $0 == 1 },
+            lastCheckOKAt: normalizedOptional(lastcheckoktime_iso8601),
+            geoLatitude: geo_lat,
+            geoLongitude: geo_long
         )
     }
 

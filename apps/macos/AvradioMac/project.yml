@@ -7,6 +7,13 @@ targets:
   AvradioMac:
     type: application
     platform: macOS
+    info:
+      path: Supporting/Info.plist
+      properties:
+        CFBundleDisplayName: AV Radio
+        LSApplicationCategoryType: public.app-category.music
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
     sources:
       - path: Sources
       - path: Assets.xcassets
@@ -14,9 +21,6 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.avalsys.avradio.mac
-        PRODUCT_NAME: AvradioMac
+        PRODUCT_NAME: AV Radio
         SWIFT_VERSION: 5.10
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.music
-        INFOPLIST_KEY_CFBundleDisplayName: AV Radio Mac
         CODE_SIGNING_ALLOWED: NO

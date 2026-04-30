@@ -22,11 +22,22 @@ struct SearchView: View {
             let compact = width < 820
 
             ScrollView {
-                VStack(alignment: .leading, spacing: compact ? 20 : 24) {
-                    ShellHeader(status: isLoading ? "Searching" : "Search")
-                    Text("Search")
-                        .font(.system(size: compact ? 34 : 38, weight: .bold))
-                        .foregroundStyle(AvradioTheme.textPrimary)
+                VStack(alignment: .leading, spacing: compact ? 16 : 18) {
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Search")
+                                .font(.system(size: compact ? 26 : 30, weight: .bold))
+                                .foregroundStyle(AvradioTheme.textPrimary)
+                            Text(sectionSubtitle)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(AvradioTheme.textSecondary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer()
+
+                        HeaderStatusPill(status: isLoading ? "Searching" : "\(results.count) results")
+                    }
 
                     if compact {
                         VStack(spacing: 12) {
@@ -34,7 +45,7 @@ struct SearchView: View {
                             searchFilters
                         }
                     } else {
-                        VStack(alignment: .leading, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 10) {
                             searchBar
                             searchFilters
                         }
@@ -67,7 +78,7 @@ struct SearchView: View {
                 }
                 .frame(maxWidth: compact ? 760 : 1040, alignment: .leading)
                 .padding(.horizontal, compact ? 20 : 28)
-                .padding(.top, compact ? 22 : 28)
+                .padding(.top, compact ? 18 : 22)
                 .padding(.bottom, 120)
             }
             .scrollIndicators(.hidden)
@@ -135,11 +146,11 @@ struct SearchView: View {
         HStack(spacing: 12) {
             TextField("Artist, station, country or genre", text: $query)
                 .textFieldStyle(.plain)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 14)
-                .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
                 }
                 .onSubmit(searchAction)
@@ -153,7 +164,7 @@ struct SearchView: View {
     }
 
     private var searchFilters: some View {
-        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
             SearchCountryFilterButton(
                 title: selectedCountryTitle,
                 flag: selectedCountryFlag,
@@ -173,8 +184,8 @@ struct SearchView: View {
                             Text(tag.capitalized)
                                 .font(.footnote.weight(.semibold))
                                 .foregroundStyle(activeTag == tag ? AvradioTheme.highlight : AvradioTheme.textPrimary)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
                                 .background(
                                     Capsule(style: .continuous)
                                         .fill(activeTag == tag ? AvradioTheme.highlight.opacity(0.1) : AvradioTheme.cardSurface)

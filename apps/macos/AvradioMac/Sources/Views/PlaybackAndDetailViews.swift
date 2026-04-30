@@ -5,92 +5,48 @@ struct MiniPlayerBar: View {
 
     let station: Station
     let openPlayer: () -> Void
-    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 12) {
-            StationArtworkView(station: station, size: 46)
+            PlayerArtworkTile(station: station, artworkURL: audioPlayer.currentTrackArtworkURL, size: 44)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(station.name)
-                    .font(.subheadline.weight(.bold))
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(nowPlayingTitle)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AvradioTheme.textPrimary)
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 7, height: 7)
+                    .lineLimit(1)
 
-                    Text(statusLine)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(statusColor)
-                        .lineLimit(1)
-                }
+                Text(nowPlayingSubtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            HStack(spacing: 10) {
-                Button {
-                    audioPlayer.stop()
-                } label: {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(AvradioTheme.textPrimary)
-                        .frame(width: 32, height: 32)
-                        .background(AvradioTheme.cardSurface, in: Circle())
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    audioPlayer.togglePlayback()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(audioPlayer.isPlaying ? AvradioTheme.brandGraphite : AvradioTheme.highlight)
-
-                        if audioPlayer.playbackState == .loading {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(.white)
-                        } else {
-                            Image(systemName: mainPlaybackSymbol)
-                                .foregroundStyle(.white)
-                        }
-                    }
-                    .frame(width: 38, height: 38)
-                }
-                .buttonStyle(.plain)
-            }
+            PlayerIconButton(systemImage: "stop.fill", action: audioPlayer.stop)
+            PlayerIconButton(systemImage: playbackSymbol, highlighted: true, action: audioPlayer.togglePlayback)
+            PlayerIconButton(systemImage: "arrow.up.left.and.arrow.down.right", action: openPlayer)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AvradioTheme.elevatedSurface)
-        )
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(isHovered ? AvradioTheme.highlight.opacity(0.16) : AvradioTheme.glassStroke, lineWidth: 1)
-        }
-        .shadow(color: AvradioTheme.glassShadow.opacity(isHovered ? 0.9 : 0.7), radius: isHovered ? 12 : 8, y: isHovered ? 5 : 2)
-        .scaleEffect(isHovered ? 1.01 : 1)
-        .animation(.easeOut(duration: 0.16), value: isHovered)
-        .onTapGesture(perform: openPlayer)
-        .onHover { hovering in
-            isHovered = hovering
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AvradioTheme.borderSubtle.opacity(0.8), lineWidth: 1)
         }
     }
 
-    private var mainPlaybackSymbol: String {
-        switch audioPlayer.playbackState {
-        case .playing:
-            return "pause.fill"
-        case .failed:
-            return "arrow.clockwise"
-        case .idle, .loading, .paused:
-            return "play.fill"
+    private var nowPlayingTitle: String {
+        audioPlayer.currentTrackTitle?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? audioPlayer.currentTrackTitle!
+            : station.name
+    }
+
+    private var nowPlayingSubtitle: String {
+        if let artist = audioPlayer.currentTrackArtist, !artist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "\(artist) · \(station.name)"
         }
+        return statusLine
     }
 
     private var statusLine: String {
@@ -98,9 +54,9 @@ struct MiniPlayerBar: View {
         case .idle:
             return station.shortMeta
         case .loading:
-            return "Connecting stream..."
+            return "Connecting · \(station.shortMeta)"
         case .playing:
-            return "Live now · \(station.shortMeta)"
+            return "Live · \(station.shortMeta)"
         case .paused:
             return "Paused · \(station.shortMeta)"
         case .failed(let message):
@@ -108,16 +64,14 @@ struct MiniPlayerBar: View {
         }
     }
 
-    private var statusColor: Color {
+    private var playbackSymbol: String {
         switch audioPlayer.playbackState {
         case .playing:
-            return AvradioTheme.highlight
-        case .loading:
-            return .orange
+            return "pause.fill"
         case .failed:
-            return .red
-        case .idle, .paused:
-            return AvradioTheme.textSecondary
+            return "arrow.clockwise"
+        case .idle, .loading, .paused:
+            return "play.fill"
         }
     }
 }
@@ -130,294 +84,197 @@ struct MacNowPlayingView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let width = proxy.size.width
-            let height = proxy.size.height
+            if let station = audioPlayer.currentStation {
+                let compact = proxy.size.width < 900
 
-            ZStack {
-                AvradioTheme.onboardingBackground.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    playerHeader(for: station)
 
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [AvradioTheme.highlight.opacity(0.18), .clear],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 220
-                        )
-                    )
-                    .frame(width: 420, height: 420)
-                    .blur(radius: 20)
-                    .offset(x: min(width * 0.24, 220), y: -min(height * 0.34, 260))
+                    Divider()
 
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.white.opacity(0.06), .clear],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 180
-                        )
-                    )
-                    .frame(width: 320, height: 320)
-                    .blur(radius: 24)
-                    .offset(x: -min(width * 0.2, 180), y: min(height * 0.34, 260))
+                    if compact {
+                        ScrollView {
+                            VStack(spacing: 20) {
+                                primaryPanel(for: station, compact: true)
+                                detailPanel(for: station)
+                            }
+                            .padding(20)
+                        }
+                    } else {
+                        HStack(spacing: 0) {
+                            primaryPanel(for: station, compact: false)
+                                .frame(minWidth: 430, idealWidth: 470, maxWidth: 520)
+                                .padding(24)
 
-                if let station = audioPlayer.currentStation {
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            dismissBar
-                                .padding(.top, topPadding(for: height))
+                            Divider()
 
-                            if usesCompactLayout(for: width) {
-                                compactNowPlayingLayout(for: station, width: width, height: height)
-                            } else {
-                                expandedNowPlayingLayout(for: station, width: width, height: height)
+                            ScrollView {
+                                detailPanel(for: station)
+                                    .padding(24)
                             }
                         }
-                        .padding(.horizontal, horizontalPadding(for: width))
-                        .padding(.bottom, 36)
-                        .frame(maxWidth: .infinity)
-                    }
-                } else {
-                    EmptyStateCard(title: "Nothing playing", detail: "Start a station from Home or Search.")
-                        .padding(40)
-                }
-            }
-        }
-    }
-
-    private var dismissBar: some View {
-        Button(action: dismiss.callAsFunction) {
-            VStack(spacing: 12) {
-                Capsule()
-                    .fill(Color.white.opacity(0.22))
-                    .frame(width: 54, height: 6)
-
-                ZStack {
-                    Text(audioPlayer.currentStation?.name ?? "Now Playing")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(AvradioTheme.textInverse)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                        .padding(.horizontal, 44)
-                        .frame(maxWidth: .infinity)
-
-                    HStack {
-                        Color.clear.frame(width: 34, height: 34)
-                        Spacer()
-                        Image(systemName: "xmark")
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(AvradioTheme.textInverse.opacity(0.86))
-                            .frame(width: 34, height: 34)
-                            .background(Color.white.opacity(0.08), in: Circle())
-                            .overlay {
-                                Circle().stroke(Color.white.opacity(0.12), lineWidth: 1)
-                            }
                     }
                 }
-                .frame(height: 34)
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 8)
-            .padding(.bottom, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color.white.opacity(0.05))
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(nsColor: .windowBackgroundColor))
+            } else {
+                EmptyStateCard(title: "Nothing playing", detail: "Start a station from Home, Search, or Library.")
+                    .padding(32)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(nsColor: .windowBackgroundColor))
             }
         }
-        .buttonStyle(.plain)
-        .frame(maxWidth: 760)
+        .frame(minWidth: 760, minHeight: 540)
     }
 
-    private func heroArtwork(for station: Station, width: CGFloat) -> some View {
-        let artworkSize = artworkDimension(for: width)
+    private func playerHeader(for station: Station) -> some View {
+        HStack(spacing: 12) {
+            PlayerArtworkTile(station: station, artworkURL: audioPlayer.currentTrackArtworkURL, size: 38)
 
-        return StationArtworkView(
-            station: station,
-            size: artworkSize,
-            surfaceStyle: .dark,
-            contentInsetRatio: 0.04,
-            cornerRadiusRatio: 0.12
-        )
-        .background {
-            Circle()
-                .fill(AvradioTheme.highlight.opacity(0.22))
-                .frame(width: artworkSize + 56, height: artworkSize + 56)
-                .blur(radius: 34)
-        }
-        .shadow(color: AvradioTheme.highlight.opacity(0.18), radius: 26, y: 14)
-        .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
-    }
-
-    private func trackSummary(for station: Station, compact: Bool) -> some View {
-        VStack(spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(station.shortMeta)
-                    .font(.system(size: compact ? 15 : 17, weight: .semibold))
-                    .foregroundStyle(AvradioTheme.highlight)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Menu {
-                    Button(libraryStore.isFavorite(station) ? "Remove Favorite" : "Add Favorite") {
-                        libraryStore.toggleFavorite(station)
-                    }
-
-                    if let homepage = station.homepageURL, let url = URL(string: homepage) {
-                        Button("Open Website") {
-                            openURL(url)
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(AvradioTheme.textInverse.opacity(0.78))
-                        .rotationEffect(.degrees(90))
-                        .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.08), in: Circle())
-                        .overlay {
-                            Circle()
-                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                        }
-                }
-                .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Now Playing")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(station.name)
+                    .font(.headline)
+                    .lineLimit(1)
             }
 
-            Text(station.name)
-                .font(.system(size: compact ? 28 : 32, weight: .black, design: .rounded))
-                .foregroundStyle(AvradioTheme.textInverse)
-                .multilineTextAlignment(.leading)
-                .lineLimit(3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(trackSubtitle(for: station))
-                .font(compact ? .system(size: 14, weight: .medium) : .body)
-                .foregroundStyle(AvradioTheme.textInverse.opacity(0.7))
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxWidth: 760, alignment: .leading)
-        .frame(minHeight: compact ? 104 : 126, alignment: .topLeading)
-    }
-
-    private var transportSection: some View {
-        HStack(spacing: 18) {
-            compactTransportButton(systemImage: "stop.fill") {
-                audioPlayer.stop()
-            }
+            Spacer()
 
             Button {
-                audioPlayer.togglePlayback()
+                if let homepageURL = station.homepageURL, let url = URL(string: homepageURL) {
+                    openURL(url)
+                }
             } label: {
-                ZStack {
-                    Circle()
-                        .fill(AvradioTheme.highlight)
-                        .shadow(color: AvradioTheme.highlight.opacity(0.25), radius: 18, y: 10)
-
-                    if audioPlayer.playbackState == .loading {
-                        ProgressView()
-                            .controlSize(.regular)
-                            .tint(.white)
-                    } else {
-                        Image(systemName: mainTransportSymbol)
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .frame(width: 96, height: 96)
+                Label("Website", systemImage: "safari")
             }
-            .buttonStyle(.plain)
+            .disabled(station.homepageURL == nil)
 
-            if case .failed = audioPlayer.playbackState {
-                compactTransportButton(systemImage: "arrow.clockwise") {
-                    audioPlayer.togglePlayback()
+            Button("Done", action: dismiss.callAsFunction)
+                .keyboardShortcut(.cancelAction)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.bar)
+    }
+
+    private func primaryPanel(for station: Station, compact: Bool) -> some View {
+        VStack(spacing: 18) {
+            PlayerArtworkTile(station: station, artworkURL: audioPlayer.currentTrackArtworkURL, size: compact ? 220 : 300)
+
+            VStack(spacing: 6) {
+                Text(trackTitleFallback(station))
+                    .font(.system(size: compact ? 26 : 32, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.8)
+
+                Text(trackSubtitleFallback(station))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+
+            HStack(spacing: 12) {
+                PlayerIconButton(systemImage: "stop.fill", size: 42, action: audioPlayer.stop)
+
+                Button(action: audioPlayer.togglePlayback) {
+                    ZStack {
+                        Circle()
+                            .fill(AvradioTheme.highlight)
+                        if audioPlayer.playbackState == .loading {
+                            ProgressView()
+                                .controlSize(.small)
+                                .tint(.white)
+                        } else {
+                            Image(systemName: playbackSymbol)
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .frame(width: 64, height: 64)
                 }
-            } else {
-                compactTransportButton(systemImage: "dot.radiowaves.left.and.right") {}
-                    .disabled(true)
+                .buttonStyle(.plain)
+
+                PlayerIconButton(systemImage: libraryStore.isFavorite(station) ? "heart.fill" : "heart", size: 42) {
+                    libraryStore.toggleFavorite(station)
+                }
+            }
+
+            if let errorMessage = audioPlayer.lastErrorMessage {
+                Text(errorMessage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(10)
+                    .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(Color.white.opacity(0.11), lineWidth: 1)
-        }
-        .frame(maxWidth: 760)
-        .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
     }
 
-    private func statusSection(for station: Station) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                statusPill(text: playbackLabel)
-                if let codec = station.codec, !codec.isEmpty {
-                    statusPill(text: codec)
-                }
-                if let bitrate = station.bitrate {
-                    statusPill(text: "\(bitrate) kbps")
-                }
-            }
+    private func detailPanel(for station: Station) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            PlayerSection(title: "Live Track") {
+                VStack(alignment: .leading, spacing: 12) {
+                    InfoRow(title: "Title", value: trackTitleFallback(station))
+                    InfoRow(title: "Artist", value: normalized(audioPlayer.currentTrackArtist) ?? "Not available")
+                    InfoRow(title: "Station", value: station.name)
 
-            if let errorMessage = audioPlayer.lastErrorMessage, !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(red: 1, green: 0.75, blue: 0.75))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color.red.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.red.opacity(0.18), lineWidth: 1)
+                    if hasDiscoverableTrack {
+                        HStack(spacing: 8) {
+                            Button {
+                                saveCurrentDiscovery(for: station)
+                            } label: {
+                                Label(isCurrentTrackSaved ? "Saved" : "Save", systemImage: isCurrentTrackSaved ? "bookmark.fill" : "bookmark")
+                            }
+
+                            Button {
+                                openExternalSearch(.youtubeSearch, baseURL: "https://www.youtube.com/results", queryItemName: "search_query")
+                            } label: {
+                                Label("YouTube", systemImage: "play.rectangle")
+                            }
+
+                            Button {
+                                openExternalSearch(.lyricsSearch, baseURL: "https://www.google.com/search", queryItemName: "q", suffix: "lyrics")
+                            } label: {
+                                Label("Lyrics", systemImage: "text.quote")
+                            }
+                        }
                     }
+                }
             }
 
-            if !station.tagsList.isEmpty {
-                Text(station.tagsList.prefix(6).joined(separator: " · "))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AvradioTheme.textInverse.opacity(0.78))
+            PlayerSection(title: "Playback") {
+                VStack(alignment: .leading, spacing: 12) {
+                    StatusBadge(text: playbackLabel)
+                }
+            }
+
+            PlayerSection(title: "Station") {
+                VStack(alignment: .leading, spacing: 12) {
+                    InfoRow(title: "Country", value: station.country)
+                    InfoRow(title: "Language", value: station.language)
+                    if let codec = station.codec {
+                        InfoRow(title: "Codec", value: codec)
+                    }
+                    if let bitrate = station.bitrate {
+                        InfoRow(title: "Bitrate", value: "\(bitrate) kbps")
+                    }
+                    if !station.tagsList.isEmpty {
+                        Text(station.tagsList.prefix(8).joined(separator: " · "))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
-        .frame(maxWidth: 760, alignment: .leading)
+        .frame(maxWidth: 520, alignment: .topLeading)
     }
 
-    private func statusPill(text: String) -> some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(AvradioTheme.textInverse.opacity(0.82))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.white.opacity(0.08), in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-            }
-    }
-
-    private func compactTransportButton(systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(AvradioTheme.textInverse.opacity(0.36))
-                .frame(width: 60, height: 60)
-                .background(Color.white.opacity(0.08), in: Circle())
-        }
-        .buttonStyle(.plain)
-        .overlay {
-            Circle()
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                .frame(width: 60, height: 60)
-        }
-    }
-
-    private var mainTransportSymbol: String {
+    private var playbackSymbol: String {
         switch audioPlayer.playbackState {
         case .playing:
             return "pause.fill"
@@ -428,21 +285,14 @@ struct MacNowPlayingView: View {
         }
     }
 
-    private func trackSubtitle(for station: Station) -> String {
-        if let homepage = station.homepageURL, !homepage.isEmpty {
-            return "Streaming from \(homepage)"
-        }
-        return "Live stream active from \(station.name)"
-    }
-
     private var playbackLabel: String {
         switch audioPlayer.playbackState {
         case .idle:
             return "Idle"
         case .loading:
-            return "Loading"
+            return "Connecting"
         case .playing:
-            return "Playing"
+            return "Live"
         case .paused:
             return "Paused"
         case .failed:
@@ -450,57 +300,59 @@ struct MacNowPlayingView: View {
         }
     }
 
-    private func expandedNowPlayingLayout(for station: Station, width: CGFloat, height: CGFloat) -> some View {
-        HStack(alignment: .center, spacing: 34) {
-            VStack(spacing: 22) {
-                heroArtwork(for: station, width: width * 0.34)
-                transportSection
-            }
-            .frame(maxWidth: 420)
+    private var hasDiscoverableTrack: Bool {
+        normalized(audioPlayer.currentTrackTitle) != nil
+    }
 
-            VStack(alignment: .leading, spacing: 22) {
-                Spacer(minLength: max(12, height * 0.05))
-                trackSummary(for: station, compact: false)
-                statusSection(for: station)
-                Spacer(minLength: 24)
-            }
-            .frame(maxWidth: 420, alignment: .leading)
+    private var isCurrentTrackSaved: Bool {
+        guard let station = audioPlayer.currentStation else { return false }
+        return libraryStore.discoveries.contains {
+            $0.discoveryID == DiscoveredTrack.makeID(
+                title: normalized(audioPlayer.currentTrackTitle) ?? "",
+                artist: normalized(audioPlayer.currentTrackArtist),
+                stationID: station.id
+            ) && $0.isMarkedInteresting
         }
-        .frame(maxWidth: 920, minHeight: max(460, height - 130), alignment: .center)
     }
 
-    private func compactNowPlayingLayout(for station: Station, width: CGFloat, height: CGFloat) -> some View {
-        VStack(spacing: 20) {
-            heroArtwork(for: station, width: min(width - 72, 340))
-                .padding(.top, 22)
+    private func trackTitleFallback(_ station: Station) -> String {
+        normalized(audioPlayer.currentTrackTitle) ?? station.name
+    }
 
-            trackSummary(for: station, compact: true)
-
-            VStack(spacing: 16) {
-                transportSection
-                statusSection(for: station)
-            }
-            .frame(maxWidth: 760)
+    private func trackSubtitleFallback(_ station: Station) -> String {
+        if let artist = normalized(audioPlayer.currentTrackArtist) {
+            return artist
         }
-        .frame(maxWidth: min(width - 48, 760))
-        .frame(minHeight: max(480, height - 120), alignment: .top)
+        return station.shortMeta
     }
 
-    private func usesCompactLayout(for width: CGFloat) -> Bool {
-        width < 940
+    private func saveCurrentDiscovery(for station: Station) {
+        libraryStore.markTrackInteresting(
+            title: audioPlayer.currentTrackTitle,
+            artist: audioPlayer.currentTrackArtist,
+            station: station,
+            artworkURL: audioPlayer.currentTrackArtworkURL
+        )
     }
 
-    private func artworkDimension(for width: CGFloat) -> CGFloat {
-        let boundedWidth = min(max(width, 220), 340)
-        return boundedWidth
+    private func openExternalSearch(_ feature: LimitedFeature, baseURL: String, queryItemName: String, suffix: String? = nil) {
+        guard libraryStore.useDailyFeatureIfAllowed(feature) else { return }
+        let query = [normalized(audioPlayer.currentTrackArtist), normalized(audioPlayer.currentTrackTitle), suffix]
+            .compactMap { $0 }
+            .joined(separator: " ")
+        guard !query.isEmpty else { return }
+
+        var components = URLComponents(string: baseURL)
+        components?.queryItems = [URLQueryItem(name: queryItemName, value: query)]
+        if let url = components?.url {
+            openURL(url)
+        }
     }
 
-    private func horizontalPadding(for width: CGFloat) -> CGFloat {
-        max(24, min(42, width * 0.045))
-    }
-
-    private func topPadding(for height: CGFloat) -> CGFloat {
-        max(18, min(28, height * 0.04))
+    private func normalized(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -552,7 +404,7 @@ struct StationDetailSheet: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background(AvradioTheme.highlight, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
 
@@ -561,9 +413,9 @@ struct StationDetailSheet: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(isFavorite ? Color(red: 1, green: 0.17, blue: 0.38) : AvradioTheme.textPrimary)
                             .frame(width: 50, height: 50)
-                            .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8))
                             .overlay {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                RoundedRectangle(cornerRadius: 8)
                                     .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
                             }
                     }
@@ -577,9 +429,9 @@ struct StationDetailSheet: View {
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(AvradioTheme.textPrimary)
                                 .frame(width: 50, height: 50)
-                                .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .background(AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8))
                                 .overlay {
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 8)
                                         .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
                                 }
                         }
@@ -608,6 +460,111 @@ struct StationDetailSheet: View {
     }
 }
 
+private struct PlayerArtworkTile: View {
+    let station: Station
+    let artworkURL: URL?
+    let size: CGFloat
+
+    var body: some View {
+        Group {
+            if let artworkURL {
+                AsyncImage(url: artworkURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        StationArtworkView(station: station, size: size)
+                    }
+                }
+            } else {
+                StationArtworkView(station: station, size: size)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+        }
+    }
+}
+
+private struct PlayerIconButton: View {
+    let systemImage: String
+    var highlighted = false
+    var size: CGFloat = 34
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: size * 0.38, weight: .semibold))
+                .foregroundStyle(highlighted ? .white : AvradioTheme.textPrimary)
+                .frame(width: size, height: size)
+                .background(highlighted ? AvradioTheme.highlight : AvradioTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(highlighted ? Color.clear : AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct PlayerSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+            VStack(alignment: .leading, spacing: 12) {
+                content
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+            }
+        }
+    }
+}
+
+private struct StatusBadge: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AvradioTheme.highlight)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(AvradioTheme.highlight.opacity(0.10), in: Capsule())
+    }
+}
+
+private struct InfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 78, alignment: .leading)
+            Text(value)
+                .font(.callout)
+                .foregroundStyle(AvradioTheme.textPrimary)
+                .lineLimit(2)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 private struct DetailBlock<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
@@ -622,9 +579,9 @@ private struct DetailBlock<Content: View>: View {
                 content
             }
             .padding(18)
-            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8))
             .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 8)
                     .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
             }
         }

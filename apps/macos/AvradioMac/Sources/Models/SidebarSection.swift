@@ -4,6 +4,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case home
     case search
     case library
+    case music
     case profile
 
     var id: String { rawValue }
@@ -16,6 +17,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
             return "Search"
         case .library:
             return "Library"
+        case .music:
+            return "Music"
         case .profile:
             return "Profile"
         }
@@ -29,6 +32,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
             return "magnifyingglass"
         case .library:
             return "books.vertical"
+        case .music:
+            return "music.note.list"
         case .profile:
             return "person.crop.circle"
         }

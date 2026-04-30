@@ -7,12 +7,22 @@ struct Station: Identifiable, Hashable, Codable {
     let countryCode: String?
     let state: String?
     let language: String
+    let languageCodes: String?
     let tags: String
     let streamURL: String
     let faviconURL: String?
     let bitrate: Int?
     let codec: String?
     let homepageURL: String?
+    let votes: Int?
+    let clickCount: Int?
+    let clickTrend: Int?
+    let isHLS: Bool?
+    let hasExtendedInfo: Bool?
+    let hasSSLError: Bool?
+    let lastCheckOKAt: String?
+    let geoLatitude: Double?
+    let geoLongitude: Double?
 
     init(
         id: String,
@@ -21,12 +31,22 @@ struct Station: Identifiable, Hashable, Codable {
         countryCode: String? = nil,
         state: String? = nil,
         language: String,
+        languageCodes: String? = nil,
         tags: String,
         streamURL: String,
         faviconURL: String? = nil,
         bitrate: Int? = nil,
         codec: String? = nil,
-        homepageURL: String? = nil
+        homepageURL: String? = nil,
+        votes: Int? = nil,
+        clickCount: Int? = nil,
+        clickTrend: Int? = nil,
+        isHLS: Bool? = nil,
+        hasExtendedInfo: Bool? = nil,
+        hasSSLError: Bool? = nil,
+        lastCheckOKAt: String? = nil,
+        geoLatitude: Double? = nil,
+        geoLongitude: Double? = nil
     ) {
         self.id = id
         self.name = name
@@ -34,12 +54,22 @@ struct Station: Identifiable, Hashable, Codable {
         self.countryCode = countryCode
         self.state = state
         self.language = language
+        self.languageCodes = languageCodes
         self.tags = tags
         self.streamURL = streamURL
         self.faviconURL = faviconURL
         self.bitrate = bitrate
         self.codec = codec
         self.homepageURL = homepageURL
+        self.votes = votes
+        self.clickCount = clickCount
+        self.clickTrend = clickTrend
+        self.isHLS = isHLS
+        self.hasExtendedInfo = hasExtendedInfo
+        self.hasSSLError = hasSSLError
+        self.lastCheckOKAt = lastCheckOKAt
+        self.geoLatitude = geoLatitude
+        self.geoLongitude = geoLongitude
     }
 }
 
@@ -121,6 +151,23 @@ extension Station {
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+    }
+
+    var technicalBadges: [String] {
+        var badges: [String] = []
+        if let codec, !codec.isEmpty { badges.append(codec) }
+        if let bitrate, bitrate > 0 { badges.append("\(bitrate) kbps") }
+        if isHLS == true { badges.append("HLS") }
+        if hasExtendedInfo == true { badges.append("Extended info") }
+        return badges
+    }
+
+    var popularityBadges: [String] {
+        var badges: [String] = []
+        if let votes, votes > 0 { badges.append("\(votes) votes") }
+        if let clickCount, clickCount > 0 { badges.append("\(clickCount) clicks") }
+        if let clickTrend, clickTrend > 0 { badges.append("+\(clickTrend) trend") }
+        return badges
     }
 
     var initials: String {

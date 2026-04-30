@@ -4,14 +4,15 @@ struct ProfileSummaryRow: View {
     let preferredTag: String
     let appearanceMode: String
     let launchToSearch: Bool
+    let accessMode: AccessMode
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 14) {
+            HStack(spacing: 10) {
                 summaryCards
             }
 
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 summaryCards
             }
         }
@@ -34,6 +35,11 @@ struct ProfileSummaryRow: View {
             value: launchToSearch ? "Search" : "Home",
             detail: "Launch destination"
         )
+        LibraryMetricCard(
+            title: "Access",
+            value: accessMode.title,
+            detail: accessMode == .signedInPro ? "Cloud-backed" : "Local-only"
+        )
     }
 }
 
@@ -41,14 +47,16 @@ struct LibrarySummaryRow: View {
     let favoritesCount: Int
     let recentsCount: Int
     let latestStationName: String?
+    let favoriteLimit: Int?
+    let recentsLimit: Int?
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 14) {
+            HStack(spacing: 10) {
                 metricCards
             }
 
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 metricCards
             }
         }
@@ -56,9 +64,14 @@ struct LibrarySummaryRow: View {
 
     @ViewBuilder
     private var metricCards: some View {
-        LibraryMetricCard(title: "Favorites", value: "\(favoritesCount)", detail: "Pinned stations")
-        LibraryMetricCard(title: "Recents", value: "\(recentsCount)", detail: "Playback history")
+        LibraryMetricCard(title: "Favorites", value: countText(favoritesCount, limit: favoriteLimit), detail: "Pinned stations")
+        LibraryMetricCard(title: "Recents", value: countText(recentsCount, limit: recentsLimit), detail: "Playback history")
         LibraryMetricCard(title: "Latest", value: latestStationName ?? "None", detail: "Most recent station")
+    }
+
+    private func countText(_ count: Int, limit: Int?) -> String {
+        guard let limit else { return "\(count)" }
+        return "\(count)/\(limit)"
     }
 }
 
@@ -68,12 +81,12 @@ struct LibraryMetricCard: View {
     let detail: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AvradioTheme.highlight)
             Text(value)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AvradioTheme.textPrimary)
                 .lineLimit(1)
             Text(detail)
@@ -81,10 +94,10 @@ struct LibraryMetricCard: View {
                 .foregroundStyle(AvradioTheme.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .padding(12)
+        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
         }
     }
@@ -96,25 +109,25 @@ struct SettingsCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(AvradioTheme.textPrimary)
 
                 Text(subtitle)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(AvradioTheme.textSecondary)
             }
 
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 content
             }
         }
-        .padding(22)
-        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .padding(16)
+        .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
         }
     }
@@ -167,6 +180,65 @@ struct SettingsStatsRow: View {
                 .foregroundStyle(AvradioTheme.textSecondary)
         }
         .padding(.vertical, 2)
+    }
+}
+
+struct UpgradePromptSheet: View {
+    let context: UpgradePromptContext
+    let accessMode: AccessMode
+    let primaryAction: () -> Void
+    let dismissAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 14) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(AvradioTheme.highlight)
+                    .frame(width: 48, height: 48)
+                    .background(AvradioTheme.highlight.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(context.title)
+                        .font(.title2.weight(.bold))
+                    Text(accessMode.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Text(context.message)
+                .font(.body)
+                .foregroundStyle(AvradioTheme.textPrimary)
+
+            Text(context.benefit)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let progressText = context.progressText {
+                Text(progressText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AvradioTheme.highlight)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(AvradioTheme.highlight.opacity(0.10), in: Capsule())
+            }
+
+            HStack {
+                Button("Not now", action: dismissAction)
+                    .keyboardShortcut(.cancelAction)
+
+                Spacer()
+
+                Button("View Pro", action: primaryAction)
+                    .buttonStyle(.borderedProminent)
+                    .tint(AvradioTheme.highlight)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 440)
     }
 }
 
@@ -240,6 +312,22 @@ struct ShellHeader: View {
     }
 }
 
+struct HeaderStatusPill: View {
+    let status: String
+
+    var body: some View {
+        Text(status)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AvradioTheme.highlight)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(AvradioTheme.cardSurface, in: Capsule())
+            .overlay {
+                Capsule().stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+            }
+    }
+}
+
 struct SearchCountryFilterButton: View {
     let title: String
     let flag: String?
@@ -272,14 +360,14 @@ struct SearchCountryFilterButton: View {
                         .font(.system(size: 12, weight: .bold))
                 }
                 .foregroundStyle(isActive ? AvradioTheme.highlight : AvradioTheme.textPrimary)
-                .padding(.horizontal, 16)
-                .frame(height: 50)
+                .padding(.horizontal, 12)
+                .frame(height: 34)
                 .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(isActive ? AvradioTheme.highlight.opacity(0.08) : AvradioTheme.cardSurface)
                 )
                 .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(isActive ? AvradioTheme.highlight.opacity(0.22) : AvradioTheme.borderSubtle, lineWidth: 1)
                 }
             }
@@ -290,14 +378,14 @@ struct SearchCountryFilterButton: View {
                     Text("Clear")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AvradioTheme.highlight)
-                        .padding(.horizontal, 14)
-                        .frame(height: 50)
+                        .padding(.horizontal, 10)
+                        .frame(height: 34)
                         .background(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .fill(AvradioTheme.cardSurface)
                         )
                         .overlay {
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
                         }
                 }
@@ -372,9 +460,9 @@ struct CountryRow: View {
     @State private var isHovered = false
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(isSelected ? AvradioTheme.highlight.opacity(0.12) : AvradioTheme.mutedSurface)
 
                 if let flag {
@@ -386,7 +474,7 @@ struct CountryRow: View {
                         .foregroundStyle(AvradioTheme.highlight)
                 }
             }
-            .frame(width: 46, height: 46)
+            .frame(width: 38, height: 38)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -408,12 +496,12 @@ struct CountryRow: View {
                     .foregroundStyle(AvradioTheme.highlight)
             }
         }
-        .padding(16)
+        .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(AvradioTheme.cardSurface)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(
                             isSelected ? AvradioTheme.highlight.opacity(0.22) :
                                 (isHovered ? AvradioTheme.highlight.opacity(0.14) : AvradioTheme.borderSubtle),
@@ -421,8 +509,7 @@ struct CountryRow: View {
                         )
                 }
         )
-        .shadow(color: isHovered ? AvradioTheme.softShadow.opacity(0.22) : .clear, radius: 10, y: 4)
-        .scaleEffect(isHovered ? 1.01 : 1)
+        .shadow(color: isHovered ? AvradioTheme.softShadow.opacity(0.1) : .clear, radius: 6, y: 2)
         .animation(.easeOut(duration: 0.16), value: isHovered)
         .onHover { hovering in
             isHovered = hovering

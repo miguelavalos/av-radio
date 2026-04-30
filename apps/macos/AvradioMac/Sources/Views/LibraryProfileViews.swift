@@ -14,6 +14,7 @@ struct LibraryView: View {
 
     let favorites: [Station]
     let recents: [Station]
+    let limits: AccessLimits
     let playAction: (Station) -> Void
     let toggleFavorite: (Station) -> Void
     let showDetails: (Station) -> Void
@@ -24,19 +25,28 @@ struct LibraryView: View {
             let compact = width < 840
 
             ScrollView {
-                VStack(alignment: .leading, spacing: compact ? 20 : 24) {
-                    ShellHeader(status: favorites.isEmpty ? "Empty" : "\(favorites.count) saved")
-                    Text("Library")
-                        .font(.system(size: compact ? 34 : 38, weight: .bold))
-                        .foregroundStyle(AvradioTheme.textPrimary)
-                    Text("Your local listening history and saved stations live here.")
-                        .font(.system(size: compact ? 15 : 16, weight: .medium))
-                        .foregroundStyle(AvradioTheme.textSecondary)
+                VStack(alignment: .leading, spacing: compact ? 16 : 18) {
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Library")
+                                .font(.system(size: compact ? 26 : 30, weight: .bold))
+                                .foregroundStyle(AvradioTheme.textPrimary)
+                            Text("Local favorites and recent playback")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(AvradioTheme.textSecondary)
+                        }
+
+                        Spacer()
+
+                        HeaderStatusPill(status: favorites.isEmpty ? "Empty" : "\(favorites.count) saved")
+                    }
 
                     LibrarySummaryRow(
                         favoritesCount: favorites.count,
                         recentsCount: recents.count,
-                        latestStationName: recents.first?.name
+                        latestStationName: recents.first?.name,
+                        favoriteLimit: limits.favoriteStations,
+                        recentsLimit: limits.recentStations
                     )
 
                     if compact {
@@ -87,7 +97,7 @@ struct LibraryView: View {
                 }
                 .frame(maxWidth: compact ? 760 : 1040, alignment: .leading)
                 .padding(.horizontal, compact ? 20 : 28)
-                .padding(.top, compact ? 22 : 28)
+                .padding(.top, compact ? 18 : 22)
                 .padding(.bottom, 120)
             }
             .scrollIndicators(.hidden)
@@ -161,11 +171,11 @@ struct LibraryView: View {
     private var librarySearchField: some View {
         TextField("Filter stations in your library", text: $query)
             .textFieldStyle(.plain)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
-            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(AvradioTheme.cardSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
             }
     }
@@ -182,10 +192,12 @@ struct LibraryView: View {
 
 struct ProfileView: View {
     @Binding var preferredTag: String
+    @Binding var accessMode: AccessMode
+    let capabilities: AccessCapabilities
+    let limits: AccessLimits
     let clearAction: () -> Void
     @AppStorage("avradio.mac.appearance") private var appearanceMode = "system"
     @AppStorage("avradio.mac.launchToSearch") private var launchToSearch = false
-    @AppStorage("avradio.mac.keepMiniPlayerVisible") private var keepMiniPlayerVisible = true
 
     var body: some View {
         GeometryReader { proxy in
@@ -193,24 +205,33 @@ struct ProfileView: View {
             let compact = width < 900
 
             ScrollView {
-                VStack(alignment: .leading, spacing: compact ? 20 : 24) {
-                    ShellHeader(status: "Settings")
-                    Text("Profile")
-                        .font(.system(size: compact ? 34 : 38, weight: .bold))
-                        .foregroundStyle(AvradioTheme.textPrimary)
-                    Text("Preferences for the standalone macOS app.")
-                        .font(.system(size: compact ? 15 : 16, weight: .medium))
-                        .foregroundStyle(AvradioTheme.textSecondary)
+                VStack(alignment: .leading, spacing: compact ? 16 : 18) {
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Profile")
+                                .font(.system(size: compact ? 26 : 30, weight: .bold))
+                                .foregroundStyle(AvradioTheme.textPrimary)
+                            Text("Preferences and access limits")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(AvradioTheme.textSecondary)
+                        }
+
+                        Spacer()
+
+                        HeaderStatusPill(status: "Settings")
+                    }
 
                     ProfileSummaryRow(
                         preferredTag: preferredTag,
                         appearanceMode: appearanceLabel,
-                        launchToSearch: launchToSearch
+                        launchToSearch: launchToSearch,
+                        accessMode: accessMode
                     )
 
                     if compact {
                         VStack(spacing: 16) {
                             discoveryCard
+                            accessCard
                             appearanceCard
                             localDataCard
                             aboutCard
@@ -219,6 +240,7 @@ struct ProfileView: View {
                         HStack(alignment: .top, spacing: 16) {
                             VStack(spacing: 16) {
                                 discoveryCard
+                                accessCard
                                 localDataCard
                             }
                             .frame(maxWidth: .infinity, alignment: .top)
@@ -233,7 +255,7 @@ struct ProfileView: View {
                 }
                 .frame(maxWidth: compact ? 760 : 1040, alignment: .leading)
                 .padding(.horizontal, compact ? 20 : 28)
-                .padding(.top, compact ? 22 : 28)
+                .padding(.top, compact ? 18 : 22)
                 .padding(.bottom, 120)
             }
             .scrollIndicators(.hidden)
@@ -260,6 +282,27 @@ struct ProfileView: View {
         }
     }
 
+    private var accessCard: some View {
+        SettingsCard(title: "Access", subtitle: "Matches the AV Radio product model across iOS and macOS.") {
+            SettingsFieldRow(
+                title: "Current mode",
+                description: "Guest and signed-in Free stay local-only. Pro is the backend-backed cloud sync mode."
+            ) {
+                Picker("Access mode", selection: $accessMode) {
+                    ForEach(AccessMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
+            SettingsStatsRow(title: "Cloud sync", value: capabilities.canUseCloudSync ? "Enabled for Pro" : "Pro only")
+            SettingsStatsRow(title: "Favorites", value: limitText(limits.favoriteStations))
+            SettingsStatsRow(title: "Recents", value: limitText(limits.recentStations))
+            SettingsStatsRow(title: "Music lookups", value: capabilities.canAccessPremiumFeatures ? "Practical unlimited" : "Limited daily")
+        }
+    }
+
     private var appearanceCard: some View {
         SettingsCard(title: "Appearance", subtitle: "Desktop-specific display preferences.") {
             SettingsFieldRow(
@@ -273,14 +316,6 @@ struct ProfileView: View {
                 }
                 .pickerStyle(.segmented)
             }
-
-            Toggle(isOn: $keepMiniPlayerVisible) {
-                SettingsLabel(
-                    title: "Keep mini player visible",
-                    description: "Leave the bottom transport pinned while browsing."
-                )
-            }
-            .toggleStyle(.switch)
         }
     }
 
@@ -297,9 +332,13 @@ struct ProfileView: View {
     private var aboutCard: some View {
         SettingsCard(title: "About", subtitle: "Independent macOS edition.") {
             SettingsStatsRow(title: "Edition", value: "macOS standalone")
-            SettingsStatsRow(title: "Design", value: "Aligned with AV Radio iOS")
-            SettingsStatsRow(title: "Storage", value: "Local preferences only")
+            SettingsStatsRow(title: "Design", value: "Desktop UX aligned with AV Radio iOS")
+            SettingsStatsRow(title: "Backend", value: capabilities.canUseBackend ? "AV Apps enabled" : "Local-only mode")
         }
+    }
+
+    private func limitText(_ limit: Int?) -> String {
+        limit.map(String.init) ?? "Practical unlimited"
     }
 
     private var appearanceLabel: String {
