@@ -1532,10 +1532,11 @@ private struct LibraryScreen: View {
 private struct MusicScreen: View {
     @Environment(\.openURL) private var openURL
     @State private var query = ""
-    @State private var discoveryFilter: DiscoveryFilter = .saved
+    @State private var musicMode: MusicLibraryMode = .songs
     @State private var isConfirmingClearDiscoveries = false
     @State private var browserDestination: BrowserDestination?
     @State private var hiddenDiscovery: DiscoveredTrack?
+    @State private var selectedArtistName: String?
 
     let discoveries: [DiscoveredTrack]
     let bottomContentPadding: CGFloat
@@ -1569,8 +1570,12 @@ private struct MusicScreen: View {
                     MusicSignalSummary(
                         savedCount: savedDiscoveries.count,
                         historyCount: visibleDiscoveries.count,
-                        selectedFilter: discoveryFilter,
-                        selectFilter: { discoveryFilter = $0 }
+                        artistCount: visibleArtistSummaries.count,
+                        selectedMode: musicMode,
+                        selectMode: { mode in
+                            selectedArtistName = nil
+                            musicMode = mode
+                        }
                     )
 
                     discoveryLibrarySection
@@ -1600,6 +1605,9 @@ private struct MusicScreen: View {
             InAppBrowserView(destination: destination)
         }
         .onAppear(perform: normalizeInitialDiscoveryFilter)
+        .onChange(of: query) { _, _ in
+            selectedArtistName = nil
+        }
     }
 
     private var trimmedQuery: String {
@@ -1609,52 +1617,134 @@ private struct MusicScreen: View {
     private var discoveryLibrarySection: some View {
         StationSection(title: L10n.string("shell.music.discoveries.title"), subtitle: L10n.string("shell.music.discoveries.subtitle"), accessibilityIdentifier: "music.section.discoveries") {
             VStack(alignment: .leading, spacing: 16) {
-                if filteredDiscoveries.isEmpty {
+                if filteredDiscoveries.isEmpty && filteredArtistSummaries.isEmpty {
                     EmptyLibraryState(
                         title: emptyDiscoveryTitle,
                         detail: emptyDiscoveryDetail
                     )
                 } else {
-                    if showsArtistSummaries && !filteredArtistSummaries.isEmpty {
-                        discoverySubsectionTitle(L10n.string("shell.library.discoveries.artists.title"))
+                    switch musicMode {
+                    case .songs:
+                        if !filteredArtistSummaries.isEmpty {
+                            discoverySubsectionTitle(L10n.string("shell.library.discoveries.artists.title"))
 
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 10) {
-                                ForEach(filteredArtistSummaries) { artist in
-                                    DiscoveryArtistCard(summary: artist)
+                            ScrollView(.horizontal) {
+                                HStack(spacing: 10) {
+                                    ForEach(filteredArtistSummaries) { artist in
+                                        DiscoveryArtistCard(
+                                            summary: artist,
+                                            openArtist: { openArtistSongs(artist.name) },
+                                            openYouTube: { openArtistSearch(artist.name, youtube: true) },
+                                            openAppleMusic: { openAppleMusicArtistSearch(artist.name) },
+                                            openSpotify: { openSpotifyArtistSearch(artist.name) }
+                                        )
+                                    }
                                 }
+                                .padding(.vertical, 2)
                             }
-                            .padding(.vertical, 2)
+                            .scrollIndicators(.hidden)
                         }
-                        .scrollIndicators(.hidden)
-                    }
 
-                    discoverySongsHeader
-
-                    VStack(spacing: 10) {
-                        ForEach(filteredDiscoveries) { discovery in
-                            DiscoveryTrackCard(
-                                discovery: discovery,
-                                stationArtworkURL: stationArtworkURL(discovery),
-                                openStation: { openDiscoveryStation(discovery) },
-                                toggleSaved: { toggleDiscoverySaved(discovery) },
-                                openYouTube: { openDiscoverySearch(discovery, suffix: nil, youtube: true) },
-                                openLyrics: { openDiscoverySearch(discovery, suffix: "lyrics", youtube: false) },
-                                openAppleMusic: { openAppleMusicSearch(discovery) },
-                                openSpotify: { openSpotifySearch(discovery) },
-                                hideAction: { hideDiscoveryWithUndo(discovery) },
-                                removeAction: { removeDiscovery(discovery) }
-                            )
+                        discoverySongsHeader
+                        discoveryTrackList
+                    case .artists:
+                        discoveryArtistsHeader
+                        LazyVGrid(columns: artistGridColumns, spacing: 10) {
+                            ForEach(filteredArtistSummaries) { artist in
+                                DiscoveryArtistCard(
+                                    summary: artist,
+                                    openArtist: { openArtistSongs(artist.name) },
+                                    openYouTube: { openArtistSearch(artist.name, youtube: true) },
+                                    openAppleMusic: { openAppleMusicArtistSearch(artist.name) },
+                                    openSpotify: { openSpotifyArtistSearch(artist.name) }
+                                )
+                            }
                         }
+                    case .history:
+                        discoverySongsHeader
+                        discoveryTrackList
                     }
                 }
             }
         }
     }
 
+    private var discoveryTrackList: some View {
+        VStack(spacing: 10) {
+            ForEach(filteredDiscoveries) { discovery in
+                DiscoveryTrackCard(
+                    discovery: discovery,
+                    stationArtworkURL: stationArtworkURL(discovery),
+                    openStation: { openDiscoveryStation(discovery) },
+                    toggleSaved: { toggleDiscoverySaved(discovery) },
+                    openYouTube: { openDiscoverySearch(discovery, suffix: nil, youtube: true) },
+                    openLyrics: { openDiscoverySearch(discovery, suffix: "lyrics", youtube: false) },
+                    openAppleMusic: { openAppleMusicSearch(discovery) },
+                    openSpotify: { openSpotifySearch(discovery) },
+                    hideAction: { hideDiscoveryWithUndo(discovery) },
+                    removeAction: { removeDiscovery(discovery) }
+                )
+            }
+        }
+    }
+
+    private var discoveryArtistsHeader: some View {
+        HStack(spacing: 10) {
+            Text(L10n.string("shell.music.artists.title"))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AvradioTheme.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            discoveryActions
+        }
+    }
+
+    private var artistGridColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 156, maximum: 220), spacing: 10)
+        ]
+    }
+
+    private func openArtistSongs(_ artistName: String) {
+        selectedArtistName = artistName
+        query = artistName
+        musicMode = .songs
+    }
+
+    private func openArtistSearch(_ artistName: String, youtube: Bool) {
+        var components = URLComponents(string: youtube ? "https://www.youtube.com/results" : "https://www.google.com/search")
+        components?.queryItems = [
+            URLQueryItem(name: youtube ? "search_query" : "q", value: artistName)
+        ]
+
+        guard let url = components?.url else { return }
+        browserDestination = BrowserDestination(url: url)
+    }
+
+    private func openAppleMusicArtistSearch(_ artistName: String) {
+        var components = URLComponents(string: "https://music.apple.com/search")
+        components?.queryItems = [
+            URLQueryItem(name: "term", value: artistName)
+        ]
+
+        guard let url = components?.url else { return }
+        openURL(url)
+    }
+
+    private func openSpotifyArtistSearch(_ artistName: String) {
+        guard
+            let encodedQuery = artistName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+            let url = URL(string: "https://open.spotify.com/search/\(encodedQuery)")
+        else {
+            return
+        }
+
+        openURL(url)
+    }
+
     private var discoverySongsHeader: some View {
         HStack(spacing: 10) {
-            Text(discoveryFilter.songsTitle)
+            Text(musicMode.songsTitle)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(AvradioTheme.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1774,17 +1864,26 @@ private struct MusicScreen: View {
 
     private var filteredDiscoveries: [DiscoveredTrack] {
         let baseDiscoveries = visibleDiscoveries.filter { discovery in
-            switch discoveryFilter {
-            case .saved:
+            switch musicMode {
+            case .songs, .artists:
                 return discovery.isMarkedInteresting
             case .history:
                 return true
             }
         }
 
+        let artistFilteredDiscoveries: [DiscoveredTrack]
+        if let selectedArtistName {
+            artistFilteredDiscoveries = baseDiscoveries.filter {
+                $0.artistDisplayText.compare(selectedArtistName, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+            }
+        } else {
+            artistFilteredDiscoveries = baseDiscoveries
+        }
+
         guard !trimmedQuery.isEmpty else { return baseDiscoveries }
 
-        return baseDiscoveries.filter { discovery in
+        return artistFilteredDiscoveries.filter { discovery in
             discovery.title.localizedCaseInsensitiveContains(trimmedQuery) ||
             discovery.artist?.localizedCaseInsensitiveContains(trimmedQuery) == true ||
             discovery.stationName.localizedCaseInsensitiveContains(trimmedQuery)
@@ -1793,8 +1892,8 @@ private struct MusicScreen: View {
 
     private var filteredArtistSummaries: [DiscoveryArtistSummary] {
         let savedDiscoveries = visibleDiscoveries.filter { discovery in
-            switch discoveryFilter {
-            case .saved:
+            switch musicMode {
+            case .songs, .artists:
                 return discovery.isMarkedInteresting
             case .history:
                 return false
@@ -1806,6 +1905,28 @@ private struct MusicScreen: View {
         }
 
         let grouped = Dictionary(grouping: matchingDiscoveries) { discovery in
+            discovery.artistDisplayText
+        }
+
+        return grouped
+            .map { artist, discoveries in
+                DiscoveryArtistSummary(
+                    name: artist,
+                    trackCount: discoveries.count,
+                    artworkURL: discoveries.compactMap(\.resolvedArtworkURL).first
+                )
+            }
+            .sorted { first, second in
+                if first.trackCount == second.trackCount {
+                    return first.name.localizedCaseInsensitiveCompare(second.name) == .orderedAscending
+                }
+
+                return first.trackCount > second.trackCount
+            }
+    }
+
+    private var visibleArtistSummaries: [DiscoveryArtistSummary] {
+        let grouped = Dictionary(grouping: visibleDiscoveries.filter(\.isMarkedInteresting)) { discovery in
             discovery.artistDisplayText
         }
 
@@ -1840,10 +1961,6 @@ private struct MusicScreen: View {
         return ([L10n.string("shell.library.discoveries.shareTitle")] + lines).joined(separator: "\n")
     }
 
-    private var showsArtistSummaries: Bool {
-        discoveryFilter == .saved
-    }
-
     private var emptyDiscoveryTitle: String {
         if visibleDiscoveries.isEmpty {
             return L10n.string("shell.library.discoveries.empty")
@@ -1853,9 +1970,11 @@ private struct MusicScreen: View {
             return L10n.string("shell.library.discoveries.noMatch")
         }
 
-        switch discoveryFilter {
-        case .saved:
+        switch musicMode {
+        case .songs:
             return L10n.string("shell.library.discoveries.savedEmpty")
+        case .artists:
+            return L10n.string("shell.music.artists.empty")
         case .history:
             return L10n.string("shell.library.discoveries.noMatch")
         }
@@ -1870,20 +1989,22 @@ private struct MusicScreen: View {
             return L10n.string("shell.library.discoveries.noMatch.detail")
         }
 
-        switch discoveryFilter {
-        case .saved:
+        switch musicMode {
+        case .songs:
             return L10n.string("shell.library.discoveries.savedEmpty.detail")
+        case .artists:
+            return L10n.string("shell.music.artists.empty.detail")
         case .history:
             return L10n.string("shell.library.discoveries.noMatch.detail")
         }
     }
 
     private func normalizeInitialDiscoveryFilter() {
-        guard discoveryFilter == .saved, savedDiscoveries.isEmpty, !visibleDiscoveries.isEmpty else {
+        guard musicMode == .songs, savedDiscoveries.isEmpty, !visibleDiscoveries.isEmpty else {
             return
         }
 
-        discoveryFilter = .history
+        musicMode = .history
     }
 
     private func hideDiscoveryWithUndo(_ discovery: DiscoveredTrack) {
@@ -1930,24 +2051,27 @@ private struct MusicScreen: View {
     }
 }
 
-private enum DiscoveryFilter: String, CaseIterable, Identifiable {
-    case saved
+private enum MusicLibraryMode: String, CaseIterable, Identifiable {
+    case songs
+    case artists
     case history
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .saved:
-            return L10n.string("shell.library.discoveries.filter.saved")
+        case .songs:
+            return L10n.string("shell.music.mode.songs")
+        case .artists:
+            return L10n.string("shell.music.mode.artists")
         case .history:
-            return L10n.string("shell.library.discoveries.filter.history")
+            return L10n.string("shell.music.mode.history")
         }
     }
 
     var songsTitle: String {
         switch self {
-        case .saved:
+        case .songs, .artists:
             return L10n.string("shell.library.discoveries.songs.savedTitle")
         case .history:
             return L10n.string("shell.library.discoveries.songs.historyTitle")
@@ -2299,27 +2423,37 @@ private struct DiscoveryTrackCard: View {
 private struct MusicSignalSummary: View {
     let savedCount: Int
     let historyCount: Int
-    let selectedFilter: DiscoveryFilter
-    let selectFilter: (DiscoveryFilter) -> Void
+    let artistCount: Int
+    let selectedMode: MusicLibraryMode
+    let selectMode: (MusicLibraryMode) -> Void
 
     var body: some View {
         HStack(spacing: 10) {
             MusicSignalButton(
-                title: L10n.string("shell.music.signal.saved"),
+                title: MusicLibraryMode.songs.title,
                 value: savedCount,
                 systemImage: "bookmark.fill",
-                accessibilityIdentifier: "music.filter.saved",
-                isSelected: selectedFilter == .saved,
-                action: { selectFilter(.saved) }
+                accessibilityIdentifier: "music.mode.songs",
+                isSelected: selectedMode == .songs,
+                action: { selectMode(.songs) }
             )
 
             MusicSignalButton(
-                title: L10n.string("shell.music.signal.history"),
+                title: MusicLibraryMode.artists.title,
+                value: artistCount,
+                systemImage: "person.2.fill",
+                accessibilityIdentifier: "music.mode.artists",
+                isSelected: selectedMode == .artists,
+                action: { selectMode(.artists) }
+            )
+
+            MusicSignalButton(
+                title: MusicLibraryMode.history.title,
                 value: historyCount,
                 systemImage: "clock.fill",
-                accessibilityIdentifier: "music.filter.history",
-                isSelected: selectedFilter == .history,
-                action: { selectFilter(.history) }
+                accessibilityIdentifier: "music.mode.history",
+                isSelected: selectedMode == .history,
+                action: { selectMode(.history) }
             )
         }
         .accessibilityElement(children: .contain)
@@ -2373,28 +2507,54 @@ private struct MusicSignalButton: View {
 
 private struct DiscoveryArtistCard: View {
     let summary: DiscoveryArtistSummary
+    let openArtist: () -> Void
+    let openYouTube: () -> Void
+    let openAppleMusic: () -> Void
+    let openSpotify: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
-            artwork
+            Button(action: openArtist) {
+                HStack(spacing: 10) {
+                    artwork
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(summary.name)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(AvradioTheme.textPrimary)
-                    .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(summary.name)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(AvradioTheme.textPrimary)
+                            .lineLimit(1)
 
-                Text(L10n.plural(
-                    singular: "shell.library.discoveries.artistSongs.one",
-                    plural: "shell.library.discoveries.artistSongs.other",
-                    count: summary.trackCount,
-                    summary.trackCount
-                ))
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(AvradioTheme.textSecondary)
-                .lineLimit(1)
+                        Text(L10n.plural(
+                            singular: "shell.library.discoveries.artistSongs.one",
+                            plural: "shell.library.discoveries.artistSongs.other",
+                            count: summary.trackCount,
+                            summary.trackCount
+                        ))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AvradioTheme.textSecondary)
+                        .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .contentShape(Rectangle())
             }
-            .frame(width: 96, alignment: .leading)
+            .buttonStyle(.plain)
+
+            Menu {
+                Button(L10n.string("shell.music.artist.viewSongs"), action: openArtist)
+                Button(L10n.string("player.discovery.youtube"), action: openYouTube)
+                Button(L10n.string("player.discovery.appleMusic"), action: openAppleMusic)
+                Button(L10n.string("player.discovery.spotify"), action: openSpotify)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+                    .rotationEffect(.degrees(90))
+                    .frame(width: 32, height: 32)
+                    .background(AvradioTheme.mutedSurface, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.string("common.more"))
         }
         .padding(10)
         .background(
@@ -2406,6 +2566,7 @@ private struct DiscoveryArtistCard: View {
                 }
         )
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("discoveryArtist.\(summary.id)")
     }
 
     @ViewBuilder
