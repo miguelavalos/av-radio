@@ -82,7 +82,7 @@ struct AppShellView: View {
             }
         )
         .sheet(isPresented: $isShowingNowPlaying) {
-            NowPlayingView()
+            NowPlayingView(startSignInFlow: startSignInFlow)
                 .environmentObject(accessController)
                 .environmentObject(audioPlayer)
                 .environmentObject(libraryStore)

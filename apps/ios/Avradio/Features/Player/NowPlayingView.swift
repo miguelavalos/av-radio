@@ -9,6 +9,8 @@ struct NowPlayingView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerService
     @EnvironmentObject private var libraryStore: LibraryStore
 
+    let startSignInFlow: (Bool) -> Void
+
     @State private var horizontalDragOffset: CGFloat = 0
     @State private var verticalDragOffset: CGFloat = 0
     @State private var browserDestination: BrowserDestination?
@@ -19,6 +21,10 @@ struct NowPlayingView: View {
     private let playerLandscapeHorizontalPadding: CGFloat = 12
     private let playerMaxContentWidth: CGFloat = 360
     private let playerMaxLandscapeContentWidth: CGFloat = 860
+
+    init(startSignInFlow: @escaping (Bool) -> Void = { _ in }) {
+        self.startSignInFlow = startSignInFlow
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -74,6 +80,10 @@ struct NowPlayingView: View {
                     accountIsAvailable: accessController.accountIsAvailable,
                     onPrimaryAction: {
                         accessController.upgradePrompt = nil
+                        if accessController.accessMode == .guest {
+                            dismiss()
+                            startSignInFlow(true)
+                        }
                     },
                     onDismiss: {
                         accessController.upgradePrompt = nil
@@ -869,9 +879,7 @@ private struct FlippingPlayerArtwork: View {
                 .allowsHitTesting(!isShowingOptions)
                 .accessibilityHidden(isShowingOptions)
                 .onTapGesture {
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
-                        isShowingOptions = true
-                    }
+                    flipToOptions()
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(trackTitle ?? station.name))
@@ -948,14 +956,20 @@ private struct FlippingPlayerArtwork: View {
 
             blurredBackdrop
 
+            Button(action: flipToFront) {
+                Color.clear
+                    .frame(width: size, height: size)
+                    .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityHidden(true)
+
             VStack(spacing: 0) {
                 HStack {
                     Spacer()
 
                     Button {
-                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                            isShowingOptions = false
-                        }
+                        flipToFront()
                     } label: {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.system(size: 16, weight: .bold))
@@ -1009,6 +1023,18 @@ private struct FlippingPlayerArtwork: View {
         }
         .shadow(color: AvradioTheme.highlight.opacity(0.18), radius: 26, y: 14)
         .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
+    }
+
+    private func flipToOptions() {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+            isShowingOptions = true
+        }
+    }
+
+    private func flipToFront() {
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+            isShowingOptions = false
+        }
     }
 
     @ViewBuilder

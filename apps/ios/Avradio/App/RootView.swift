@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
@@ -56,11 +57,13 @@ struct RootView: View {
         }
         .tint(AvradioTheme.highlight)
         .task {
+            updateIdleTimer(for: scenePhase)
             await accessController.syncFromAccountProvider()
             await refreshLibrarySync()
             markAutomaticGuestOnboardingSeenIfNeeded()
         }
         .onChange(of: scenePhase) { _, newPhase in
+            updateIdleTimer(for: newPhase)
             guard newPhase == .active else { return }
             Task {
                 await accessController.syncFromAccountProvider()
@@ -177,6 +180,10 @@ struct RootView: View {
         guard accessController.shouldAutoShowGuestOnboarding else { return }
 
         accessController.markGuestOnboardingPromptShown()
+    }
+
+    private func updateIdleTimer(for phase: ScenePhase) {
+        UIApplication.shared.isIdleTimerDisabled = phase == .active
     }
 }
 
