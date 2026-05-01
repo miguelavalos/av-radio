@@ -22,6 +22,9 @@ apps/
 docs/
   install-android.md
   install-ios.md
+shared/
+  apple/     Swift Modules shared by iOS and macOS
+  contracts/ Platform-neutral contracts reserved for backend/client parity
 ```
 
 ## What Is Included
@@ -46,6 +49,8 @@ docs/
   - backend-backed access refresh when configured
   - backend-backed app-data sync when access enables cloud sync
 - `apps/macos` exists as a native companion target
+- `shared/apple` is the single shared Swift implementation root for iOS/macOS behavior
+- `shared/contracts` is reserved for platform-neutral backend/client contracts when a non-Apple consumer exists
 - the repo remains local-first overall, and platform/backend adoption is still narrower than in `public/av-series`
 - current product focus is `av-radio iOS`; Android and macOS should be treated as lower-priority follow-up work unless explicitly promoted
 

@@ -338,16 +338,10 @@ final class AVRadioAppDataService {
     }
 
     private static func date(from value: String) -> Date {
-        iso8601Formatter().date(from: value) ?? .distantPast
+        AVRadioDateCoding.date(from: value)
     }
 
     static func isoString(from date: Date) -> String {
-        iso8601Formatter().string(from: date)
-    }
-
-    private static func iso8601Formatter() -> ISO8601DateFormatter {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
+        AVRadioDateCoding.string(from: date)
     }
 }

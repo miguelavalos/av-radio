@@ -41,10 +41,10 @@
       <Testables>
          <TestableReference
             skipped = "NO"
-            parallelizable = "YES">
+            parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "4EE0D641D6A14399934F4FEC"
+               BlueprintIdentifier = "1A96B76F12706D83FE58F9F6"
                BuildableName = "AvradioTests.xctest"
                BlueprintName = "AvradioTests"
                ReferencedContainer = "container:Avradio.xcodeproj">

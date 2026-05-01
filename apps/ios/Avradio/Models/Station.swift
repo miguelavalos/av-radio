@@ -1,79 +1,6 @@
 import Foundation
 import SwiftData
 
-struct Station: Identifiable, Hashable {
-    let id: String
-    let name: String
-    let country: String
-    let countryCode: String?
-    let state: String?
-    let language: String
-    let languageCodes: String?
-    let tags: String
-    let streamURL: String
-    let faviconURL: String?
-    let bitrate: Int?
-    let codec: String?
-    let homepageURL: String?
-    let votes: Int?
-    let clickCount: Int?
-    let clickTrend: Int?
-    let isHLS: Bool?
-    let hasExtendedInfo: Bool?
-    let hasSSLError: Bool?
-    let lastCheckOKAt: String?
-    let geoLatitude: Double?
-    let geoLongitude: Double?
-
-    init(
-        id: String,
-        name: String,
-        country: String,
-        countryCode: String? = nil,
-        state: String? = nil,
-        language: String,
-        languageCodes: String? = nil,
-        tags: String,
-        streamURL: String,
-        faviconURL: String? = nil,
-        bitrate: Int? = nil,
-        codec: String? = nil,
-        homepageURL: String? = nil,
-        votes: Int? = nil,
-        clickCount: Int? = nil,
-        clickTrend: Int? = nil,
-        isHLS: Bool? = nil,
-        hasExtendedInfo: Bool? = nil,
-        hasSSLError: Bool? = nil,
-        lastCheckOKAt: String? = nil,
-        geoLatitude: Double? = nil,
-        geoLongitude: Double? = nil
-    ) {
-        self.id = id
-        self.name = name
-        self.country = country
-        self.countryCode = countryCode
-        self.state = state
-        self.language = language
-        self.languageCodes = languageCodes
-        self.tags = tags
-        self.streamURL = streamURL
-        self.faviconURL = faviconURL
-        self.bitrate = bitrate
-        self.codec = codec
-        self.homepageURL = homepageURL
-        self.votes = votes
-        self.clickCount = clickCount
-        self.clickTrend = clickTrend
-        self.isHLS = isHLS
-        self.hasExtendedInfo = hasExtendedInfo
-        self.hasSSLError = hasSSLError
-        self.lastCheckOKAt = lastCheckOKAt
-        self.geoLatitude = geoLatitude
-        self.geoLongitude = geoLongitude
-    }
-}
-
 extension Station {
     init(record: StationRecord) {
         self.init(
@@ -187,115 +114,12 @@ extension Station {
 }
 
 extension Station {
-    static let samples: [Station] = [
-        Station(
-            id: "groove-salad",
-            name: "SomaFM Groove Salad",
-            country: "United States",
-            language: "English",
-            tags: "ambient,chillout,electronic",
-            streamURL: "https://ice1.somafm.com/groovesalad-128-mp3",
-            faviconURL: nil,
-            bitrate: 128,
-            codec: "MP3",
-            homepageURL: "https://somafm.com/groovesalad/"
-        ),
-        Station(
-            id: "bbc-radio-1",
-            name: "BBC Radio 1",
-            country: "United Kingdom",
-            language: "English",
-            tags: "pop,charts,live",
-            streamURL: "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one",
-            faviconURL: nil,
-            bitrate: 128,
-            codec: "AAC",
-            homepageURL: "https://www.bbc.co.uk/sounds/play/live:bbc_radio_one"
-        ),
-        Station(
-            id: "los-40",
-            name: "Los 40",
-            country: "Spain",
-            language: "Spanish",
-            tags: "pop,latin,hits",
-            streamURL: "https://25653.live.streamtheworld.com/LOS40.mp3",
-            faviconURL: nil,
-            bitrate: 128,
-            codec: "MP3",
-            homepageURL: "https://los40.com/"
-        )
-    ]
-
-    var shortMeta: String {
-        [country, language]
-            .filter { !$0.isEmpty }
-            .joined(separator: " · ")
-    }
-
-    var flagEmoji: String? {
-        guard let countryCode, countryCode.count == 2 else { return nil }
-        let base: UInt32 = 127397
-        let scalars = countryCode.uppercased().unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
-        guard scalars.count == 2 else { return nil }
-        return String(String.UnicodeScalarView(scalars))
-    }
-
     func cardDetailText(preferCountryName: Bool) -> String? {
-        let normalizedLanguage = normalizedCardValue(language)
-        let normalizedCountry = normalizedCardValue(country)
-        let normalizedState = normalizedCardValue(state)
-
-        if let normalizedLanguage, !normalizedLanguage.isEmpty {
-            return normalizedLanguage
-        }
-
-        if let normalizedState, !normalizedState.isEmpty {
-            return normalizedState
-        }
-
-        if preferCountryName, let normalizedCountry, !normalizedCountry.isEmpty {
-            return normalizedCountry
-        }
-
-        if let normalizedCountry, !normalizedCountry.isEmpty {
-            return normalizedCountry
-        }
-
-        return nil
-    }
-
-    var primaryDetailLine: String {
-        [state, country, language]
-            .compactMap { value in
-                guard let value else { return nil }
-                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-                return trimmed.isEmpty ? nil : trimmed
-            }
-            .joined(separator: " · ")
-    }
-
-    var normalizedTags: [String] {
-        tags
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-    }
-
-    var technicalBadges: [String] {
-        var badges: [String] = []
-        if let codec, !codec.isEmpty { badges.append(codec) }
-        if let bitrate, bitrate > 0 { badges.append("\(bitrate) kbps") }
-        if isHLS == true { badges.append("HLS") }
-        if hasExtendedInfo == true { badges.append("Extended info") }
-        return badges
-    }
-
-    var popularityBadges: [String] {
-        var badges: [String] = []
-        if let votes, votes > 0 { badges.append("\(votes) votes") }
-        if let clickCount, clickCount > 0 { badges.append("\(clickCount) clicks") }
-        if let clickTrend, clickTrend > 0 { badges.append("+\(clickTrend) trend") }
-        return badges
+        cardDetailText(
+            preferCountryName: preferCountryName,
+            unknownValues: Station.unknownDetailValues,
+            locale: L10n.locale
+        )
     }
 
     var statusBadges: [String] {
@@ -305,22 +129,8 @@ extension Station {
         return badges
     }
 
-    var initials: String {
-        let parts = name
-            .split(separator: " ")
-            .prefix(2)
-            .map { String($0.prefix(1)).uppercased() }
-            .joined()
-
-        return parts.isEmpty ? "AV" : parts
-    }
-
-    private func normalizedCardValue(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-
-        let localizedUnknowns = [
+    static var unknownDetailValues: [String] {
+        [
             L10n.string("stationService.fallback.unknownCountry"),
             L10n.string("stationService.fallback.unknownLanguage"),
             "Unknown country",
@@ -334,36 +144,17 @@ extension Station {
             "Unbekanntes Land",
             "Unbekannte Sprache"
         ]
-        .map {
-            $0
-                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
-                .lowercased()
-        }
-
-        let normalizedTrimmed = trimmed
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
-            .lowercased()
-
-        return localizedUnknowns.contains(normalizedTrimmed) ? nil : trimmed
     }
 
-    var displayArtworkURL: URL? {
-        if let faviconURL, !faviconURL.isEmpty, let url = URL(string: faviconURL) {
-            return url
-        }
-
-        guard let homepageURL,
-              !homepageURL.isEmpty,
-              let url = URL(string: homepageURL) else {
-            return nil
-        }
-
-        var components = URLComponents(string: "https://www.google.com/s2/favicons")
-        components?.queryItems = [
-            URLQueryItem(name: "sz", value: "256"),
-            URLQueryItem(name: "domain_url", value: url.absoluteString)
+    static var unknownCountryValues: [String] {
+        [
+            L10n.string("stationService.fallback.unknownCountry"),
+            "Unknown country",
+            "País desconocido",
+            "País desconegut",
+            "Pays inconnu",
+            "Unbekanntes Land"
         ]
-        return components?.url
     }
 }
 
@@ -495,11 +286,11 @@ final class DiscoveredTrack {
         markedInterestedAt: Date? = nil,
         hiddenAt: Date? = nil
     ) {
-        let normalizedArtist = artist?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedArtist = AVRadioDiscoveredTrackSupport.normalizedValue(artist)
+        let normalizedTitle = AVRadioDiscoveredTrackSupport.normalizedValue(title) ?? title.trimmingCharacters(in: .whitespacesAndNewlines)
         self.discoveryID = Self.makeID(title: normalizedTitle, artist: normalizedArtist, stationID: station.id)
         self.title = normalizedTitle
-        self.artist = normalizedArtist?.isEmpty == true ? nil : normalizedArtist
+        self.artist = normalizedArtist
         self.stationID = station.id
         self.stationName = station.name
         self.artworkURL = artworkURL?.absoluteString
@@ -510,10 +301,10 @@ final class DiscoveredTrack {
     }
 
     init(record: DiscoveredTrackRecord) {
-        let normalizedArtist = record.artist?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedArtist = AVRadioDiscoveredTrackSupport.normalizedValue(record.artist)
         self.discoveryID = record.discoveryID
-        self.title = record.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.artist = normalizedArtist?.isEmpty == true ? nil : normalizedArtist
+        self.title = AVRadioDiscoveredTrackSupport.normalizedValue(record.title) ?? record.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.artist = normalizedArtist
         self.stationID = record.stationID
         self.stationName = record.stationName
         self.artworkURL = record.artworkURL
@@ -524,24 +315,11 @@ final class DiscoveredTrack {
     }
 
     static func makeID(title: String, artist: String?, stationID: String) -> String {
-        let rawValue = "\(artist ?? "")|\(title)|\(stationID)"
-        return rawValue
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
-            .lowercased()
-            .unicodeScalars
-            .map { CharacterSet.alphanumerics.contains($0) ? Character($0) : "-" }
-            .reduce(into: "") { result, character in
-                if character != "-" || result.last != "-" {
-                    result.append(character)
-                }
-            }
-            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        AVRadioDiscoveredTrackSupport.makeID(title: title, artist: artist, stationID: stationID, locale: L10n.locale)
     }
 
     private static func date(from value: String) -> Date {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.date(from: value) ?? .distantPast
+        AVRadioDateCoding.date(from: value)
     }
 }
 
@@ -567,13 +345,11 @@ extension DiscoveredTrack {
     }
 
     var resolvedArtworkURL: URL? {
-        guard let artworkURL else { return nil }
-        return URL(string: artworkURL)
+        AVRadioDiscoveredTrackSupport.resolvedURL(artworkURL)
     }
 
     var resolvedStationArtworkURL: URL? {
-        guard let stationArtworkURL else { return nil }
-        return URL(string: stationArtworkURL)
+        AVRadioDiscoveredTrackSupport.resolvedURL(stationArtworkURL)
     }
 
     var appDataRecord: DiscoveredTrackRecord {
@@ -592,15 +368,11 @@ extension DiscoveredTrack {
     }
 
     private var normalizedArtist: String? {
-        guard let artist else { return nil }
-        let trimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        AVRadioDiscoveredTrackSupport.normalizedValue(artist)
     }
 
     private static func isoString(from date: Date) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.string(from: date)
+        AVRadioDateCoding.string(from: date)
     }
 }
 

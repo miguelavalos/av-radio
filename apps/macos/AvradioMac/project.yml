@@ -16,6 +16,7 @@ targets:
           NSAllowsArbitraryLoads: true
     sources:
       - path: Sources
+      - path: ../../../shared/apple
       - path: Assets.xcassets
     settings:
       base:

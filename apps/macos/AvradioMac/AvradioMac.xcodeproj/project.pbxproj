@@ -7,11 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		11B84EE1B2800FDDE44B9B1D /* AVRadioTrackArtworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE0EA5812E41ADF125416284 /* AVRadioTrackArtworkService.swift */; };
 		2156DF2BED1F4366E64D0D1A /* MusicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058D9B89A6AD5FC85BE54CE7 /* MusicView.swift */; };
+		256F3153D11C5F50C5C462CA /* AVRadioStation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCADDEBF9D3E7BF77B9E5C3B /* AVRadioStation.swift */; };
 		2593233C76A5D7B19669E9C9 /* AudioPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 475A650CBCE99174197178D2 /* AudioPlayerService.swift */; };
 		28C20701927C36369E5992C7 /* LibraryProfileViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 537D723B2A859E6D025D2B97 /* LibraryProfileViews.swift */; };
 		2BC1D49A4E189FC3DEAC04B1 /* AvradioMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77D3286C35742F21D7B01CD /* AvradioMacApp.swift */; };
 		2C105AE4DB1011BF46BC83CE /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192BBC134625E1EE29E6832E /* HomeView.swift */; };
+		4AE69F9A6CF53F31566B81E8 /* AVRadioEighties80sNowPlaying.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B2ADC8498AE97D87F74337 /* AVRadioEighties80sNowPlaying.swift */; };
 		5F4DD98B533CB9E717F6CEF2 /* StationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DAF2C5AFDE1F5D30550366E /* StationService.swift */; };
 		6140085C820F85C7ECE7F8A9 /* DiscoveredTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D180D8586C35EB77B8F464 /* DiscoveredTrack.swift */; };
 		678D77228434494011394344 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6FFFBA1118BD25B098DAB3 /* SettingsView.swift */; };
@@ -20,41 +23,60 @@
 		8443E13CEADF49620C116AB5 /* StationComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1386164C08B9283FC1AFFCBE /* StationComponents.swift */; };
 		8B3A3B9A32047D8561A63EC9 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35208787AE13AB85B05446AD /* SearchView.swift */; };
 		95C6B70EB1CDCD7AA0096755 /* SharedSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A7EA1A6822A8FA6836E5E8 /* SharedSupportViews.swift */; };
+		9C46E4F1E3C413924D7FBBC7 /* AVRadioAccessPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA2484D6475FE54B6D3DADD /* AVRadioAccessPolicy.swift */; };
+		9F265630A4C51DF9BCE87546 /* AVRadioText.swift in Sources */ = {isa = PBXBuildFile; fileRef = D152B6AD11141C4675829851 /* AVRadioText.swift */; };
+		A421C3B26568943DF4D00E4F /* AVRadioCollectionRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17E1F096A7F83CC00D2B8F1 /* AVRadioCollectionRules.swift */; };
 		AB24AE87D0567469310EB90A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E390F8349021B2467E8257A0 /* Assets.xcassets */; };
+		AD4F02514AD322DA70836EAD /* AVRadioCountry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75705DCF60557E7718EAD1C6 /* AVRadioCountry.swift */; };
 		B9956F9EAAAF3A3A8826D94F /* AvradioTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6E5FD85DFE5F777D00FE0E /* AvradioTheme.swift */; };
-		BF83361FEBA43E3F82ECCC01 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E0EAC97FE3033FAAD17F96 /* Station.swift */; };
 		C230828CAFFE2AEA1FC42F60 /* AccessSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 434DC79A3A1961A9DC26AEAB /* AccessSupport.swift */; };
 		C34C353135A8494922553AE9 /* NowPlayingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F1168608E9219DD5812E36 /* NowPlayingService.swift */; };
 		C78B97137154BE0DFE3175C9 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC06C331A53E7888BE3A6D01 /* LibraryStore.swift */; };
+		D1251DDFC1FF6D46E5CEF283 /* AVRadioDiscoveredTrackSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E968723F30137146A82C8B02 /* AVRadioDiscoveredTrackSupport.swift */; };
 		D7ED1959AE566DFA5EC2437F /* StationArtworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23DEBD18C1AEE64F79EDC313 /* StationArtworkView.swift */; };
 		DADEEE268301169E84FE0D1B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03686A8579D58CB5E83C30C8 /* ContentView.swift */; };
 		DF950A2C2F8567063787616C /* SidebarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68C3D4CDF8BA0F553EABAFF /* SidebarSection.swift */; };
+		E5B40D13AC51E794A2636F0B /* AVRadioDateCoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE6A0E8FF942B1A7863783F /* AVRadioDateCoding.swift */; };
+		EDA00EB69954A22D52E51A8B /* AVRadioTrackMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF249BDA88DFA46191F47CD3 /* AVRadioTrackMetadata.swift */; };
+		F17D75A01DA531762682636B /* AVRadioStationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6099F1D5CA2791C1B521B45 /* AVRadioStationService.swift */; };
+		F4BED8F1FC3146E114F6AD79 /* AVRadioExternalSearchURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111EF5C50A0630F488B7C6C5 /* AVRadioExternalSearchURL.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		01D180D8586C35EB77B8F464 /* DiscoveredTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredTrack.swift; sourceTree = "<group>"; };
 		03686A8579D58CB5E83C30C8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		058D9B89A6AD5FC85BE54CE7 /* MusicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicView.swift; sourceTree = "<group>"; };
+		111EF5C50A0630F488B7C6C5 /* AVRadioExternalSearchURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioExternalSearchURL.swift; sourceTree = "<group>"; };
 		1386164C08B9283FC1AFFCBE /* StationComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationComponents.swift; sourceTree = "<group>"; };
 		192BBC134625E1EE29E6832E /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		1DAF2C5AFDE1F5D30550366E /* StationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationService.swift; sourceTree = "<group>"; };
+		1EE6A0E8FF942B1A7863783F /* AVRadioDateCoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioDateCoding.swift; sourceTree = "<group>"; };
 		23DEBD18C1AEE64F79EDC313 /* StationArtworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationArtworkView.swift; sourceTree = "<group>"; };
+		2FA2484D6475FE54B6D3DADD /* AVRadioAccessPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioAccessPolicy.swift; sourceTree = "<group>"; };
 		35208787AE13AB85B05446AD /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		37A7EA1A6822A8FA6836E5E8 /* SharedSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSupportViews.swift; sourceTree = "<group>"; };
 		434DC79A3A1961A9DC26AEAB /* AccessSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessSupport.swift; sourceTree = "<group>"; };
 		475A650CBCE99174197178D2 /* AudioPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerService.swift; sourceTree = "<group>"; };
+		49B2ADC8498AE97D87F74337 /* AVRadioEighties80sNowPlaying.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioEighties80sNowPlaying.swift; sourceTree = "<group>"; };
 		537D723B2A859E6D025D2B97 /* LibraryProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryProfileViews.swift; sourceTree = "<group>"; };
-		71E0EAC97FE3033FAAD17F96 /* Station.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
+		75705DCF60557E7718EAD1C6 /* AVRadioCountry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioCountry.swift; sourceTree = "<group>"; };
 		9EE5540364543372757AB5E2 /* TrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackArtworkService.swift; sourceTree = "<group>"; };
+		AE0EA5812E41ADF125416284 /* AVRadioTrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioTrackArtworkService.swift; sourceTree = "<group>"; };
 		B4B35696A94B263229488E19 /* AvradioMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AvradioMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B77D3286C35742F21D7B01CD /* AvradioMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioMacApp.swift; sourceTree = "<group>"; };
 		BE6FFFBA1118BD25B098DAB3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD6E5FD85DFE5F777D00FE0E /* AvradioTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioTheme.swift; sourceTree = "<group>"; };
+		CF249BDA88DFA46191F47CD3 /* AVRadioTrackMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioTrackMetadata.swift; sourceTree = "<group>"; };
+		D152B6AD11141C4675829851 /* AVRadioText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioText.swift; sourceTree = "<group>"; };
 		D1F1168608E9219DD5812E36 /* NowPlayingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingService.swift; sourceTree = "<group>"; };
+		D6099F1D5CA2791C1B521B45 /* AVRadioStationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioStationService.swift; sourceTree = "<group>"; };
 		D68C3D4CDF8BA0F553EABAFF /* SidebarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSection.swift; sourceTree = "<group>"; };
 		D7CC521A36C959D514099326 /* PlaybackAndDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackAndDetailViews.swift; sourceTree = "<group>"; };
-		E390F8349021B2467E8257A0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		E17E1F096A7F83CC00D2B8F1 /* AVRadioCollectionRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioCollectionRules.swift; sourceTree = "<group>"; };
+		E390F8349021B2467E8257A0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E968723F30137146A82C8B02 /* AVRadioDiscoveredTrackSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioDiscoveredTrackSupport.swift; sourceTree = "<group>"; };
 		EC06C331A53E7888BE3A6D01 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		FCADDEBF9D3E7BF77B9E5C3B /* AVRadioStation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioStation.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -62,6 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				E390F8349021B2467E8257A0 /* Assets.xcassets */,
+				E76FBCC63946E7BE64BEC0B1 /* apple */,
 				CA8479CFF12E932BA870D2AE /* Sources */,
 				FF081662D1616267E4D2FA25 /* Products */,
 			);
@@ -138,9 +161,28 @@
 				434DC79A3A1961A9DC26AEAB /* AccessSupport.swift */,
 				01D180D8586C35EB77B8F464 /* DiscoveredTrack.swift */,
 				D68C3D4CDF8BA0F553EABAFF /* SidebarSection.swift */,
-				71E0EAC97FE3033FAAD17F96 /* Station.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		E76FBCC63946E7BE64BEC0B1 /* apple */ = {
+			isa = PBXGroup;
+			children = (
+				2FA2484D6475FE54B6D3DADD /* AVRadioAccessPolicy.swift */,
+				E17E1F096A7F83CC00D2B8F1 /* AVRadioCollectionRules.swift */,
+				75705DCF60557E7718EAD1C6 /* AVRadioCountry.swift */,
+				1EE6A0E8FF942B1A7863783F /* AVRadioDateCoding.swift */,
+				E968723F30137146A82C8B02 /* AVRadioDiscoveredTrackSupport.swift */,
+				49B2ADC8498AE97D87F74337 /* AVRadioEighties80sNowPlaying.swift */,
+				111EF5C50A0630F488B7C6C5 /* AVRadioExternalSearchURL.swift */,
+				FCADDEBF9D3E7BF77B9E5C3B /* AVRadioStation.swift */,
+				D6099F1D5CA2791C1B521B45 /* AVRadioStationService.swift */,
+				D152B6AD11141C4675829851 /* AVRadioText.swift */,
+				AE0EA5812E41ADF125416284 /* AVRadioTrackArtworkService.swift */,
+				CF249BDA88DFA46191F47CD3 /* AVRadioTrackMetadata.swift */,
+			);
+			name = apple;
+			path = ../../../shared/apple;
 			sourceTree = "<group>";
 		};
 		FF081662D1616267E4D2FA25 /* Products */ = {
@@ -218,6 +260,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9C46E4F1E3C413924D7FBBC7 /* AVRadioAccessPolicy.swift in Sources */,
+				A421C3B26568943DF4D00E4F /* AVRadioCollectionRules.swift in Sources */,
+				AD4F02514AD322DA70836EAD /* AVRadioCountry.swift in Sources */,
+				E5B40D13AC51E794A2636F0B /* AVRadioDateCoding.swift in Sources */,
+				D1251DDFC1FF6D46E5CEF283 /* AVRadioDiscoveredTrackSupport.swift in Sources */,
+				4AE69F9A6CF53F31566B81E8 /* AVRadioEighties80sNowPlaying.swift in Sources */,
+				F4BED8F1FC3146E114F6AD79 /* AVRadioExternalSearchURL.swift in Sources */,
+				256F3153D11C5F50C5C462CA /* AVRadioStation.swift in Sources */,
+				F17D75A01DA531762682636B /* AVRadioStationService.swift in Sources */,
+				9F265630A4C51DF9BCE87546 /* AVRadioText.swift in Sources */,
+				11B84EE1B2800FDDE44B9B1D /* AVRadioTrackArtworkService.swift in Sources */,
+				EDA00EB69954A22D52E51A8B /* AVRadioTrackMetadata.swift in Sources */,
 				C230828CAFFE2AEA1FC42F60 /* AccessSupport.swift in Sources */,
 				2593233C76A5D7B19669E9C9 /* AudioPlayerService.swift in Sources */,
 				2BC1D49A4E189FC3DEAC04B1 /* AvradioMacApp.swift in Sources */,
@@ -234,7 +288,6 @@
 				678D77228434494011394344 /* SettingsView.swift in Sources */,
 				95C6B70EB1CDCD7AA0096755 /* SharedSupportViews.swift in Sources */,
 				DF950A2C2F8567063787616C /* SidebarSection.swift in Sources */,
-				BF83361FEBA43E3F82ECCC01 /* Station.swift in Sources */,
 				D7ED1959AE566DFA5EC2437F /* StationArtworkView.swift in Sources */,
 				8443E13CEADF49620C116AB5 /* StationComponents.swift in Sources */,
 				5F4DD98B533CB9E717F6CEF2 /* StationService.swift in Sources */,

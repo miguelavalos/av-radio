@@ -126,24 +126,28 @@ extension Station {
     ]
 
     var shortMeta: String {
-        [country, language].joined(separator: " · ")
+        [country, language]
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
     }
 
     var detailLine: String {
         [state, country, language]
             .compactMap { value in
-                guard let value, !value.isEmpty else { return nil }
-                return value
+                guard let value else { return nil }
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? nil : trimmed
             }
             .joined(separator: " · ")
     }
 
+    var primaryDetailLine: String {
+        detailLine
+    }
+
     var flagEmoji: String? {
-        guard let countryCode, countryCode.count == 2 else { return nil }
-        let base: UInt32 = 127397
-        let scalars = countryCode.uppercased().unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
-        guard scalars.count == 2 else { return nil }
-        return String(String.UnicodeScalarView(scalars))
+        guard let code = AVRadioCountry.sanitizedCode(countryCode) else { return nil }
+        return AVRadioCountry(code: code, name: code).flag
     }
 
     var tagsList: [String] {
@@ -151,6 +155,10 @@ extension Station {
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+    }
+
+    var normalizedTags: [String] {
+        tagsList
     }
 
     var technicalBadges: [String] {
@@ -195,5 +203,52 @@ extension Station {
             URLQueryItem(name: "domain_url", value: url.absoluteString)
         ]
         return components?.url
+    }
+
+    var resolvedHomepageURL: URL? {
+        guard let homepageURL = AVRadioText.normalizedValue(homepageURL) else {
+            return nil
+        }
+        return URL(string: homepageURL)
+    }
+
+    var shareText: String {
+        if let homepageURL = AVRadioText.normalizedValue(homepageURL) {
+            return "\(name)\n\(homepageURL)"
+        }
+
+        return "\(name)\n\(streamURL)"
+    }
+
+    func cardDetailText(
+        preferCountryName: Bool,
+        unknownValues: [String],
+        locale: Locale = .current
+    ) -> String? {
+        let normalizedLanguage = AVRadioText.normalizedValue(language, excluding: unknownValues, locale: locale)
+        let normalizedCountry = AVRadioText.normalizedValue(country, excluding: unknownValues, locale: locale)
+        let normalizedState = AVRadioText.normalizedValue(state, excluding: unknownValues, locale: locale)
+
+        if let normalizedLanguage {
+            return normalizedLanguage
+        }
+
+        if let normalizedState {
+            return normalizedState
+        }
+
+        if preferCountryName, let normalizedCountry {
+            return normalizedCountry
+        }
+
+        return normalizedCountry
+    }
+
+    func hasResolvedCountry(unknownCountryValues: [String], locale: Locale = .current) -> Bool {
+        if AVRadioCountry.sanitizedCode(countryCode) != nil {
+            return true
+        }
+
+        return AVRadioText.normalizedValue(country, excluding: unknownCountryValues, locale: locale) != nil
     }
 }

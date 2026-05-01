@@ -1,9 +1,6 @@
 import Foundation
 
-struct NowPlayingTrack: Equatable, Sendable {
-    let title: String
-    let artist: String?
-}
+typealias NowPlayingTrack = AVRadioNowPlayingTrack
 
 actor NowPlayingService {
     private let session: URLSession
@@ -13,118 +10,119 @@ actor NowPlayingService {
     }
 
     nonisolated func supports(_ station: Station) -> Bool {
-        URL(string: station.streamURL) != nil
+        provider(for: station) != nil
     }
 
     func fetchTrack(for station: Station) async -> NowPlayingTrack? {
-        guard let streamURL = URL(string: station.streamURL) else { return nil }
-
-        var request = URLRequest(url: streamURL)
-        request.timeoutInterval = 5
-        request.setValue("1", forHTTPHeaderField: "Icy-MetaData")
-        request.setValue("AVRadioMac/0.1", forHTTPHeaderField: "User-Agent")
+        guard let provider = provider(for: station) else { return nil }
 
         do {
-            return try await parseICYTrack(from: request)
+            return try await provider.fetchTrack(for: station, using: session)
         } catch {
             return nil
         }
     }
 
-    private func parseICYTrack(from request: URLRequest) async throws -> NowPlayingTrack? {
-        let (bytes, response) = try await session.bytes(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, 200..<400 ~= httpResponse.statusCode else {
-            return nil
+    private nonisolated func provider(for station: Station) -> Provider? {
+        if AVRadioEighties80sNowPlaying.supports(station) {
+            return .eighties80s
         }
 
-        guard let metadataInterval = metadataInterval(from: httpResponse), metadataInterval > 0 else {
-            return nil
+        if URL(string: station.streamURL) != nil {
+            return .icyStream
         }
 
-        var bytesUntilMetadata = metadataInterval
-        var totalBytesRead = 0
-        let maxBytesToRead = min(metadataInterval + 4096, 262_144)
-        var iterator = bytes.makeAsyncIterator()
+        return nil
+    }
+}
 
-        while let byte = try await iterator.next() {
-            if Task.isCancelled { return nil }
+private extension NowPlayingService {
+    enum Provider {
+        case eighties80s
+        case icyStream
 
-            totalBytesRead += 1
-            if totalBytesRead > maxBytesToRead { return nil }
+        func fetchTrack(for station: Station, using session: URLSession) async throws -> NowPlayingTrack? {
+            switch self {
+            case .eighties80s:
+                return try await fetch80s80sTrack(for: station, using: session)
+            case .icyStream:
+                return try await fetchICYTrack(for: station, using: session)
+            }
+        }
 
-            if bytesUntilMetadata > 0 {
-                bytesUntilMetadata -= 1
-                continue
+        private func fetchICYTrack(for station: Station, using session: URLSession) async throws -> NowPlayingTrack? {
+            guard let streamURL = URL(string: station.streamURL) else { return nil }
+
+            var request = URLRequest(url: streamURL)
+            request.timeoutInterval = 5
+            request.setValue("1", forHTTPHeaderField: "Icy-MetaData")
+            request.setValue("AVRadioMac/0.1", forHTTPHeaderField: "User-Agent")
+
+            return try await parseICYTrack(from: request, using: session)
+        }
+
+        private func parseICYTrack(from request: URLRequest, using session: URLSession) async throws -> NowPlayingTrack? {
+            let (bytes, response) = try await session.bytes(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, 200..<400 ~= httpResponse.statusCode else {
+                return nil
             }
 
-            let metadataLength = Int(byte) * 16
-            guard metadataLength > 0 else {
+            guard let metadataInterval = AVRadioNowPlayingMetadata.metadataInterval(from: httpResponse), metadataInterval > 0 else {
+                return nil
+            }
+
+            var bytesUntilMetadata = metadataInterval
+            var totalBytesRead = 0
+            let maxBytesToRead = min(metadataInterval + 4096, 262_144)
+            var iterator = bytes.makeAsyncIterator()
+
+            while let byte = try await iterator.next() {
+                if Task.isCancelled { return nil }
+
+                totalBytesRead += 1
+                if totalBytesRead > maxBytesToRead { return nil }
+
+                if bytesUntilMetadata > 0 {
+                    bytesUntilMetadata -= 1
+                    continue
+                }
+
+                let metadataLength = Int(byte) * 16
+                guard metadataLength > 0 else {
+                    bytesUntilMetadata = metadataInterval
+                    continue
+                }
+
+                var metadataBytes: [UInt8] = []
+                metadataBytes.reserveCapacity(metadataLength)
+                for _ in 0..<metadataLength {
+                    guard let metadataByte = try await iterator.next() else { return nil }
+                    metadataBytes.append(metadataByte)
+                }
+
+                if let track = AVRadioNowPlayingMetadata.parseICYMetadata(metadataBytes) {
+                    return track
+                }
+
                 bytesUntilMetadata = metadataInterval
-                continue
             }
 
-            var metadataBytes: [UInt8] = []
-            metadataBytes.reserveCapacity(metadataLength)
-            for _ in 0..<metadataLength {
-                guard let metadataByte = try await iterator.next() else { return nil }
-                metadataBytes.append(metadataByte)
-            }
-
-            if let track = parseICYMetadata(metadataBytes) {
-                return track
-            }
-
-            bytesUntilMetadata = metadataInterval
-        }
-
-        return nil
-    }
-
-    private func metadataInterval(from response: HTTPURLResponse) -> Int? {
-        for (key, value) in response.allHeaderFields {
-            if String(describing: key).caseInsensitiveCompare("icy-metaint") == .orderedSame {
-                return Int(String(describing: value))
-            }
-        }
-        return nil
-    }
-
-    private func parseICYMetadata(_ bytes: [UInt8]) -> NowPlayingTrack? {
-        let metadata = String(decoding: bytes, as: UTF8.self)
-            .trimmingCharacters(in: .controlCharacters.union(.whitespacesAndNewlines))
-            .replacingOccurrences(of: "\0", with: "")
-
-        guard let streamTitle = metadataValue(named: "StreamTitle", in: metadata), !streamTitle.isEmpty else {
             return nil
         }
 
-        for separator in [" - ", " – ", " — "] where streamTitle.contains(separator) {
-            let parts = streamTitle.components(separatedBy: separator)
-            guard parts.count >= 2 else { continue }
+        private func fetch80s80sTrack(for station: Station, using session: URLSession) async throws -> NowPlayingTrack? {
+            let requestURL = AVRadioEighties80sNowPlaying.resolvedURL(for: station) ?? AVRadioEighties80sNowPlaying.fallbackURL
+            var request = URLRequest(url: requestURL)
+            request.timeoutInterval = 10
+            request.setValue("AVRadioMac/0.1", forHTTPHeaderField: "User-Agent")
 
-            let artist = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
-            let title = parts.dropFirst().joined(separator: separator).trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !title.isEmpty else { continue }
-            return NowPlayingTrack(title: title, artist: artist.isEmpty ? nil : artist)
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
+                return nil
+            }
+
+            let html = String(decoding: data, as: UTF8.self)
+            return AVRadioEighties80sNowPlaying.parseTrack(for: station, from: html)
         }
-
-        return NowPlayingTrack(title: streamTitle, artist: nil)
-    }
-
-    private func metadataValue(named name: String, in metadata: String) -> String? {
-        let pattern = "\(name)='([^']*)'"
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
-            return nil
-        }
-
-        let nsRange = NSRange(metadata.startIndex..<metadata.endIndex, in: metadata)
-        guard
-            let match = regex.firstMatch(in: metadata, range: nsRange),
-            let valueRange = Range(match.range(at: 1), in: metadata)
-        else {
-            return nil
-        }
-
-        return String(metadata[valueRange]).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

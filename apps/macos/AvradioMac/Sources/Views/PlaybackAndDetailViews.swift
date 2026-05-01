@@ -144,13 +144,13 @@ struct MacNowPlayingView: View {
             Spacer()
 
             Button {
-                if let homepageURL = station.homepageURL, let url = URL(string: homepageURL) {
-                    openURL(url)
+                if let homepageURL = station.resolvedHomepageURL {
+                    openURL(homepageURL)
                 }
             } label: {
                 Label("Website", systemImage: "safari")
             }
-            .disabled(station.homepageURL == nil)
+            .disabled(station.resolvedHomepageURL == nil)
 
             Button("Done", action: dismiss.callAsFunction)
                 .keyboardShortcut(.cancelAction)
@@ -233,13 +233,13 @@ struct MacNowPlayingView: View {
                             }
 
                             Button {
-                                openExternalSearch(.youtubeSearch, baseURL: "https://www.youtube.com/results", queryItemName: "search_query")
+                                openExternalSearch(.youtubeSearch, destination: .youtube)
                             } label: {
                                 Label("YouTube", systemImage: "play.rectangle")
                             }
 
                             Button {
-                                openExternalSearch(.lyricsSearch, baseURL: "https://www.google.com/search", queryItemName: "q", suffix: "lyrics")
+                                openExternalSearch(.lyricsSearch, destination: .web, suffix: "lyrics")
                             } label: {
                                 Label("Lyrics", systemImage: "text.quote")
                             }
@@ -336,24 +336,25 @@ struct MacNowPlayingView: View {
         )
     }
 
-    private func openExternalSearch(_ feature: LimitedFeature, baseURL: String, queryItemName: String, suffix: String? = nil) {
+    private func openExternalSearch(
+        _ feature: LimitedFeature,
+        destination: AVRadioExternalSearchURL.Destination,
+        suffix: String? = nil
+    ) {
         guard libraryStore.useDailyFeatureIfAllowed(feature) else { return }
-        let query = [normalized(audioPlayer.currentTrackArtist), normalized(audioPlayer.currentTrackTitle), suffix]
-            .compactMap { $0 }
-            .joined(separator: " ")
+        let query = AVRadioExternalSearchURL.query(
+            parts: [audioPlayer.currentTrackArtist, audioPlayer.currentTrackTitle],
+            suffix: suffix
+        )
         guard !query.isEmpty else { return }
 
-        var components = URLComponents(string: baseURL)
-        components?.queryItems = [URLQueryItem(name: queryItemName, value: query)]
-        if let url = components?.url {
+        if let url = AVRadioExternalSearchURL.url(for: destination, query: query) {
             openURL(url)
         }
     }
 
     private func normalized(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        AVRadioText.normalizedValue(value)
     }
 }
 
@@ -418,9 +419,9 @@ struct StationDetailSheet: View {
                     }
                     .buttonStyle(.plain)
 
-                    if let homepageURL = station.homepageURL, let url = URL(string: homepageURL) {
+                    if let homepageURL = station.resolvedHomepageURL {
                         Button {
-                            openURL(url)
+                            openURL(homepageURL)
                         } label: {
                             Image(systemName: "arrow.up.right.square")
                                 .font(.system(size: 18, weight: .bold))

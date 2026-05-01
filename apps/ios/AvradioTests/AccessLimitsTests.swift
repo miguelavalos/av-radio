@@ -2,6 +2,26 @@ import XCTest
 @testable import Avradio
 
 final class AccessLimitsTests: XCTestCase {
+    func testAccessPolicyMatchesSharedContract() throws {
+        let contract = try loadAccessPolicyContract()
+        let expectedModes: [(mode: AccessMode, planTier: String)] = [
+            (.guest, "free"),
+            (.signedInFree, "free"),
+            (.signedInPro, "pro")
+        ]
+
+        XCTAssertEqual(contract.appId, "avradio")
+        XCTAssertEqual(contract.schemaVersion, 1)
+        XCTAssertEqual(Set(contract.accessModes.keys), Set(expectedModes.map { $0.mode.rawValue }))
+
+        for expectedMode in expectedModes {
+            let contractMode = try XCTUnwrap(contract.accessModes[expectedMode.mode.rawValue])
+            XCTAssertEqual(contractMode.planTier, expectedMode.planTier)
+            XCTAssertEqual(AccessCapabilities.forMode(expectedMode.mode), contractMode.capabilities.avradioValue)
+            XCTAssertEqual(AccessLimits.forMode(expectedMode.mode), contractMode.limits.avradioValue)
+        }
+    }
+
     func testGuestLimitsAllowSmallLocalPreviewOnly() {
         let limits = AccessLimits.forMode(.guest)
 
@@ -202,8 +222,76 @@ final class AccessLimitsTests: XCTestCase {
         return userDefaults
     }
 
+    private func loadAccessPolicyContract() throws -> AccessPolicyContract {
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let contractURL = testFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("shared/contracts/access-policy.json")
+        let data = try Data(contentsOf: contractURL)
+        return try JSONDecoder().decode(AccessPolicyContract.self, from: data)
+    }
+
     private func fixedDate(_ iso8601: String) -> Date {
         ISO8601DateFormatter().date(from: iso8601)!
+    }
+}
+
+private struct AccessPolicyContract: Decodable {
+    let appId: String
+    let schemaVersion: Int
+    let accessModes: [String: AccessPolicyModeContract]
+}
+
+private struct AccessPolicyModeContract: Decodable {
+    let planTier: String
+    let capabilities: AccessCapabilitiesContract
+    let limits: AccessLimitsContract
+}
+
+private struct AccessCapabilitiesContract: Decodable {
+    let isSignedIn: Bool
+    let canUseBackend: Bool
+    let canUsePremiumFeatures: Bool
+    let canUseCloudSync: Bool
+    let canManagePlan: Bool
+
+    var avradioValue: AccessCapabilities {
+        AccessCapabilities(
+            isSignedIn: isSignedIn,
+            canUseBackend: canUseBackend,
+            canAccessPremiumFeatures: canUsePremiumFeatures,
+            canUseCloudSync: canUseCloudSync,
+            canManagePlan: canManagePlan
+        )
+    }
+}
+
+private struct AccessLimitsContract: Decodable {
+    let favoriteStations: Int?
+    let recentStations: Int?
+    let discoveredTracks: Int?
+    let savedTracks: Int?
+    let lyricsSearchesPerDay: Int?
+    let youtubeSearchesPerDay: Int?
+    let appleMusicSearchesPerDay: Int?
+    let spotifySearchesPerDay: Int?
+    let discoverySharesPerDay: Int?
+
+    var avradioValue: AccessLimits {
+        AccessLimits(
+            favoriteStations: favoriteStations,
+            recentStations: recentStations,
+            discoveredTracks: discoveredTracks,
+            savedTracks: savedTracks,
+            lyricsSearchesPerDay: lyricsSearchesPerDay,
+            youtubeSearchesPerDay: youtubeSearchesPerDay,
+            appleMusicSearchesPerDay: appleMusicSearchesPerDay,
+            spotifySearchesPerDay: spotifySearchesPerDay,
+            discoverySharesPerDay: discoverySharesPerDay
+        )
     }
 }
 

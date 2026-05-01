@@ -239,26 +239,12 @@ enum HomeFeedContext {
     case popularInCountry(String)
 }
 
-struct CountryOption: Identifiable {
-    let code: String
-    let name: String
+typealias CountryOption = AVRadioCountry
 
-    var id: String { code }
-
-    var flag: String? {
-        guard code.count == 2 else { return nil }
-        let base: UInt32 = 127397
-        let scalars = code.uppercased().unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
-        guard scalars.count == 2 else { return nil }
-        return String(String.UnicodeScalarView(scalars))
+extension AVRadioCountry {
+    static var all: [AVRadioCountry] {
+        all(localizedName: name(for:))
     }
-
-    static let all: [CountryOption] = Locale.Region.isoRegions.compactMap { region in
-        let code = region.identifier.uppercased()
-        guard code.count == 2 else { return nil }
-        return CountryOption(code: code, name: Locale.current.localizedString(forRegionCode: code) ?? code)
-    }
-    .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
     static func name(for code: String) -> String {
         Locale.current.localizedString(forRegionCode: code) ?? code
@@ -383,12 +369,7 @@ struct SearchCountryPickerSheet: View {
     @State private var query = ""
 
     private var countryOptions: [CountryOption] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return CountryOption.all }
-        return CountryOption.all.filter {
-            $0.name.localizedCaseInsensitiveContains(trimmed) ||
-            $0.code.localizedCaseInsensitiveContains(trimmed)
-        }
+        CountryOption.filtered(CountryOption.all, query: query)
     }
 
     var body: some View {

@@ -21,7 +21,7 @@ struct AppShellView: View {
     @State private var homeIsLoading = false
     @State private var homeErrorMessage: String?
     @State private var homeFeedContext: HomeFeedContext = .popularWorldwide
-    @State private var homeSnapshot = HomeSnapshot()
+    @State private var homeSnapshot = HomeFeedSnapshot()
     @State private var selectedStationDetail: SelectedStationDetail?
     @State private var stationNowPlayingTracks: [String: NowPlayingTrack] = [:]
     @State private var stationNowPlayingCache: [String: CachedStationNowPlaying] = [:]
@@ -30,6 +30,22 @@ struct AppShellView: View {
     private let stationService = StationService()
     private let stationNowPlayingService = NowPlayingService()
     private let genreTags = ["rock", "pop", "jazz", "news", "electronic", "ambient"]
+
+    private var homeFeed: AppShellHomeFeed {
+        AppShellHomeFeed(
+            stationService: stationService,
+            localizedCountryName: L10n.countryName(for:),
+            resolvedDeviceCountryCode: resolvedDeviceCountryCode
+        )
+    }
+
+    private var appSearch: AppShellSearch {
+        AppShellSearch(
+            stationService: stationService,
+            resolvedDeviceCountryCode: resolvedDeviceCountryCode,
+            hasResolvedCountry: hasResolvedCountry(_:)
+        )
+    }
 
     init(
         launchContext: LaunchContext = .current,
@@ -220,7 +236,11 @@ struct AppShellView: View {
     }
 
     private var searchRequestKey: String {
-        "\(searchQuery.trimmingCharacters(in: .whitespacesAndNewlines))|\(searchTag ?? "")|\(searchCountryCode ?? "")"
+        searchRequest.key
+    }
+
+    private var searchRequest: AppShellSearchRequest {
+        AppShellSearchRequest(query: searchQuery, tag: searchTag, countryCode: searchCountryCode)
     }
 
     private var shellScrollBottomPadding: CGFloat {
@@ -332,9 +352,7 @@ struct AppShellView: View {
     }
 
     private func normalizedTrackValue(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        AVRadioText.normalizedValue(value)
     }
 
     private func bootstrapIfNeeded() async {
@@ -491,20 +509,9 @@ struct AppShellView: View {
         }
 
         do {
-            let regionCode = resolvedDeviceCountryCode()
-            let regionalStations = try await stationService.searchStations(
-                filters: .init(query: "", countryCode: regionCode ?? "", limit: 8, allowsEmptySearch: regionCode == nil ? false : true)
-            )
-            let globalStations = try await stationService.searchStations(
-                filters: .init(query: "", limit: 8, allowsEmptySearch: true)
-            )
-
-            homeStations = mergeUniqueStations(primary: regionalStations, secondary: globalStations, limit: 8)
-            if let regionCode, !regionalStations.isEmpty {
-                homeFeedContext = .popularInCountry(localizedCountryName(for: regionCode))
-            } else {
-                homeFeedContext = .popularWorldwide
-            }
+            let feed = try await homeFeed.load()
+            homeStations = feed.stations
+            homeFeedContext = feed.context
             refreshHomePresentation()
             homeIsLoading = false
         } catch is CancellationError {
@@ -519,7 +526,7 @@ struct AppShellView: View {
     }
 
     private func refreshHomePresentation() {
-        homeSnapshot = HomeSnapshot(
+        homeSnapshot = HomeFeedSnapshot(
             stations: homeStations,
             recentStations: recentStations,
             favoriteStations: favoriteStations,
@@ -533,20 +540,14 @@ struct AppShellView: View {
     }
 
     private func loadSearchResults() async {
-        let queryText = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        let tagText = searchTag?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let countryCode = searchCountryCode?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let requestKey = "\(queryText)|\(tagText ?? "")|\(countryCode ?? "")"
+        let request = searchRequest
+        let requestKey = request.key
 
         searchIsLoading = true
         searchErrorMessage = nil
 
         if launchContext.isUITesting && launchContext.shouldUseLocalUITestSearch {
-            let results = localUITestSearchResults(
-                queryText: queryText,
-                tagText: tagText,
-                countryCode: countryCode
-            )
+            let results = AppShellSearch.localUITestSearchResults(request: request)
             searchResults = results
             searchErrorMessage = nil
             searchIsLoading = false
@@ -557,21 +558,11 @@ struct AppShellView: View {
             try await Task.sleep(for: .milliseconds(300))
             try Task.checkCancellation()
 
-            let results: [Station]
-
-            if queryText.isEmpty && (countryCode?.isEmpty != false) {
-                results = try await loadWorldwideDiscoveryStations(limit: 12, tag: tagText)
-            } else {
-                results = try await stationService.searchStations(
-                    filters: .init(
-                        query: queryText,
-                        countryCode: countryCode ?? "",
-                        tag: tagText ?? "",
-                        limit: queryText.isEmpty ? 12 : 24,
-                        allowsEmptySearch: queryText.isEmpty
-                    )
-                )
-            }
+            let results = try await appSearch.load(
+                request: request,
+                recentStations: recentStations,
+                favoriteStations: favoriteStations
+            )
             guard requestKey == searchRequestKey else { return }
 
             searchResults = results
@@ -588,140 +579,24 @@ struct AppShellView: View {
         }
     }
 
-    private func localUITestSearchResults(
-        queryText: String,
-        tagText: String?,
-        countryCode: String?
-    ) -> [Station] {
-        Station.samples.filter { station in
-            let matchesQuery =
-                queryText.isEmpty
-                || station.name.localizedCaseInsensitiveContains(queryText)
-                || station.country.localizedCaseInsensitiveContains(queryText)
-                || station.tags.localizedCaseInsensitiveContains(queryText)
-
-            let matchesTag =
-                tagText?.isEmpty != false
-                || station.tags.localizedCaseInsensitiveContains(tagText ?? "")
-
-            let matchesCountry =
-                countryCode?.isEmpty != false
-                || station.countryCode?.caseInsensitiveCompare(countryCode ?? "") == .orderedSame
-
-            return matchesQuery && matchesTag && matchesCountry
-        }
-    }
-
     private var defaultEditorialStations: [Station] {
-        var seen = Set<String>()
-        let candidates =
-            [audioPlayer.currentStation].compactMap { $0 } +
-            recentStations +
-            favoriteStations +
-            Station.samples
-
-        return candidates.filter { station in
-            seen.insert(station.id).inserted
-        }
+        AppShellHomeFeed.defaultEditorialStations(
+            currentStation: audioPlayer.currentStation,
+            recentStations: recentStations,
+            favoriteStations: favoriteStations
+        )
     }
 
     private func resolvedDeviceCountryCode() -> String? {
-        let code = Locale.autoupdatingCurrent.region?.identifier ?? Locale.current.region?.identifier
-        guard let code, !code.isEmpty else { return nil }
-        return code.uppercased()
-    }
-
-    private func localizedCountryName(for countryCode: String) -> String {
-        L10n.countryName(for: countryCode)
-    }
-
-    private func mergeUniqueStations(primary: [Station], secondary: [Station], limit: Int) -> [Station] {
-        var seen = Set<String>()
-        var merged: [Station] = []
-
-        for station in primary + secondary {
-            guard seen.insert(station.id).inserted else { continue }
-            merged.append(station)
-            if merged.count == limit {
-                break
-            }
-        }
-
-        return merged
-    }
-
-    private func loadWorldwideDiscoveryStations(limit: Int, tag: String? = nil) async throws -> [Station] {
-        let seedCountryCodes =
-            [resolvedDeviceCountryCode()] +
-            recentStations.compactMap(\.countryCode) +
-            favoriteStations.compactMap(\.countryCode) +
-            ["US", "GB", "DE", "FR", "IT", "ES", "NL", "CA", "AU", "BR", "MX", "AR"]
-
-        var orderedCodes: [String] = []
-        var seenCodes = Set<String>()
-        for code in seedCountryCodes.compactMap(CountryOption.sanitizedCode) where seenCodes.insert(code).inserted {
-            orderedCodes.append(code)
-        }
-
-        var merged: [Station] = []
-        for code in orderedCodes {
-            let stations = try await stationService.searchStations(
-                filters: .init(
-                    query: "",
-                    countryCode: code,
-                    tag: tag ?? "",
-                    limit: tag == nil ? 4 : 6,
-                    allowsEmptySearch: true
-                )
-            )
-            merged = mergeUniqueStations(
-                primary: merged,
-                secondary: stations.filter(hasResolvedCountry),
-                limit: limit
-            )
-
-            if merged.count >= limit {
-                break
-            }
-        }
-
-        return Array(merged.prefix(limit))
+        AppShellHomeFeed.resolvedDeviceCountryCode()
     }
 
     private func hasResolvedCountry(_ station: Station) -> Bool {
-        if CountryOption.sanitizedCode(station.countryCode) != nil {
-            return true
-        }
-
-        let country = station.country.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !country.isEmpty else { return false }
-
-        let normalizedCountry = country
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-            .lowercased()
-        let unknownCountryTokens = [
-            L10n.string("stationService.fallback.unknownCountry"),
-            "Unknown country",
-            "País desconocido",
-            "País desconegut",
-            "Pays inconnu",
-            "Unbekanntes Land"
-        ]
-        .map {
-            $0
-                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-                .lowercased()
-        }
-
-        return !unknownCountryTokens.contains(normalizedCountry)
+        station.hasResolvedCountry(
+            unknownCountryValues: Station.unknownCountryValues,
+            locale: L10n.locale
+        )
     }
-}
-
-private struct HomeSnapshot {
-    var stations: [Station] = []
-    var recentStations: [Station] = []
-    var favoriteStations: [Station] = []
-    var feedContext: HomeFeedContext = .popularWorldwide
 }
 
 private struct CachedStationNowPlaying {
@@ -741,11 +616,6 @@ private struct SelectedStationDetail: Identifiable {
     var id: String {
         station.id
     }
-}
-
-private enum HomeFeedContext: Equatable {
-    case popularInCountry(String)
-    case popularWorldwide
 }
 
 private enum AppShellTab: Equatable {
@@ -1137,27 +1007,7 @@ private struct HomeScreen: View {
     }
 
     private func cleanedFeaturedDetail(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-
-        let normalized = trimmed
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
-            .lowercased()
-
-        let blocked = [
-            L10n.string("stationService.fallback.unknownCountry"),
-            L10n.string("stationService.fallback.unknownLanguage"),
-            "Unknown country",
-            "Unknown language"
-        ]
-        .map {
-            $0
-                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
-                .lowercased()
-        }
-
-        return blocked.contains(normalized) ? nil : trimmed
+        AVRadioText.normalizedValue(value, excluding: Station.unknownDetailValues, locale: L10n.locale)
     }
 
     private var hasPersonalActivity: Bool {
@@ -1783,37 +1633,21 @@ private struct MusicScreen: View {
         let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
         guard useDailyFeatureIfAllowed(feature) else { return }
 
-        var components = URLComponents(string: youtube ? "https://www.youtube.com/results" : "https://www.google.com/search")
-        components?.queryItems = [
-            URLQueryItem(name: youtube ? "search_query" : "q", value: artistName)
-        ]
-
-        guard let url = components?.url else { return }
+        guard let url = AVRadioExternalSearchURL.web(query: artistName, youtube: youtube) else { return }
         browserDestination = BrowserDestination(url: url)
     }
 
     private func openAppleMusicArtistSearch(_ artistName: String) {
         guard useDailyFeatureIfAllowed(.appleMusicSearch) else { return }
 
-        var components = URLComponents(string: "https://music.apple.com/search")
-        components?.queryItems = [
-            URLQueryItem(name: "term", value: artistName)
-        ]
-
-        guard let url = components?.url else { return }
+        guard let url = AVRadioExternalSearchURL.appleMusic(query: artistName) else { return }
         openURL(url)
     }
 
     private func openSpotifyArtistSearch(_ artistName: String) {
         guard useDailyFeatureIfAllowed(.spotifySearch) else { return }
 
-        guard
-            let encodedQuery = artistName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-            let url = URL(string: "https://open.spotify.com/search/\(encodedQuery)")
-        else {
-            return
-        }
-
+        guard let url = AVRadioExternalSearchURL.spotify(query: artistName) else { return }
         openURL(url)
     }
 
@@ -1911,11 +1745,11 @@ private struct MusicScreen: View {
     }
 
     private var savedDiscoveries: [DiscoveredTrack] {
-        visibleDiscoveries.filter(\.isMarkedInteresting)
+        AppShellMusicLibrary.savedDiscoveries(discoveries)
     }
 
     private var visibleDiscoveries: [DiscoveredTrack] {
-        discoveries.filter { !$0.isHidden }
+        AppShellMusicLibrary.visibleDiscoveries(discoveries)
     }
 
     private var musicStatusTitle: String {
@@ -1941,102 +1775,31 @@ private struct MusicScreen: View {
     }
 
     private var filteredDiscoveries: [DiscoveredTrack] {
-        let baseDiscoveries = visibleDiscoveries.filter { discovery in
-            switch musicMode {
-            case .songs, .artists:
-                return discovery.isMarkedInteresting
-            case .history:
-                return true
-            }
-        }
-
-        let artistFilteredDiscoveries: [DiscoveredTrack]
-        if let selectedArtistName {
-            artistFilteredDiscoveries = baseDiscoveries.filter {
-                $0.artistDisplayText.compare(selectedArtistName, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
-            }
-        } else {
-            artistFilteredDiscoveries = baseDiscoveries
-        }
-
-        guard !trimmedQuery.isEmpty else { return baseDiscoveries }
-
-        return artistFilteredDiscoveries.filter { discovery in
-            discovery.title.localizedCaseInsensitiveContains(trimmedQuery) ||
-            discovery.artist?.localizedCaseInsensitiveContains(trimmedQuery) == true ||
-            discovery.stationName.localizedCaseInsensitiveContains(trimmedQuery)
-        }
+        AppShellMusicLibrary.filteredDiscoveries(
+            discoveries,
+            mode: musicMode,
+            query: query,
+            selectedArtistName: selectedArtistName
+        )
     }
 
     private var filteredArtistSummaries: [DiscoveryArtistSummary] {
-        let savedDiscoveries = visibleDiscoveries.filter { discovery in
-            switch musicMode {
-            case .songs, .artists:
-                return discovery.isMarkedInteresting
-            case .history:
-                return false
-            }
-        }
-        let matchingDiscoveries = trimmedQuery.isEmpty ? savedDiscoveries : savedDiscoveries.filter { discovery in
-            discovery.artist?.localizedCaseInsensitiveContains(trimmedQuery) == true ||
-            discovery.title.localizedCaseInsensitiveContains(trimmedQuery)
-        }
-
-        let grouped = Dictionary(grouping: matchingDiscoveries) { discovery in
-            discovery.artistDisplayText
-        }
-
-        return grouped
-            .map { artist, discoveries in
-                DiscoveryArtistSummary(
-                    name: artist,
-                    trackCount: discoveries.count,
-                    artworkURL: discoveries.compactMap(\.resolvedArtworkURL).first
-                )
-            }
-            .sorted { first, second in
-                if first.trackCount == second.trackCount {
-                    return first.name.localizedCaseInsensitiveCompare(second.name) == .orderedAscending
-                }
-
-                return first.trackCount > second.trackCount
-            }
+        AppShellMusicLibrary.filteredArtistSummaries(
+            discoveries,
+            mode: musicMode,
+            query: query
+        )
     }
 
     private var visibleArtistSummaries: [DiscoveryArtistSummary] {
-        let grouped = Dictionary(grouping: visibleDiscoveries.filter(\.isMarkedInteresting)) { discovery in
-            discovery.artistDisplayText
-        }
-
-        return grouped
-            .map { artist, discoveries in
-                DiscoveryArtistSummary(
-                    name: artist,
-                    trackCount: discoveries.count,
-                    artworkURL: discoveries.compactMap(\.resolvedArtworkURL).first
-                )
-            }
-            .sorted { first, second in
-                if first.trackCount == second.trackCount {
-                    return first.name.localizedCaseInsensitiveCompare(second.name) == .orderedAscending
-                }
-
-                return first.trackCount > second.trackCount
-            }
+        AppShellMusicLibrary.visibleArtistSummaries(discoveries)
     }
 
     private var discoveriesShareText: String {
-        let lines = filteredDiscoveries.map { discovery in
-            [
-                discovery.artistDisplayText,
-                discovery.title,
-                discovery.stationName
-            ]
-            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            .joined(separator: " - ")
-        }
-
-        return ([L10n.string("shell.library.discoveries.shareTitle")] + lines).joined(separator: "\n")
+        AppShellMusicLibrary.shareText(
+            title: L10n.string("shell.library.discoveries.shareTitle"),
+            discoveries: filteredDiscoveries
+        )
     }
 
     private var emptyDiscoveryTitle: String {
@@ -2078,11 +1841,7 @@ private struct MusicScreen: View {
     }
 
     private func normalizeInitialDiscoveryFilter() {
-        guard musicMode == .songs, savedDiscoveries.isEmpty, !visibleDiscoveries.isEmpty else {
-            return
-        }
-
-        musicMode = .history
+        musicMode = AppShellMusicLibrary.normalizedInitialMode(musicMode, discoveries: discoveries)
     }
 
     private func hideDiscoveryWithUndo(_ discovery: DiscoveredTrack) {
@@ -2096,42 +1855,22 @@ private struct MusicScreen: View {
         let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
         guard useDailyFeatureIfAllowed(feature) else { return }
 
-        var query = discovery.searchQuery
-        if let suffix {
-            query += " \(suffix)"
-        }
-
-        var components = URLComponents(string: youtube ? "https://www.youtube.com/results" : "https://www.google.com/search")
-        components?.queryItems = [
-            URLQueryItem(name: youtube ? "search_query" : "q", value: query)
-        ]
-
-        guard let url = components?.url else { return }
+        let query = AVRadioExternalSearchURL.query(parts: [discovery.searchQuery], suffix: suffix)
+        guard let url = AVRadioExternalSearchURL.web(query: query, youtube: youtube) else { return }
         browserDestination = BrowserDestination(url: url)
     }
 
     private func openAppleMusicSearch(_ discovery: DiscoveredTrack) {
         guard useDailyFeatureIfAllowed(.appleMusicSearch) else { return }
 
-        var components = URLComponents(string: "https://music.apple.com/search")
-        components?.queryItems = [
-            URLQueryItem(name: "term", value: discovery.searchQuery)
-        ]
-
-        guard let url = components?.url else { return }
+        guard let url = AVRadioExternalSearchURL.appleMusic(query: discovery.searchQuery) else { return }
         openURL(url)
     }
 
     private func openSpotifySearch(_ discovery: DiscoveredTrack) {
         guard useDailyFeatureIfAllowed(.spotifySearch) else { return }
 
-        guard
-            let encodedQuery = discovery.searchQuery.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-            let url = URL(string: "https://open.spotify.com/search/\(encodedQuery)")
-        else {
-            return
-        }
-
+        guard let url = AVRadioExternalSearchURL.spotify(query: discovery.searchQuery) else { return }
         openURL(url)
     }
 
@@ -2143,46 +1882,6 @@ private struct MusicScreen: View {
 
         accessController.recordDailyFeatureUse(feature)
         return true
-    }
-}
-
-private enum MusicLibraryMode: String, CaseIterable, Identifiable {
-    case songs
-    case artists
-    case history
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .songs:
-            return L10n.string("shell.music.mode.songs")
-        case .artists:
-            return L10n.string("shell.music.mode.artists")
-        case .history:
-            return L10n.string("shell.music.mode.history")
-        }
-    }
-
-    var songsTitle: String {
-        switch self {
-        case .songs, .artists:
-            return L10n.string("shell.library.discoveries.songs.savedTitle")
-        case .history:
-            return L10n.string("shell.library.discoveries.songs.historyTitle")
-        }
-    }
-}
-
-private struct DiscoveryArtistSummary: Identifiable {
-    let name: String
-    let trackCount: Int
-    let artworkURL: URL?
-
-    var id: String {
-        name
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
-            .lowercased()
     }
 }
 
@@ -2346,9 +2045,7 @@ private struct MiniPlayerView: View {
     }
 
     private func normalizedMetadata(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        AVRadioText.normalizedValue(value)
     }
 }
 
@@ -2822,7 +2519,7 @@ private struct EmptyLiveArtwork: View {
                         .frame(width: size * 0.62, height: size * 0.62)
 
                     HStack(alignment: .bottom, spacing: size * 0.05) {
-                        ForEach([0.28, 0.46, 0.74, 0.46, 0.28], id: \.self) { scale in
+                        ForEach(Array([0.28, 0.46, 0.74, 0.46, 0.28].enumerated()), id: \.offset) { _, scale in
                             Capsule(style: .continuous)
                                 .fill(
                                     LinearGradient(
@@ -3029,13 +2726,7 @@ private struct SearchCountryPickerSheet: View {
     @State private var query = ""
 
     private var countryOptions: [CountryOption] {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else { return CountryOption.all }
-
-        return CountryOption.all.filter { option in
-            option.name.localizedCaseInsensitiveContains(trimmedQuery) ||
-                option.code.localizedCaseInsensitiveContains(trimmedQuery)
-        }
+        CountryOption.filtered(CountryOption.all, query: query)
     }
 
     private var suggestedCountries: [CountryOption] {
@@ -3214,38 +2905,12 @@ private struct CountryRow: View {
     }
 }
 
-private struct CountryOption: Identifiable {
-    let code: String
-    let name: String
+private typealias CountryOption = AVRadioCountry
 
-    var id: String { code }
-
-    private static let excludedRegionCodes: Set<String> = [
-        "AC", "CP", "CQ", "DG", "EA", "EU", "EZ", "IC", "QO", "TA", "UN"
-    ]
-
-    static func sanitizedCode(_ rawValue: String?) -> String? {
-        guard let rawValue else { return nil }
-        let code = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard code.count == 2 else { return nil }
-        guard code.unicodeScalars.allSatisfy({ CharacterSet.uppercaseLetters.contains($0) }) else { return nil }
-        guard !excludedRegionCodes.contains(code) else { return nil }
-        return code
+private extension AVRadioCountry {
+    static var all: [AVRadioCountry] {
+        all(localizedName: L10n.countryName(for:))
     }
-
-    var flag: String? {
-        guard code.count == 2 else { return nil }
-        let base: UInt32 = 127397
-        let scalars = code.uppercased().unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
-        guard scalars.count == 2 else { return nil }
-        return String(String.UnicodeScalarView(scalars))
-    }
-
-    static let all: [CountryOption] = Locale.Region.isoRegions.compactMap { region in
-        guard let code = sanitizedCode(region.identifier) else { return nil }
-        return CountryOption(code: code, name: L10n.countryName(for: code))
-    }
-    .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 }
 
 private struct FeaturedStationCard: View {
@@ -3548,9 +3213,7 @@ private struct StationCompactCard: View {
     }
 
     private func normalizedMetadata(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        AVRadioText.normalizedValue(value)
     }
 }
 
@@ -3695,8 +3358,7 @@ private struct StationDetailSheet: View {
     }
 
     private var homepageURL: URL? {
-        guard let homepage = station.homepageURL else { return nil }
-        return URL(string: homepage)
+        station.resolvedHomepageURL
     }
 
     private var homepageHost: String? {

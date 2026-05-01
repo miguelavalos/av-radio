@@ -586,7 +586,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
             let identifier = event.identifier
 
             if commonKey == "title" || identifier.contains("title") || identifier.contains("streamtitle") {
-                let parsed = parseTrackMetadata(value)
+                let parsed = AVRadioTrackMetadataParser.parse(value)
                 resolvedTitle = parsed.title ?? resolvedTitle
                 resolvedArtist = parsed.artist ?? resolvedArtist
                 if parsed.title != nil || parsed.artist != nil {
@@ -596,7 +596,7 @@ final class AudioPlayerService: NSObject, ObservableObject {
             }
 
             if commonKey == "artist" || identifier.contains("artist") {
-                if let sanitizedArtist = sanitizeTrackArtist(value) {
+                if let sanitizedArtist = AVRadioTrackMetadataParser.sanitizeArtist(value) {
                     resolvedArtist = sanitizedArtist
                     resolvedFromStream = true
                 }
@@ -641,8 +641,8 @@ final class AudioPlayerService: NSObject, ObservableObject {
         guard currentStation?.id == station.id else { return }
         guard currentTrackSource != .stream else { return }
 
-        let normalizedArtist = sanitizeTrackArtist(track.artist)
-        guard let normalizedTitle = sanitizeTrackTitle(track.title, artist: normalizedArtist) else { return }
+        let normalizedArtist = AVRadioTrackMetadataParser.sanitizeArtist(track.artist)
+        guard let normalizedTitle = AVRadioTrackMetadataParser.sanitizeTitle(track.title, artist: normalizedArtist) else { return }
 
         if currentTrackTitle == normalizedTitle && currentTrackArtist == normalizedArtist {
             return
@@ -747,8 +747,8 @@ final class AudioPlayerService: NSObject, ObservableObject {
     private func restoreCachedNowPlaying(for station: Station) {
         guard let cachedState = cachedNowPlayingByStationID[station.id] else { return }
 
-        let sanitizedArtist = sanitizeTrackArtist(cachedState.artist)
-        let sanitizedTitle = sanitizeTrackTitle(cachedState.title, artist: sanitizedArtist)
+        let sanitizedArtist = AVRadioTrackMetadataParser.sanitizeArtist(cachedState.artist)
+        let sanitizedTitle = AVRadioTrackMetadataParser.sanitizeTitle(cachedState.title, artist: sanitizedArtist)
 
         currentTrackTitle = sanitizedTitle
         currentTrackArtist = sanitizedArtist
@@ -757,86 +757,9 @@ final class AudioPlayerService: NSObject, ObservableObject {
         currentTrackSource = sanitizedTitle != nil || sanitizedArtist != nil ? .cached : nil
     }
 
-    private func parseTrackMetadata(_ rawValue: String) -> (title: String?, artist: String?) {
-        let cleaned = rawValue
-            .replacingOccurrences(of: "StreamTitle=", with: "")
-            .trimmingCharacters(in: CharacterSet(charactersIn: "'; ").union(.whitespacesAndNewlines))
-
-        if cleaned.contains(" - ") {
-            let parts = cleaned.split(separator: "-", maxSplits: 1).map {
-                $0.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-
-            if parts.count == 2 {
-                let artist = sanitizeTrackArtist(String(parts[0]))
-                let title = sanitizeTrackTitle(String(parts[1]), artist: artist)
-                return (title: title, artist: artist)
-            }
-        }
-
-        return (title: sanitizeTrackTitle(cleaned, artist: nil), artist: nil)
-    }
-
-    private func sanitizeTrackTitle(_ rawValue: String?, artist: String?) -> String? {
-        guard var value = sanitizeMetadataField(rawValue) else { return nil }
-
-        value = value.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-
-        if containsLetters(value) {
-            return value
-        }
-
-        if isNumericOnlyMetadata(value) {
-            let digits = value.filter(\.isNumber).count
-
-            // Large numeric-only metadata values are typically IDs, not song titles.
-            if digits > 4 {
-                return nil
-            }
-
-            // Short numeric titles can be legitimate, but not without a plausible artist.
-            return artist == nil ? nil : value
-        }
-
-        return nil
-    }
-
     private nonisolated static func makeNowPlayingArtwork(from image: UIImage) -> MPMediaItemArtwork {
         let boundsSize = image.size
         return MPMediaItemArtwork(boundsSize: boundsSize) { _ in image }
-    }
-
-    private func sanitizeTrackArtist(_ rawValue: String?) -> String? {
-        guard var value = sanitizeMetadataField(rawValue) else { return nil }
-
-        value = value.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-
-        return containsLetters(value) ? value : nil
-    }
-
-    private func sanitizeMetadataField(_ rawValue: String?) -> String? {
-        guard let rawValue else { return nil }
-
-        let trimmed = rawValue
-            .trimmingCharacters(in: CharacterSet(charactersIn: "'; ").union(.whitespacesAndNewlines))
-
-        guard !trimmed.isEmpty else { return nil }
-
-        let lowered = trimmed.lowercased()
-        let blockedValues: Set<String> = ["unknown", "n/a", "na", "null", "nil", "-", "--"]
-        guard !blockedValues.contains(lowered) else { return nil }
-
-        return trimmed
-    }
-
-    private func containsLetters(_ value: String) -> Bool {
-        value.unicodeScalars.contains { CharacterSet.letters.contains($0) }
-    }
-
-    private func isNumericOnlyMetadata(_ value: String) -> Bool {
-        let filtered = value.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }
-        guard !filtered.isEmpty else { return false }
-        return filtered.allSatisfy { CharacterSet.decimalDigits.contains($0) }
     }
 
     private func configureRemoteCommands() {
@@ -922,26 +845,37 @@ private final class StreamMetadataDelegate: NSObject, AVPlayerItemMetadataOutput
         didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup],
         from track: AVPlayerItemTrack?
     ) {
-        let items = groups.flatMap(\.items)
-        guard !items.isEmpty else { return }
+        let metadataItems = MetadataItemsBox(groups.flatMap(\.items))
+        guard !metadataItems.items.isEmpty else { return }
 
-        var events: [AudioPlayerService.StreamMetadataEvent] = []
-        events.reserveCapacity(items.count)
+        Task { [handler, metadataItems] in
+            var events: [AudioPlayerService.StreamMetadataEvent] = []
+            events.reserveCapacity(metadataItems.items.count)
 
-        for item in items {
-            let value = item.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let value, !value.isEmpty else { continue }
+            for item in metadataItems.items {
+                let value = try? await item.load(.stringValue)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                guard let value, !value.isEmpty else { continue }
 
-            events.append(
-                AudioPlayerService.StreamMetadataEvent(
-                    value: value,
-                    commonKey: item.commonKey?.rawValue.lowercased() ?? "",
-                    identifier: item.identifier?.rawValue.lowercased() ?? ""
+                events.append(
+                    AudioPlayerService.StreamMetadataEvent(
+                        value: value,
+                        commonKey: item.commonKey?.rawValue.lowercased() ?? "",
+                        identifier: item.identifier?.rawValue.lowercased() ?? ""
+                    )
                 )
-            )
-        }
+            }
 
-        guard !events.isEmpty else { return }
-        Task { await handler(events) }
+            guard !events.isEmpty else { return }
+            await handler(events)
+        }
+    }
+}
+
+private final class MetadataItemsBox: @unchecked Sendable {
+    let items: [AVMetadataItem]
+
+    init(_ items: [AVMetadataItem]) {
+        self.items = items
     }
 }

@@ -23,11 +23,11 @@ struct DiscoveredTrack: Identifiable, Hashable, Codable {
         markedInterestedAt: Date? = nil,
         hiddenAt: Date? = nil
     ) {
-        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedArtist = artist?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedTitle = AVRadioDiscoveredTrackSupport.normalizedValue(title) ?? title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedArtist = AVRadioDiscoveredTrackSupport.normalizedValue(artist)
         self.discoveryID = Self.makeID(title: normalizedTitle, artist: normalizedArtist, stationID: station.id)
         self.title = normalizedTitle
-        self.artist = normalizedArtist?.isEmpty == true ? nil : normalizedArtist
+        self.artist = normalizedArtist
         self.stationID = station.id
         self.stationName = station.name
         self.artworkURL = artworkURL?.absoluteString
@@ -57,33 +57,18 @@ struct DiscoveredTrack: Identifiable, Hashable, Codable {
     }
 
     var resolvedArtworkURL: URL? {
-        guard let artworkURL else { return nil }
-        return URL(string: artworkURL)
+        AVRadioDiscoveredTrackSupport.resolvedURL(artworkURL)
     }
 
     var resolvedStationArtworkURL: URL? {
-        guard let stationArtworkURL else { return nil }
-        return URL(string: stationArtworkURL)
+        AVRadioDiscoveredTrackSupport.resolvedURL(stationArtworkURL)
     }
 
     private var artistNormalized: String? {
-        guard let artist else { return nil }
-        let trimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        AVRadioDiscoveredTrackSupport.normalizedValue(artist)
     }
 
     static func makeID(title: String, artist: String?, stationID: String) -> String {
-        let rawValue = "\(artist ?? "")|\(title)|\(stationID)"
-        return rawValue
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-            .lowercased()
-            .unicodeScalars
-            .map { CharacterSet.alphanumerics.contains($0) ? Character($0) : "-" }
-            .reduce(into: "") { result, character in
-                if character != "-" || result.last != "-" {
-                    result.append(character)
-                }
-            }
-            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        AVRadioDiscoveredTrackSupport.makeID(title: title, artist: artist, stationID: stationID)
     }
 }

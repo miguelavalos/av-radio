@@ -156,8 +156,8 @@ struct NowPlayingView: View {
             discoveryShareText: discoveryShareText(for: station),
             onSaveDiscovery: { saveCurrentDiscovery(for: station) },
             onShareDiscovery: { useDailyFeatureIfAllowed(.discoveryShare) },
-            onOpenYouTube: { openExternalSearch(.youtubeSearch, baseURL: "https://www.youtube.com/results", queryItemName: "search_query") },
-            onOpenLyrics: { openExternalSearch(.lyricsSearch, baseURL: "https://www.google.com/search", queryItemName: "q", suffix: "lyrics") },
+            onOpenYouTube: { openExternalSearch(.youtubeSearch, destination: .youtube) },
+            onOpenLyrics: { openExternalSearch(.lyricsSearch, destination: .web, suffix: "lyrics") },
             onTogglePlayback: audioPlayer.togglePlayback,
             onToggleFavorite: { toggleFavorite(station) },
             onOpenWebsite: { url in openURL(url) }
@@ -441,7 +441,7 @@ struct NowPlayingView: View {
                 openStationSearch(for: station)
             }
 
-            ShareLink(item: stationShareText(for: station)) {
+            ShareLink(item: station.shareText) {
                 Text(L10n.string("player.menu.shareStation"))
             }
 
@@ -634,7 +634,7 @@ struct NowPlayingView: View {
     }
 
     private func stationMetaLine(for station: Station) -> String {
-        if normalizedMetadata(audioPlayer.currentTrackTitle) != nil {
+        if AVRadioText.normalizedValue(audioPlayer.currentTrackTitle) != nil {
             return station.name
         }
 
@@ -643,7 +643,7 @@ struct NowPlayingView: View {
     }
 
     private func trackTitleLine(for station: Station) -> String {
-        if let title = normalizedMetadata(audioPlayer.currentTrackTitle) {
+        if let title = AVRadioText.normalizedValue(audioPlayer.currentTrackTitle) {
             return title
         }
 
@@ -651,11 +651,11 @@ struct NowPlayingView: View {
     }
 
     private func trackSupportingLine(for station: Station) -> String {
-        if let artist = normalizedMetadata(audioPlayer.currentTrackArtist) {
+        if let artist = AVRadioText.normalizedValue(audioPlayer.currentTrackArtist) {
             return artist
         }
 
-        if let albumTitle = normalizedMetadata(audioPlayer.currentTrackAlbumTitle) {
+        if let albumTitle = AVRadioText.normalizedValue(audioPlayer.currentTrackAlbumTitle) {
             return albumTitle
         }
 
@@ -668,8 +668,8 @@ struct NowPlayingView: View {
     }
 
     private var hasDiscoverableTrack: Bool {
-        normalizedMetadata(audioPlayer.currentTrackTitle) != nil
-            && normalizedMetadata(audioPlayer.currentTrackArtist) != nil
+        AVRadioText.normalizedValue(audioPlayer.currentTrackTitle) != nil
+            && AVRadioText.normalizedValue(audioPlayer.currentTrackArtist) != nil
     }
 
     private var isCurrentTrackSaved: Bool {
@@ -693,8 +693,7 @@ struct NowPlayingView: View {
     }
 
     private var homepageURL: URL? {
-        guard let homepage = audioPlayer.currentStation?.homepageURL else { return nil }
-        return URL(string: homepage)
+        audioPlayer.currentStation?.resolvedHomepageURL
     }
 
     private func saveCurrentDiscovery(for station: Station) {
@@ -721,19 +720,18 @@ struct NowPlayingView: View {
         )
     }
 
-    private func openExternalSearch(_ feature: LimitedFeature, baseURL: String, queryItemName: String, suffix: String? = nil) {
+    private func openExternalSearch(
+        _ feature: LimitedFeature,
+        destination: AVRadioExternalSearchURL.Destination,
+        suffix: String? = nil
+    ) {
         guard var query = discoverySearchQuery else { return }
         guard useDailyFeatureIfAllowed(feature) else { return }
         if let suffix {
             query += " \(suffix)"
         }
 
-        var components = URLComponents(string: baseURL)
-        components?.queryItems = [
-            URLQueryItem(name: queryItemName, value: query)
-        ]
-
-        guard let url = components?.url else { return }
+        guard let url = AVRadioExternalSearchURL.url(for: destination, query: query) else { return }
         browserDestination = BrowserDestination(url: url)
     }
 
@@ -766,29 +764,16 @@ struct NowPlayingView: View {
     }
 
     private func openStationSearch(for station: Station) {
-        var components = URLComponents(string: "https://www.google.com/search")
-        components?.queryItems = [
-            URLQueryItem(name: "q", value: "\(station.name) radio")
-        ]
-
-        guard let url = components?.url else { return }
+        guard let url = AVRadioExternalSearchURL.stationSearch(stationName: station.name) else { return }
         openURL(url)
-    }
-
-    private func stationShareText(for station: Station) -> String {
-        if let homepage = normalizedMetadata(station.homepageURL) {
-            return "\(station.name)\n\(homepage)"
-        }
-
-        return "\(station.name)\n\(station.streamURL)"
     }
 
     private func discoveryShareText(for station: Station) -> String {
         guard
-            let title = normalizedMetadata(audioPlayer.currentTrackTitle),
-            let artist = normalizedMetadata(audioPlayer.currentTrackArtist)
+            let title = AVRadioText.normalizedValue(audioPlayer.currentTrackTitle),
+            let artist = AVRadioText.normalizedValue(audioPlayer.currentTrackArtist)
         else {
-            return stationShareText(for: station)
+            return station.shareText
         }
 
         return L10n.string("player.discovery.shareText", title, artist, station.name)
@@ -796,19 +781,13 @@ struct NowPlayingView: View {
 
     private var discoverySearchQuery: String? {
         guard
-            let title = normalizedMetadata(audioPlayer.currentTrackTitle),
-            let artist = normalizedMetadata(audioPlayer.currentTrackArtist)
+            let title = AVRadioText.normalizedValue(audioPlayer.currentTrackTitle),
+            let artist = AVRadioText.normalizedValue(audioPlayer.currentTrackArtist)
         else {
             return nil
         }
 
         return "\(artist) \(title)"
-    }
-
-    private func normalizedMetadata(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func stationArtworkURL(for station: Station) -> URL? {

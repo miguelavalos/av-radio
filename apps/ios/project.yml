@@ -31,6 +31,7 @@ schemes:
     test:
       config: Debug
       targets:
+        - AvradioTests
         - AvradioUITests
     analyze:
       config: Debug
@@ -50,6 +51,7 @@ targets:
       Release: Config/Release.xcconfig
     sources:
       - path: Avradio
+      - path: ../../shared/apple
     dependencies:
       - package: Clerk
         product: ClerkKit
@@ -79,3 +81,18 @@ targets:
         PRODUCT_MODULE_NAME: AvradioUITests
         PRODUCT_BUNDLE_IDENTIFIER: "$(PRODUCT_BUNDLE_IDENTIFIER).uitests"
         TARGETED_DEVICE_FAMILY: "1"
+
+  AvradioTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AvradioTests
+    dependencies:
+      - target: Avradio
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_MODULE_NAME: AvradioTests
+        PRODUCT_BUNDLE_IDENTIFIER: "$(AVRADIO_BUNDLE_IDENTIFIER).tests"
+        TARGETED_DEVICE_FAMILY: "1"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Avradio.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Avradio"

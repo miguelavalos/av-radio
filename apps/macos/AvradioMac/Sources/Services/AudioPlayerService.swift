@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import Foundation
 
 @MainActor
@@ -300,7 +300,7 @@ final class AudioPlayerService: ObservableObject {
             let identifier = event.identifier
 
             if commonKey == "title" || identifier.contains("title") || identifier.contains("streamtitle") {
-                let parsed = parseTrackMetadata(value)
+                let parsed = AVRadioTrackMetadataParser.parse(value)
                 resolvedTitle = parsed.title ?? resolvedTitle
                 resolvedArtist = parsed.artist ?? resolvedArtist
                 if parsed.title != nil || parsed.artist != nil {
@@ -310,7 +310,7 @@ final class AudioPlayerService: ObservableObject {
             }
 
             if commonKey == "artist" || identifier.contains("artist") {
-                if let sanitizedArtist = sanitizeTrackArtist(value) {
+                if let sanitizedArtist = AVRadioTrackMetadataParser.sanitizeArtist(value) {
                     resolvedArtist = sanitizedArtist
                     resolvedFromStream = true
                 }
@@ -328,8 +328,8 @@ final class AudioPlayerService: ObservableObject {
         guard currentStation?.id == station.id else { return }
         guard currentTrackSource != .stream else { return }
 
-        let normalizedArtist = sanitizeTrackArtist(track.artist)
-        guard let normalizedTitle = sanitizeTrackTitle(track.title, artist: normalizedArtist) else { return }
+        let normalizedArtist = AVRadioTrackMetadataParser.sanitizeArtist(track.artist)
+        guard let normalizedTitle = AVRadioTrackMetadataParser.sanitizeTitle(track.title, artist: normalizedArtist) else { return }
 
         currentTrackSource = .fallback
         applyTrackMetadata(title: normalizedTitle, artist: normalizedArtist)
@@ -361,69 +361,6 @@ final class AudioPlayerService: ObservableObject {
                 self.currentTrackArtworkURL = resolved?.artworkURL
             }
         }
-    }
-
-    private func parseTrackMetadata(_ rawValue: String) -> (title: String?, artist: String?) {
-        let cleaned = rawValue
-            .replacingOccurrences(of: "StreamTitle=", with: "")
-            .trimmingCharacters(in: CharacterSet(charactersIn: "'; ").union(.whitespacesAndNewlines))
-
-        for separator in [" - ", " – ", " — "] where cleaned.contains(separator) {
-            let parts = cleaned.components(separatedBy: separator)
-            guard parts.count >= 2 else { continue }
-
-            let artist = sanitizeTrackArtist(parts[0])
-            let title = sanitizeTrackTitle(parts.dropFirst().joined(separator: separator), artist: artist)
-            return (title: title, artist: artist)
-        }
-
-        return (title: sanitizeTrackTitle(cleaned, artist: nil), artist: nil)
-    }
-
-    private func sanitizeTrackTitle(_ rawValue: String?, artist: String?) -> String? {
-        guard var value = sanitizeMetadataField(rawValue) else { return nil }
-        value = value.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-
-        if containsLetters(value) {
-            return value
-        }
-
-        if isNumericOnlyMetadata(value) {
-            let digits = value.filter(\.isNumber).count
-            if digits > 4 {
-                return nil
-            }
-            return artist == nil ? nil : value
-        }
-
-        return nil
-    }
-
-    private func sanitizeTrackArtist(_ rawValue: String?) -> String? {
-        guard var value = sanitizeMetadataField(rawValue) else { return nil }
-        value = value.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-        return containsLetters(value) ? value : nil
-    }
-
-    private func sanitizeMetadataField(_ rawValue: String?) -> String? {
-        guard let rawValue else { return nil }
-        let trimmed = rawValue
-            .trimmingCharacters(in: CharacterSet(charactersIn: "'; ").union(.whitespacesAndNewlines))
-        guard !trimmed.isEmpty else { return nil }
-
-        let blockedValues: Set<String> = ["unknown", "n/a", "na", "null", "nil", "-", "--"]
-        guard !blockedValues.contains(trimmed.lowercased()) else { return nil }
-        return trimmed
-    }
-
-    private func containsLetters(_ value: String) -> Bool {
-        value.unicodeScalars.contains { CharacterSet.letters.contains($0) }
-    }
-
-    private func isNumericOnlyMetadata(_ value: String) -> Bool {
-        let filtered = value.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }
-        guard !filtered.isEmpty else { return false }
-        return filtered.allSatisfy { CharacterSet.decimalDigits.contains($0) }
     }
 
     private func clearTrackMetadata() {
@@ -459,26 +396,37 @@ private final class StreamMetadataDelegate: NSObject, AVPlayerItemMetadataOutput
         didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup],
         from track: AVPlayerItemTrack?
     ) {
-        let items = groups.flatMap(\.items)
-        guard !items.isEmpty else { return }
+        let metadataItems = MetadataItemsBox(groups.flatMap(\.items))
+        guard !metadataItems.items.isEmpty else { return }
 
-        var events: [AudioPlayerService.StreamMetadataEvent] = []
-        events.reserveCapacity(items.count)
+        Task { [handler, metadataItems] in
+            var events: [AudioPlayerService.StreamMetadataEvent] = []
+            events.reserveCapacity(metadataItems.items.count)
 
-        for item in items {
-            let value = item.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let value, !value.isEmpty else { continue }
+            for item in metadataItems.items {
+                let value = try? await item.load(.stringValue)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                guard let value, !value.isEmpty else { continue }
 
-            events.append(
-                AudioPlayerService.StreamMetadataEvent(
-                    value: value,
-                    commonKey: item.commonKey?.rawValue.lowercased() ?? "",
-                    identifier: item.identifier?.rawValue.lowercased() ?? ""
+                events.append(
+                    AudioPlayerService.StreamMetadataEvent(
+                        value: value,
+                        commonKey: item.commonKey?.rawValue.lowercased() ?? "",
+                        identifier: item.identifier?.rawValue.lowercased() ?? ""
+                    )
                 )
-            )
-        }
+            }
 
-        guard !events.isEmpty else { return }
-        Task { await handler(events) }
+            guard !events.isEmpty else { return }
+            await handler(events)
+        }
+    }
+}
+
+private final class MetadataItemsBox: @unchecked Sendable {
+    let items: [AVMetadataItem]
+
+    init(_ items: [AVMetadataItem]) {
+        self.items = items
     }
 }

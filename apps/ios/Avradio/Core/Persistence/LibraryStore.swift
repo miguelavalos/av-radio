@@ -403,25 +403,19 @@ final class LibraryStore: ObservableObject {
     }
 
     private func trimRecents(limit: Int) {
-        guard recents.count > limit else { return }
-        let sorted = recents.sorted { $0.lastPlayedAt > $1.lastPlayedAt }
-        for item in sorted.dropFirst(limit) {
+        for item in AVRadioCollectionRules.overflow(in: recents, limit: limit, sortedBy: { $0.lastPlayedAt > $1.lastPlayedAt }) {
             context.delete(item)
         }
     }
 
     private func trimDiscoveries(limit: Int) {
-        guard discoveries.count > limit else { return }
-        let sorted = discoveries.sorted { $0.playedAt > $1.playedAt }
-        for item in sorted.dropFirst(limit) {
+        for item in AVRadioCollectionRules.overflow(in: discoveries, limit: limit, sortedBy: { $0.playedAt > $1.playedAt }) {
             context.delete(item)
         }
     }
 
     private func normalizedTrackValue(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        AVRadioText.normalizedValue(value)
     }
 
     private func saveAndRefresh() {
@@ -541,8 +535,6 @@ final class LibraryStore: ObservableObject {
     }
 
     private static func date(from value: String) -> Date {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.date(from: value) ?? .distantPast
+        AVRadioDateCoding.date(from: value)
     }
 }

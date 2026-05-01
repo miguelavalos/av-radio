@@ -55,44 +55,18 @@ struct AccessLimits: Codable, Equatable {
     }
 
     static func forMode(_ accessMode: AccessMode) -> AccessLimits {
-        switch accessMode {
-        case .guest:
-            AccessLimits(
-                favoriteStations: 5,
-                recentStations: 10,
-                discoveredTracks: 20,
-                savedTracks: 5,
-                lyricsSearchesPerDay: 3,
-                youtubeSearchesPerDay: 3,
-                appleMusicSearchesPerDay: 3,
-                spotifySearchesPerDay: 3,
-                discoverySharesPerDay: 1
-            )
-        case .signedInFree:
-            AccessLimits(
-                favoriteStations: 15,
-                recentStations: 25,
-                discoveredTracks: 50,
-                savedTracks: 20,
-                lyricsSearchesPerDay: 10,
-                youtubeSearchesPerDay: 10,
-                appleMusicSearchesPerDay: 10,
-                spotifySearchesPerDay: 10,
-                discoverySharesPerDay: 3
-            )
-        case .signedInPro:
-            AccessLimits(
-                favoriteStations: 500,
-                recentStations: 200,
-                discoveredTracks: 1_000,
-                savedTracks: 1_000,
-                lyricsSearchesPerDay: nil,
-                youtubeSearchesPerDay: nil,
-                appleMusicSearchesPerDay: nil,
-                spotifySearchesPerDay: nil,
-                discoverySharesPerDay: nil
-            )
-        }
+        let values = AVRadioAccessPolicy.limits(for: accessMode.rawValue)
+        return AccessLimits(
+            favoriteStations: values.favoriteStations,
+            recentStations: values.recentStations,
+            discoveredTracks: values.discoveredTracks,
+            savedTracks: values.savedTracks,
+            lyricsSearchesPerDay: values.lyricsSearchesPerDay,
+            youtubeSearchesPerDay: values.youtubeSearchesPerDay,
+            appleMusicSearchesPerDay: values.appleMusicSearchesPerDay,
+            spotifySearchesPerDay: values.spotifySearchesPerDay,
+            discoverySharesPerDay: values.discoverySharesPerDay
+        )
     }
 }
 
@@ -188,31 +162,13 @@ struct AccessCapabilities: Codable, Equatable {
     }
 
     static func forMode(_ accessMode: AccessMode) -> AccessCapabilities {
-        switch accessMode {
-        case .guest:
-            AccessCapabilities(
-                isSignedIn: false,
-                canUseBackend: false,
-                canAccessPremiumFeatures: false,
-                canUseCloudSync: false,
-                canManagePlan: false
-            )
-        case .signedInFree:
-            AccessCapabilities(
-                isSignedIn: true,
-                canUseBackend: false,
-                canAccessPremiumFeatures: false,
-                canUseCloudSync: false,
-                canManagePlan: true
-            )
-        case .signedInPro:
-            AccessCapabilities(
-                isSignedIn: true,
-                canUseBackend: true,
-                canAccessPremiumFeatures: true,
-                canUseCloudSync: true,
-                canManagePlan: true
-            )
-        }
+        let values = AVRadioAccessPolicy.capabilities(for: accessMode.rawValue)
+        return AccessCapabilities(
+            isSignedIn: values.isSignedIn,
+            canUseBackend: values.canUseBackend,
+            canAccessPremiumFeatures: values.canAccessPremiumFeatures,
+            canUseCloudSync: values.canUseCloudSync,
+            canManagePlan: values.canManagePlan
+        )
     }
 }

@@ -108,10 +108,10 @@ struct MusicView: View {
                         discovery: discovery,
                         openStation: { openStation(discovery) },
                         toggleSaved: { toggleSaved(discovery) },
-                        openYouTube: { openSearch(discovery, feature: .youtubeSearch, baseURL: "https://www.youtube.com/results", queryItemName: "search_query") },
-                        openLyrics: { openSearch(discovery, feature: .lyricsSearch, baseURL: "https://www.google.com/search", queryItemName: "q", suffix: "lyrics") },
-                        openAppleMusic: { openSearch(discovery, feature: .appleMusicSearch, baseURL: "https://music.apple.com/search", queryItemName: "term") },
-                        openSpotify: { openSearch(discovery, feature: .spotifySearch, baseURL: "https://open.spotify.com/search", queryItemName: nil) },
+                        openYouTube: { openSearch(discovery, feature: .youtubeSearch, destination: .youtube) },
+                        openLyrics: { openSearch(discovery, feature: .lyricsSearch, destination: .web, suffix: "lyrics") },
+                        openAppleMusic: { openSearch(discovery, feature: .appleMusicSearch, destination: .appleMusic) },
+                        openSpotify: { openSearch(discovery, feature: .spotifySearch, destination: .spotify) },
                         hideAction: {
                             hiddenDiscovery = discovery
                             hideDiscovery(discovery)
@@ -182,18 +182,16 @@ struct MusicView: View {
         .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    private func openSearch(_ discovery: DiscoveredTrack, feature: LimitedFeature, baseURL: String, queryItemName: String?, suffix: String? = nil) {
+    private func openSearch(
+        _ discovery: DiscoveredTrack,
+        feature: LimitedFeature,
+        destination: AVRadioExternalSearchURL.Destination,
+        suffix: String? = nil
+    ) {
         guard useDailyFeature(feature) else { return }
-        let query = [discovery.searchQuery, suffix].compactMap { $0 }.joined(separator: " ")
+        let query = AVRadioExternalSearchURL.query(parts: [discovery.searchQuery], suffix: suffix)
 
-        if let queryItemName {
-            var components = URLComponents(string: baseURL)
-            components?.queryItems = [URLQueryItem(name: queryItemName, value: query)]
-            if let url = components?.url {
-                openURL(url)
-            }
-        } else if let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-                  let url = URL(string: "\(baseURL)/\(encoded)") {
+        if let url = AVRadioExternalSearchURL.url(for: destination, query: query) {
             openURL(url)
         }
     }
@@ -201,17 +199,14 @@ struct MusicView: View {
     private func openArtist(_ artist: String, youtube: Bool) {
         let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
         guard useDailyFeature(feature) else { return }
-        var components = URLComponents(string: youtube ? "https://www.youtube.com/results" : "https://www.google.com/search")
-        components?.queryItems = [URLQueryItem(name: youtube ? "search_query" : "q", value: artist)]
-        if let url = components?.url {
+        if let url = AVRadioExternalSearchURL.web(query: artist, youtube: youtube) {
             openURL(url)
         }
     }
 
     private func openArtistSpotify(_ artist: String) {
         guard useDailyFeature(.spotifySearch),
-              let encoded = artist.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-              let url = URL(string: "https://open.spotify.com/search/\(encoded)") else { return }
+              let url = AVRadioExternalSearchURL.spotify(query: artist) else { return }
         openURL(url)
     }
 }

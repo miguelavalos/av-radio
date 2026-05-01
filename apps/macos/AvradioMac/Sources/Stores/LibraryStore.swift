@@ -26,9 +26,9 @@ final class LibraryStore: ObservableObject {
         self.preferredTag = defaults.string(forKey: preferredTagKey) ?? "ambient"
         self.preferredCountryCode = defaults.string(forKey: preferredCountryKey)
         self.accessMode = AccessMode(rawValue: defaults.string(forKey: accessModeKey) ?? "") ?? .guest
-        self.favorites = Self.trim(Self.loadStations(forKey: favoritesKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).favoriteStations)
-        self.recents = Self.trim(Self.loadStations(forKey: recentsKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).recentStations)
-        self.discoveries = Self.trim(Self.loadDiscoveries(forKey: discoveriesKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).discoveredTracks)
+        self.favorites = AVRadioCollectionRules.trimmed(Self.loadStations(forKey: favoritesKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).favoriteStations)
+        self.recents = AVRadioCollectionRules.trimmed(Self.loadStations(forKey: recentsKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).recentStations)
+        self.discoveries = AVRadioCollectionRules.trimmed(Self.loadDiscoveries(forKey: discoveriesKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).discoveredTracks)
     }
 
     var capabilities: AccessCapabilities {
@@ -59,9 +59,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func recordPlayback(of station: Station) {
-        recents.removeAll(where: { $0.id == station.id })
-        recents.insert(station, at: 0)
-        recents = Self.trim(recents, limit: limits.recentStations)
+        recents = AVRadioCollectionRules.movingToFront(station, in: recents, limit: limits.recentStations)
         persist(stations: recents, key: recentsKey)
     }
 
@@ -135,9 +133,9 @@ final class LibraryStore: ObservableObject {
     func updateAccessMode(_ mode: AccessMode) {
         accessMode = mode
         defaults.set(mode.rawValue, forKey: accessModeKey)
-        favorites = Self.trim(favorites, limit: limits.favoriteStations)
-        recents = Self.trim(recents, limit: limits.recentStations)
-        discoveries = Self.trim(discoveries, limit: limits.discoveredTracks)
+        favorites = AVRadioCollectionRules.trimmed(favorites, limit: limits.favoriteStations)
+        recents = AVRadioCollectionRules.trimmed(recents, limit: limits.recentStations)
+        discoveries = AVRadioCollectionRules.trimmed(discoveries, limit: limits.discoveredTracks)
         persist(stations: favorites, key: favoritesKey)
         persist(stations: recents, key: recentsKey)
         persist(discoveries: discoveries)
@@ -212,18 +210,16 @@ final class LibraryStore: ObservableObject {
             )
         }
 
-        discoveries = Self.trim(discoveries.sorted { $0.playedAt > $1.playedAt }, limit: limits.discoveredTracks)
+        discoveries = AVRadioCollectionRules.trimmed(discoveries.sorted { $0.playedAt > $1.playedAt }, limit: limits.discoveredTracks)
         persist(discoveries: discoveries)
     }
 
     private func normalizedTrackValue(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        AVRadioText.normalizedValue(value)
     }
 
     private func dailyCounterKey(for feature: LimitedFeature) -> String {
-        let day = ISO8601DateFormatter.string(from: .now, timeZone: .current, formatOptions: [.withFullDate])
+        let day = AVRadioDateCoding.dayIdentifier()
         return "avradio.mac.daily.\(feature.rawValue).\(day)"
     }
 
@@ -237,8 +233,4 @@ final class LibraryStore: ObservableObject {
         return (try? JSONDecoder().decode([DiscoveredTrack].self, from: data)) ?? []
     }
 
-    private static func trim<T>(_ values: [T], limit: Int?) -> [T] {
-        guard let limit else { return values }
-        return Array(values.prefix(limit))
-    }
 }
