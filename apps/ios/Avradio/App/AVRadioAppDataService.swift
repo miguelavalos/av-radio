@@ -2,7 +2,6 @@ import Foundation
 
 private enum AVRadioAppDataConstants {
     static let appId = "avradio"
-    static let legacyLibraryResource = "library"
     static let deviceId = "avradio-ios"
 }
 
@@ -11,7 +10,6 @@ private enum AVRadioAppDataResource: String, CaseIterable {
     case recents
     case discoveries
     case settings
-    case legacyLibrary = "library"
 
     static let syncResources: [AVRadioAppDataResource] = [
         .favorites,
@@ -77,10 +75,6 @@ final class AVRadioAppDataService {
             entryType: AppSettingsRecord.self
         )
 
-        if [favorites.revision, recents.revision, discoveries.revision, settings.revision].allSatisfy({ $0 == 0 }) {
-            return try await pullLegacyLibrary()
-        }
-
         let snapshot = AVRadioLibrarySnapshot(
             favorites: favorites.entries,
             recents: recents.entries,
@@ -120,24 +114,6 @@ final class AVRadioAppDataService {
         }
 
         try await pushLibrary(snapshot)
-    }
-
-    private func pullLegacyLibrary() async throws -> AVRadioLibraryDocument {
-        let payload: AppDataResponsePayload<AVRadioLibrarySnapshot> = try await apiClient.request(
-            path: dataPath(for: .legacyLibrary)
-        )
-        rememberSyncVersion(
-            for: .legacyLibrary,
-            revision: payload.revision,
-            etag: payload.etag
-        )
-
-        return AVRadioLibraryDocument(
-            snapshot: payload.data.entries.first,
-            updatedAt: Self.date(from: payload.updatedAt),
-            revision: payload.revision ?? 0,
-            etag: payload.etag
-        )
     }
 
     private func pullResource<Entry: Codable>(
