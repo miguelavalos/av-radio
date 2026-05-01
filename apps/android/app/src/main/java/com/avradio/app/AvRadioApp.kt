@@ -1242,9 +1242,9 @@ private fun OnboardingScreen(
                     text = when (authProvider) {
                         AppConfig.AuthProvider.CLERK ->
                             if (isClerkAuthAvailable) {
-                                "Sign in with AV Apps Account using Clerk, like the iOS app. Apple, Google, and other enabled methods come from the Clerk dashboard."
+                                "Sign in with AV Apps Account, like the iOS app. Apple, Google, and other enabled methods come from the account provider."
                             } else {
-                                "This build is set to use Clerk, but the publishable key is not configured yet. You can still use AV Radio locally on this device."
+                                "This build is set to use AV Apps Account, but the publishable key is not configured yet. You can still use AV Radio locally on this device."
                             }
                         AppConfig.AuthProvider.DEMO ->
                             "Local-first radio listening with optional account state. This Android build uses a local demo account until the real backend flow is wired."
@@ -1264,7 +1264,7 @@ private fun OnboardingScreen(
                             if (isClerkAuthAvailable) {
                                 "Use the same AV Apps Account login stack as iOS"
                             } else {
-                                "Clerk is selected for this build, but no publishable key is configured yet"
+                                "AV Apps Account is selected for this build, but no publishable key is configured yet"
                             }
                         AppConfig.AuthProvider.DEMO -> "Try signed-in free and pro states with local demo data"
                         AppConfig.AuthProvider.WEB -> "Open the configured account sign-in page from Android"
@@ -1290,7 +1290,7 @@ private fun OnboardingScreen(
                                 enabled = false,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Clerk not configured in this build")
+                                Text("AV Apps Account not configured in this build")
                             }
                         }
                     }
@@ -1491,9 +1491,9 @@ private fun ProfileScreen(
                 detail = when (authProvider) {
                     AppConfig.AuthProvider.CLERK ->
                         if (isClerkAuthAvailable) {
-                            "This build uses Clerk for AV Apps Account, matching the iOS app."
+                            "This build uses AV Apps Account, matching the iOS app."
                         } else {
-                            "This build is configured for Clerk, but the publishable key is missing."
+                            "This build is configured for AV Apps Account, but the publishable key is missing."
                         }
                     AppConfig.AuthProvider.DEMO -> "This build uses the local demo account provider."
                     AppConfig.AuthProvider.WEB -> "This build can hand off account sign-in to a configured web URL."
@@ -1502,7 +1502,7 @@ private fun ProfileScreen(
             ) {
                 when (authProvider) {
                     AppConfig.AuthProvider.CLERK -> Text(
-                        text = if (isClerkAuthAvailable) "Provider: Clerk" else "Provider: Clerk (unavailable)",
+                        text = if (isClerkAuthAvailable) "Provider: AV Apps Account" else "Provider: AV Apps Account (unavailable)",
                         style = MaterialTheme.typography.bodyMedium
                     )
 
@@ -1536,11 +1536,11 @@ private fun ProfileScreen(
                 } else if (accessState.capabilities.canUseBackend) {
                     "Backend-backed account access is active, but premium features remain off for this account."
                 } else if (authProvider == AppConfig.AuthProvider.CLERK && AppConfig.isAvAppsBackendConfigured && accessState.isSignedIn) {
-                    "Account login is real through Clerk and access is resolved by AV Apps. This free state still stays local-first."
+                    "Account login is active and access is resolved by AV Apps. This free state still stays local-first."
                 } else if (!AppConfig.isPremiumSubscriptionAvailable) {
                     "Add AVRADIO_PREMIUM_PRODUCT_IDS to the Android config to enable store subscriptions in this build."
                 } else if (authProvider == AppConfig.AuthProvider.CLERK && accessState.isSignedIn) {
-                    "Account login is real through Clerk. Configure AVAPPS_API_BASE_URL to resolve access from the shared backend."
+                    "Account login is active. Configure AVAPPS_API_BASE_URL to resolve access from the shared backend."
                 } else {
                     "Local-first mode with no backend dependency."
                 }
@@ -1638,9 +1638,9 @@ private fun ProfileScreen(
                 detail = when (authProvider) {
                     AppConfig.AuthProvider.CLERK ->
                         if (accessState.isSignedIn) {
-                            "Signed in with Clerk. Android now resolves account access through AV Apps when configured, while billing and app-data sync are still pending."
+                            "Signed in with AV Apps Account. Android now resolves account access through AV Apps when configured, while billing and app-data sync are still pending."
                         } else {
-                            "Sign in with the same Clerk-powered AV Apps Account flow used by iOS."
+                            "Sign in with the same AV Apps Account flow used by iOS."
                         }
                     else -> "Local account simulation until backend auth is wired."
                 }
@@ -1666,7 +1666,7 @@ private fun ProfileScreen(
                                         enabled = false,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text("Clerk not configured in this build")
+                                        Text("AV Apps Account not configured in this build")
                                     }
                                 }
                             }

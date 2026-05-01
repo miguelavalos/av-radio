@@ -37,7 +37,10 @@ xcodebuild_url_value() {
   printf '%s' "$value" | sed 's#//#/$()/#g'
 }
 
-clerk_publishable_key="$(printenv_value CLERK_PUBLISHABLE_KEY)"
+account_publishable_key="$(printenv_value AVAPPS_ACCOUNT_PUBLISHABLE_KEY)"
+if [ -z "${account_publishable_key:-}" ]; then
+  account_publishable_key="$(printenv_value CLERK_PUBLISHABLE_KEY)"
+fi
 premium_product_ids="$(printenv_value AVRADIO_PREMIUM_PRODUCT_IDS)"
 support_email="$(printenv_value AVRADIO_SUPPORT_EMAIL)"
 avapps_api_base_url="$(printenv_value AVAPPS_API_BASE_URL)"
@@ -50,7 +53,7 @@ privacy_url="$(printenv_value AVRADIO_PRIVACY_URL)"
 open_source_url="$(printenv_value AVRADIO_OPEN_SOURCE_URL)"
 
 required_values=(
-  clerk_publishable_key
+  account_publishable_key
   premium_product_ids
   support_email
   avapps_api_base_url
@@ -68,7 +71,8 @@ done
 
 rendered_config="$(cat <<EOF
 AVRADIO_BUNDLE_IDENTIFIER = $bundle_identifier
-CLERK_PUBLISHABLE_KEY = $clerk_publishable_key
+AVAPPS_ACCOUNT_PUBLISHABLE_KEY = $account_publishable_key
+CLERK_PUBLISHABLE_KEY = $account_publishable_key
 AVRADIO_PREMIUM_PRODUCT_IDS = $premium_product_ids
 AVRADIO_SUPPORT_EMAIL = $support_email
 AVAPPS_API_BASE_URL = $(xcodebuild_url_value "$avapps_api_base_url")

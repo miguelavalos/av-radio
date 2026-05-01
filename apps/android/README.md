@@ -141,8 +141,8 @@ Do not document or hand-maintain generated values in this public repository; upd
 
 The public repo currently supports:
 
-- real Clerk SDK initialization and sign-in UI via `AuthView`
-- Clerk session observation and sign-out through Android native SDK
+- real AV Apps Account initialization and sign-in UI through the active provider SDK
+- account session observation and sign-out through the active provider SDK
 - backend-backed access resolution through `GET /v1/me/access` when `AVAPPS_API_BASE_URL` is configured
 - shared `app-data` sync for `library` when backend access resolves `canUseCloudSync=true`
 - opening a configured web sign-in URL from onboarding/profile
