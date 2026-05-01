@@ -1,5 +1,29 @@
 import Foundation
 
+enum AccessMode: String, CaseIterable, Codable, Identifiable {
+    case guest
+    case signedInFree
+    case signedInPro
+
+    var id: String { rawValue }
+}
+
+enum PlanTier: String, Codable {
+    case free
+    case pro
+}
+
+enum LimitedFeature: String, CaseIterable, Codable {
+    case favoriteStations
+    case savedTracks
+    case discoveredTracks
+    case lyricsSearch
+    case youtubeSearch
+    case appleMusicSearch
+    case spotifySearch
+    case discoveryShare
+}
+
 struct AVRadioAccessLimitValues: Equatable {
     let favoriteStations: Int?
     let recentStations: Int?
@@ -18,6 +42,97 @@ struct AVRadioAccessCapabilityValues: Equatable {
     let canAccessPremiumFeatures: Bool
     let canUseCloudSync: Bool
     let canManagePlan: Bool
+}
+
+struct AccessLimits: Codable, Equatable {
+    let favoriteStations: Int?
+    let recentStations: Int?
+    let discoveredTracks: Int?
+    let savedTracks: Int?
+    let lyricsSearchesPerDay: Int?
+    let youtubeSearchesPerDay: Int?
+    let appleMusicSearchesPerDay: Int?
+    let spotifySearchesPerDay: Int?
+    let discoverySharesPerDay: Int?
+
+    func limit(for feature: LimitedFeature) -> Int? {
+        switch feature {
+        case .favoriteStations:
+            favoriteStations
+        case .savedTracks:
+            savedTracks
+        case .discoveredTracks:
+            discoveredTracks
+        case .lyricsSearch:
+            lyricsSearchesPerDay
+        case .youtubeSearch:
+            youtubeSearchesPerDay
+        case .appleMusicSearch:
+            appleMusicSearchesPerDay
+        case .spotifySearch:
+            spotifySearchesPerDay
+        case .discoveryShare:
+            discoverySharesPerDay
+        }
+    }
+
+    static func forMode(_ accessMode: AccessMode) -> AccessLimits {
+        let values = AVRadioAccessPolicy.limits(for: accessMode.rawValue)
+        return AccessLimits(
+            favoriteStations: values.favoriteStations,
+            recentStations: values.recentStations,
+            discoveredTracks: values.discoveredTracks,
+            savedTracks: values.savedTracks,
+            lyricsSearchesPerDay: values.lyricsSearchesPerDay,
+            youtubeSearchesPerDay: values.youtubeSearchesPerDay,
+            appleMusicSearchesPerDay: values.appleMusicSearchesPerDay,
+            spotifySearchesPerDay: values.spotifySearchesPerDay,
+            discoverySharesPerDay: values.discoverySharesPerDay
+        )
+    }
+}
+
+struct AccessCapabilities: Codable, Equatable {
+    let isSignedIn: Bool
+    let canUseBackend: Bool
+    let canAccessPremiumFeatures: Bool
+    let canUseCloudSync: Bool
+    let canManagePlan: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case isSignedIn
+        case canUseBackend
+        case canAccessPremiumFeatures = "canUsePremiumFeatures"
+        case canUseCloudSync
+        case canManagePlan
+    }
+
+    var isLocalOnly: Bool {
+        !canUseBackend && !canUseCloudSync
+    }
+
+    var usesBackend: Bool {
+        canUseBackend || canUseCloudSync
+    }
+
+    var canManageAVAppsAccount: Bool {
+        isSignedIn
+    }
+
+    var canUpgradeToPro: Bool {
+        isSignedIn && !canAccessPremiumFeatures
+    }
+
+    static func forMode(_ accessMode: AccessMode) -> AccessCapabilities {
+        let values = AVRadioAccessPolicy.capabilities(for: accessMode.rawValue)
+        return AccessCapabilities(
+            isSignedIn: values.isSignedIn,
+            canUseBackend: values.canUseBackend,
+            canAccessPremiumFeatures: values.canAccessPremiumFeatures,
+            canUseCloudSync: values.canUseCloudSync,
+            canManagePlan: values.canManagePlan
+        )
+    }
 }
 
 enum AVRadioAccessPolicy {

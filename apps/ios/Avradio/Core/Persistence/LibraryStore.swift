@@ -335,35 +335,20 @@ final class LibraryStore: ObservableObject {
             cloudSyncStatus = .syncing
             let remoteDocument = try await appDataService.pullLibrary()
             let localSnapshot = librarySnapshot()
-            let localHasContent = localSnapshot.hasMeaningfulContent
-            let localUpdatedAt = latestLocalUpdateAt()
 
-            guard let remoteSnapshot = remoteDocument.snapshot else {
-                if localHasContent {
-                    try await appDataService.pushLibrary(localSnapshot)
-                }
-                cloudSyncStatus = .synced(.now)
-                return
-            }
-
-            let remoteHasContent = remoteSnapshot.hasMeaningfulContent
-            if !remoteHasContent {
-                if localHasContent {
-                    try await appDataService.pushLibrary(localSnapshot)
-                }
-                cloudSyncStatus = .synced(.now)
-                return
-            }
-
-            if !localHasContent || remoteDocument.updatedAt > localUpdatedAt {
+            switch AVRadioLibrarySyncPlanner.decision(
+                localSnapshot: localSnapshot,
+                localUpdatedAt: latestLocalUpdateAt(),
+                remoteDocument: remoteDocument
+            ) {
+            case .pullRemote(let remoteSnapshot):
                 applyRemoteSnapshot(remoteSnapshot)
-                cloudSyncStatus = .synced(.now)
-                return
+            case .pushLocal:
+                try await appDataService.pushLibrary(localSnapshot)
+            case .noContent, .alreadyCurrent:
+                break
             }
 
-            if localUpdatedAt > remoteDocument.updatedAt {
-                try await appDataService.pushLibrary(localSnapshot)
-            }
             cloudSyncStatus = .synced(.now)
         } catch AVRadioAppDataError.conflict {
             cloudSyncStatus = .conflict

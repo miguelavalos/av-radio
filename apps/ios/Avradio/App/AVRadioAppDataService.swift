@@ -28,6 +28,42 @@ struct AVRadioLibraryDocument {
     let etag: String?
 }
 
+enum AVRadioLibrarySyncDecision: Equatable {
+    case pullRemote(AVRadioLibrarySnapshot)
+    case pushLocal
+    case noContent
+    case alreadyCurrent
+}
+
+enum AVRadioLibrarySyncPlanner {
+    static func decision(
+        localSnapshot: AVRadioLibrarySnapshot,
+        localUpdatedAt: Date,
+        remoteDocument: AVRadioLibraryDocument
+    ) -> AVRadioLibrarySyncDecision {
+        let localHasContent = localSnapshot.hasMeaningfulContent
+
+        guard let remoteSnapshot = remoteDocument.snapshot else {
+            return localHasContent ? .pushLocal : .noContent
+        }
+
+        let remoteHasContent = remoteSnapshot.hasMeaningfulContent
+        if !remoteHasContent {
+            return localHasContent ? .pushLocal : .noContent
+        }
+
+        if !localHasContent || remoteDocument.updatedAt > localUpdatedAt {
+            return .pullRemote(remoteSnapshot)
+        }
+
+        if localUpdatedAt > remoteDocument.updatedAt {
+            return .pushLocal
+        }
+
+        return .alreadyCurrent
+    }
+}
+
 enum AVRadioAppDataError: Error {
     case conflict
 }

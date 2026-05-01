@@ -105,6 +105,55 @@ final class AccessLimitsTests: XCTestCase {
         XCTAssertEqual(limits.limit(for: .discoveryShare), limits.discoverySharesPerDay)
     }
 
+    func testLibrarySyncPlannerPushesLocalWhenRemoteIsEmpty() {
+        let local = librarySnapshot(favorites: [favoriteRecord()], updatedAt: "2026-04-30T10:00:00Z")
+        let remote = libraryDocument(snapshot: nil, updatedAt: fixedDate("2026-04-30T09:00:00Z"))
+
+        XCTAssertEqual(
+            AVRadioLibrarySyncPlanner.decision(
+                localSnapshot: local,
+                localUpdatedAt: fixedDate("2026-04-30T10:00:00Z"),
+                remoteDocument: remote
+            ),
+            .pushLocal
+        )
+    }
+
+    func testLibrarySyncPlannerPullsRemoteWhenRemoteIsNewer() {
+        let local = librarySnapshot(favorites: [favoriteRecord()], updatedAt: "2026-04-30T10:00:00Z")
+        let remoteSnapshot = librarySnapshot(
+            favorites: [favoriteRecord(id: "remote")],
+            updatedAt: "2026-04-30T11:00:00Z"
+        )
+        let remote = libraryDocument(
+            snapshot: remoteSnapshot,
+            updatedAt: fixedDate("2026-04-30T11:00:00Z")
+        )
+
+        XCTAssertEqual(
+            AVRadioLibrarySyncPlanner.decision(
+                localSnapshot: local,
+                localUpdatedAt: fixedDate("2026-04-30T10:00:00Z"),
+                remoteDocument: remote
+            ),
+            .pullRemote(remoteSnapshot)
+        )
+    }
+
+    func testLibrarySyncPlannerLeavesMatchingDocumentsCurrent() {
+        let snapshot = librarySnapshot(favorites: [favoriteRecord()], updatedAt: "2026-04-30T10:00:00Z")
+        let date = fixedDate("2026-04-30T10:00:00Z")
+
+        XCTAssertEqual(
+            AVRadioLibrarySyncPlanner.decision(
+                localSnapshot: snapshot,
+                localUpdatedAt: date,
+                remoteDocument: libraryDocument(snapshot: snapshot, updatedAt: date)
+            ),
+            .alreadyCurrent
+        )
+    }
+
     @MainActor
     func testDailyFeatureCountersBlockAtGuestLimit() {
         let userDefaults = isolatedUserDefaults()
@@ -236,6 +285,67 @@ final class AccessLimitsTests: XCTestCase {
 
     private func fixedDate(_ iso8601: String) -> Date {
         ISO8601DateFormatter().date(from: iso8601)!
+    }
+
+    private func libraryDocument(
+        snapshot: AVRadioLibrarySnapshot?,
+        updatedAt: Date
+    ) -> AVRadioLibraryDocument {
+        AVRadioLibraryDocument(
+            snapshot: snapshot,
+            updatedAt: updatedAt,
+            revision: 1,
+            etag: "\"revision-1\""
+        )
+    }
+
+    private func librarySnapshot(
+        favorites: [FavoriteStationRecord] = [],
+        updatedAt: String
+    ) -> AVRadioLibrarySnapshot {
+        AVRadioLibrarySnapshot(
+            favorites: favorites,
+            recents: [],
+            discoveries: [],
+            settings: AppSettingsRecord(
+                preferredCountry: "",
+                preferredLanguage: "",
+                preferredTag: "",
+                lastPlayedStationID: nil,
+                sleepTimerMinutes: nil,
+                updatedAt: updatedAt
+            )
+        )
+    }
+
+    private func favoriteRecord(id: String = "station") -> FavoriteStationRecord {
+        FavoriteStationRecord(
+            station: StationRecord(
+                id: id,
+                name: "Station \(id)",
+                country: "Spain",
+                countryCode: "ES",
+                state: nil,
+                language: "Spanish",
+                languageCodes: "es",
+                tags: "radio",
+                streamURL: "https://example.com/\(id).mp3",
+                faviconURL: nil,
+                bitrate: 128,
+                codec: "MP3",
+                homepageURL: nil,
+                votes: nil,
+                clickCount: nil,
+                clickTrend: nil,
+                isHLS: false,
+                hasExtendedInfo: false,
+                hasSSLError: false,
+                lastCheckOKAt: nil,
+                geoLatitude: nil,
+                geoLongitude: nil
+            ),
+            createdAt: "2026-04-30T10:00:00Z"
+        )
     }
 }
 

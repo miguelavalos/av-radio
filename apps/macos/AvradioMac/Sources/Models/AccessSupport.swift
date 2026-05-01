@@ -1,12 +1,6 @@
 import Foundation
 
-enum AccessMode: String, CaseIterable, Codable, Identifiable {
-    case guest
-    case signedInFree
-    case signedInPro
-
-    var id: String { rawValue }
-
+extension AccessMode {
     var title: String {
         switch self {
         case .guest:
@@ -16,82 +10,6 @@ enum AccessMode: String, CaseIterable, Codable, Identifiable {
         case .signedInPro:
             return "Pro"
         }
-    }
-}
-
-enum LimitedFeature: String, Codable {
-    case savedTracks
-    case lyricsSearch
-    case youtubeSearch
-    case appleMusicSearch
-    case spotifySearch
-    case discoveryShare
-}
-
-struct AccessCapabilities: Codable, Equatable {
-    let isSignedIn: Bool
-    let canUseBackend: Bool
-    let canAccessPremiumFeatures: Bool
-    let canUseCloudSync: Bool
-    let canManagePlan: Bool
-
-    var isLocalOnly: Bool {
-        !canUseBackend && !canUseCloudSync
-    }
-
-    static func forMode(_ accessMode: AccessMode) -> AccessCapabilities {
-        let values = AVRadioAccessPolicy.capabilities(for: accessMode.rawValue)
-        return AccessCapabilities(
-            isSignedIn: values.isSignedIn,
-            canUseBackend: values.canUseBackend,
-            canAccessPremiumFeatures: values.canAccessPremiumFeatures,
-            canUseCloudSync: values.canUseCloudSync,
-            canManagePlan: values.canManagePlan
-        )
-    }
-}
-
-struct AccessLimits: Equatable {
-    let favoriteStations: Int?
-    let recentStations: Int?
-    let discoveredTracks: Int?
-    let savedTracks: Int?
-    let lyricsPerDay: Int?
-    let youtubePerDay: Int?
-    let appleMusicPerDay: Int?
-    let spotifyPerDay: Int?
-    let discoverySharesPerDay: Int?
-
-    func limit(for feature: LimitedFeature) -> Int? {
-        switch feature {
-        case .savedTracks:
-            return savedTracks
-        case .lyricsSearch:
-            return lyricsPerDay
-        case .youtubeSearch:
-            return youtubePerDay
-        case .appleMusicSearch:
-            return appleMusicPerDay
-        case .spotifySearch:
-            return spotifyPerDay
-        case .discoveryShare:
-            return discoverySharesPerDay
-        }
-    }
-
-    static func forMode(_ accessMode: AccessMode) -> AccessLimits {
-        let values = AVRadioAccessPolicy.limits(for: accessMode.rawValue)
-        return AccessLimits(
-            favoriteStations: values.favoriteStations,
-            recentStations: values.recentStations,
-            discoveredTracks: values.discoveredTracks,
-            savedTracks: values.savedTracks,
-            lyricsPerDay: values.lyricsSearchesPerDay,
-            youtubePerDay: values.youtubeSearchesPerDay,
-            appleMusicPerDay: values.appleMusicSearchesPerDay,
-            spotifyPerDay: values.spotifySearchesPerDay,
-            discoverySharesPerDay: values.discoverySharesPerDay
-        )
     }
 }
 
@@ -114,8 +32,12 @@ struct UpgradePromptContext: Identifiable, Equatable {
     static func dailyFeature(_ feature: LimitedFeature, current: Int, limit: Int) -> UpgradePromptContext {
         let featureName: String
         switch feature {
+        case .favoriteStations:
+            featureName = "favorite stations"
         case .savedTracks:
             featureName = "saved tracks"
+        case .discoveredTracks:
+            featureName = "discovered tracks"
         case .lyricsSearch:
             featureName = "lyrics searches"
         case .youtubeSearch:
