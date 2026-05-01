@@ -51,9 +51,6 @@ preserve_local_property() {
 }
 
 account_publishable_key="$(printenv_value AVAPPS_ACCOUNT_PUBLISHABLE_KEY)"
-if [ -z "${account_publishable_key:-}" ]; then
-  account_publishable_key="$(printenv_value CLERK_PUBLISHABLE_KEY)"
-fi
 premium_product_ids="$(printenv_value AVRADIO_PREMIUM_PRODUCT_IDS)"
 support_email="$(printenv_value AVRADIO_SUPPORT_EMAIL)"
 avapps_api_base_url="$(printenv_value AVAPPS_API_BASE_URL)"
@@ -90,7 +87,6 @@ rendered_config="$(cat <<EOF
 AVRADIO_APPLICATION_ID=$(properties_escape "$application_id")
 AVRADIO_AUTH_PROVIDER=$(properties_escape "$auth_provider")
 AVAPPS_ACCOUNT_PUBLISHABLE_KEY=$(properties_escape "$account_publishable_key")
-CLERK_PUBLISHABLE_KEY=$(properties_escape "$account_publishable_key")
 AVAPPS_API_BASE_URL=$(properties_escape "$avapps_api_base_url")
 AVRADIO_AUTH_WEB_URL=$(properties_escape "$auth_web_url")
 AVRADIO_AUTH_CALLBACK_SCHEME=$(properties_escape "$auth_callback_scheme")

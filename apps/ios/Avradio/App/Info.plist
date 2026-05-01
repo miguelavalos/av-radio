@@ -29,8 +29,6 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>CLERK_PUBLISHABLE_KEY</key>
-	<string>$(CLERK_PUBLISHABLE_KEY)</string>
 	<key>AVAPPS_ACCOUNT_PUBLISHABLE_KEY</key>
 	<string>$(AVAPPS_ACCOUNT_PUBLISHABLE_KEY)</string>
 	<key>AVRADIO_PREMIUM_PRODUCT_IDS</key>

@@ -22,7 +22,7 @@ Optional local subscription config:
 Optional shared-platform access config:
 
 - set `AVAPPS_API_BASE_URL` in `Config/Local.xcconfig` to enable backend-owned access resolution through `private/av-apps`
-- when both `AVAPPS_ACCOUNT_PUBLISHABLE_KEY` and `AVAPPS_API_BASE_URL` are configured, signed-in access refreshes from `GET /v1/me/access`; `CLERK_PUBLISHABLE_KEY` remains a compatibility alias while Clerk is the active provider
+- when both `AVAPPS_ACCOUNT_PUBLISHABLE_KEY` and `AVAPPS_API_BASE_URL` are configured, signed-in access refreshes from `GET /v1/me/access`
 - StoreKit remains the client fallback while purchase-to-entitlement reconciliation is still being finalized outside this repo
 
 ## Current app shape
