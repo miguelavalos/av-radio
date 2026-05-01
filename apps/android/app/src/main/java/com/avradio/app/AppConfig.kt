@@ -5,23 +5,8 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 object AppConfig {
-    enum class AuthProvider {
-        CLERK,
-        DEMO,
-        WEB,
-        NONE
-    }
-
     val applicationId: String
         get() = BuildConfig.APPLICATION_ID_RUNTIME.trim().ifBlank { BuildConfig.APPLICATION_ID }
-
-    val authProvider: AuthProvider
-        get() = when (BuildConfig.AUTH_PROVIDER.trim().lowercase()) {
-            "clerk" -> AuthProvider.CLERK
-            "demo" -> AuthProvider.DEMO
-            "web" -> AuthProvider.WEB
-            else -> AuthProvider.NONE
-        }
 
     val clerkPublishableKey: String?
         get() = BuildConfig.AVAPPS_ACCOUNT_PUBLISHABLE_KEY.trim().ifBlank { null }
@@ -52,26 +37,17 @@ object AppConfig {
     val isPremiumSubscriptionAvailable: Boolean
         get() = premiumProductIds.isNotEmpty()
 
-    val authWebUrl: String?
-        get() = BuildConfig.AUTH_WEB_URL.trim().ifBlank { null }
-
     val authCallbackScheme: String
         get() = BuildConfig.AUTH_CALLBACK_SCHEME.trim().ifBlank { "avradio" }
 
     val authCallbackHost: String
         get() = BuildConfig.AUTH_CALLBACK_HOST.trim().ifBlank { "auth" }
 
-    val isDemoAuthAvailable: Boolean
-        get() = authProvider == AuthProvider.DEMO
-
     val isClerkAuthAvailable: Boolean
-        get() = authProvider == AuthProvider.CLERK && !clerkPublishableKey.isNullOrBlank()
+        get() = !clerkPublishableKey.isNullOrBlank()
 
     val isAvAppsBackendConfigured: Boolean
         get() = avAppsApiBaseUrl != null
-
-    val isWebAuthAvailable: Boolean
-        get() = authProvider == AuthProvider.WEB && !authWebUrl.isNullOrBlank()
 
     val authCallbackUrlExample: String
         get() = "${authCallbackScheme}://${authCallbackHost}/callback"

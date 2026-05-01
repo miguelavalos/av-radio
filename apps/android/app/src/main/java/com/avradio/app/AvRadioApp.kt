@@ -162,20 +162,10 @@ fun AvRadioApp(
 
     if (!accessState.onboardingSeen) {
         OnboardingScreen(
-            authProvider = AppConfig.authProvider,
             isClerkAuthAvailable = AppConfig.isClerkAuthAvailable,
             isClerkInitialized = clerkIsInitialized,
             onContinueGuest = {
                 scope.launch { accessRepository.continueAsGuest() }
-            },
-            onConnectDemo = {
-                scope.launch {
-                    accessRepository.completeOnboarding()
-                    accessRepository.signInDemo()
-                }
-            },
-            onOpenWebAuth = {
-                AppConfig.authWebUrl?.let(uriHandler::openUri)
             },
             onOpenTerms = {
                 AppConfig.termsUrl?.let(uriHandler::openUri)
@@ -265,18 +255,10 @@ fun AvRadioApp(
                     }
                 )
                 ShellTab.PROFILE -> ProfileScreen(
-                    authProvider = AppConfig.authProvider,
                     isClerkAuthAvailable = AppConfig.isClerkAuthAvailable,
                     isClerkInitialized = clerkIsInitialized,
-                    isWebAuthAvailable = AppConfig.isWebAuthAvailable,
                     accessState = accessState,
                     libraryState = libraryState,
-                    onConnectDemo = {
-                        scope.launch { accessRepository.signInDemo() }
-                    },
-                    onOpenWebAuth = {
-                        AppConfig.authWebUrl?.let(uriHandler::openUri)
-                    },
                     onOpenStationDataSource = {
                         uriHandler.openUri("https://www.radio-browser.info/")
                     },
@@ -291,12 +273,6 @@ fun AvRadioApp(
                     },
                     onOpenPrivacy = {
                         AppConfig.privacyUrl?.let(uriHandler::openUri)
-                    },
-                    onEnablePro = {
-                        scope.launch { accessRepository.enableProDemo() }
-                    },
-                    onDisablePro = {
-                        scope.launch { accessRepository.disableProDemo() }
                     },
                     onSignOut = {
                         scope.launch { accessRepository.signOut() }
@@ -1197,12 +1173,9 @@ private fun PlaceholderScreen(title: String, detail: String) {
 
 @Composable
 private fun OnboardingScreen(
-    authProvider: AppConfig.AuthProvider,
     isClerkAuthAvailable: Boolean,
     isClerkInitialized: Boolean,
     onContinueGuest: () -> Unit,
-    onConnectDemo: () -> Unit,
-    onOpenWebAuth: () -> Unit,
     onOpenTerms: () -> Unit,
     onOpenPrivacy: () -> Unit
 ) {
@@ -1239,19 +1212,10 @@ private fun OnboardingScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = when (authProvider) {
-                        AppConfig.AuthProvider.CLERK ->
-                            if (isClerkAuthAvailable) {
-                                "Sign in with AV Apps Account, like the iOS app. Apple, Google, and other enabled methods come from the account provider."
-                            } else {
-                                "This build is set to use AV Apps Account, but the publishable key is not configured yet. You can still use AV Radio locally on this device."
-                            }
-                        AppConfig.AuthProvider.DEMO ->
-                            "Local-first radio listening with optional account state. This Android build uses a local demo account until the real backend flow is wired."
-                        AppConfig.AuthProvider.WEB ->
-                            "Local-first radio listening with external account handoff enabled. This build can open a web sign-in flow when configured."
-                        AppConfig.AuthProvider.NONE ->
-                            "Local-first radio listening with no account provider configured in this build."
+                    text = if (isClerkAuthAvailable) {
+                        "Sign in with AV Apps Account, like the iOS app. Apple, Google, and other enabled methods come from the account provider."
+                    } else {
+                        "This build requires AV Apps Account, but the publishable key is not configured yet. You can still use AV Radio locally on this device."
                     },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1259,62 +1223,30 @@ private fun OnboardingScreen(
                 FeatureLine("Browse live stations and stream immediately")
                 FeatureLine("Save favorites and recent stations on device")
                 FeatureLine(
-                    when (authProvider) {
-                        AppConfig.AuthProvider.CLERK ->
-                            if (isClerkAuthAvailable) {
-                                "Use the same AV Apps Account login stack as iOS"
-                            } else {
-                                "AV Apps Account is selected for this build, but no publishable key is configured yet"
-                            }
-                        AppConfig.AuthProvider.DEMO -> "Try signed-in free and pro states with local demo data"
-                        AppConfig.AuthProvider.WEB -> "Open the configured account sign-in page from Android"
-                        AppConfig.AuthProvider.NONE -> "Use guest mode until an account provider is configured"
+                    if (isClerkAuthAvailable) {
+                        "Use the same AV Apps Account login stack as iOS"
+                    } else {
+                        "AV Apps Account is required for this build, but no publishable key is configured yet"
                     }
                 )
-                when (authProvider) {
-                    AppConfig.AuthProvider.CLERK -> {
-                        if (isClerkAuthAvailable) {
-                            Button(
-                                onClick = { isShowingClerkAuth = !isShowingClerkAuth },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(if (isShowingClerkAuth) "Hide AV Apps Account" else "Use AV Apps Account")
-                            }
-
-                            if (isShowingClerkAuth) {
-                                ClerkAuthCard(isInitialized = isClerkInitialized)
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = {},
-                                enabled = false,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("AV Apps Account not configured in this build")
-                            }
-                        }
-                    }
-
-                    AppConfig.AuthProvider.DEMO -> Button(
-                        onClick = onConnectDemo,
+                if (isClerkAuthAvailable) {
+                    Button(
+                        onClick = { isShowingClerkAuth = !isShowingClerkAuth },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Enter with demo account")
+                        Text(if (isShowingClerkAuth) "Hide AV Apps Account" else "Use AV Apps Account")
                     }
 
-                    AppConfig.AuthProvider.WEB -> Button(
-                        onClick = onOpenWebAuth,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Open sign-in page")
+                    if (isShowingClerkAuth) {
+                        ClerkAuthCard(isInitialized = isClerkInitialized)
                     }
-
-                    AppConfig.AuthProvider.NONE -> OutlinedButton(
+                } else {
+                    OutlinedButton(
                         onClick = {},
                         enabled = false,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("No account provider in this build")
+                        Text("AV Apps Account not configured in this build")
                     }
                 }
                 OutlinedButton(
@@ -1422,21 +1354,15 @@ private fun ClerkAuthCard(isInitialized: Boolean) {
 
 @Composable
 private fun ProfileScreen(
-    authProvider: AppConfig.AuthProvider,
     isClerkAuthAvailable: Boolean,
     isClerkInitialized: Boolean,
-    isWebAuthAvailable: Boolean,
     accessState: AccessState,
     libraryState: LibraryState,
-    onConnectDemo: () -> Unit,
-    onOpenWebAuth: () -> Unit,
     onOpenStationDataSource: () -> Unit,
     onOpenManageAccount: () -> Unit,
     onOpenSupport: () -> Unit,
     onOpenTerms: () -> Unit,
     onOpenPrivacy: () -> Unit,
-    onEnablePro: () -> Unit,
-    onDisablePro: () -> Unit,
     onSignOut: () -> Unit,
     onClearLocalData: () -> Unit,
     onSetSleepTimer: (Int?) -> Unit
@@ -1488,43 +1414,16 @@ private fun ProfileScreen(
         item {
             ProfileCard(
                 title = "Auth provider",
-                detail = when (authProvider) {
-                    AppConfig.AuthProvider.CLERK ->
-                        if (isClerkAuthAvailable) {
-                            "This build uses AV Apps Account, matching the iOS app."
-                        } else {
-                            "This build is configured for AV Apps Account, but the publishable key is missing."
-                        }
-                    AppConfig.AuthProvider.DEMO -> "This build uses the local demo account provider."
-                    AppConfig.AuthProvider.WEB -> "This build can hand off account sign-in to a configured web URL."
-                    AppConfig.AuthProvider.NONE -> "No external account provider is configured in this build."
+                detail = if (isClerkAuthAvailable) {
+                    "This build uses AV Apps Account, matching the iOS app."
+                } else {
+                    "This build requires AV Apps Account, but the publishable key is missing."
                 }
             ) {
-                when (authProvider) {
-                    AppConfig.AuthProvider.CLERK -> Text(
-                        text = if (isClerkAuthAvailable) "Provider: AV Apps Account" else "Provider: AV Apps Account (unavailable)",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    AppConfig.AuthProvider.DEMO -> Text(
-                        text = "Provider: demo",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    AppConfig.AuthProvider.WEB -> OutlinedButton(
-                        onClick = onOpenWebAuth,
-                        enabled = isWebAuthAvailable,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Open sign-in page")
-                    }
-
-                    AppConfig.AuthProvider.NONE -> Text(
-                        text = "Provider: none",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = if (isClerkAuthAvailable) "Provider: AV Apps Account" else "Provider: AV Apps Account (unavailable)",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
 
@@ -1535,11 +1434,11 @@ private fun ProfileScreen(
                     "Premium and cloud-backed capabilities are active for this account."
                 } else if (accessState.capabilities.canUseBackend) {
                     "Backend-backed account access is active, but premium features remain off for this account."
-                } else if (authProvider == AppConfig.AuthProvider.CLERK && AppConfig.isAvAppsBackendConfigured && accessState.isSignedIn) {
+                } else if (AppConfig.isAvAppsBackendConfigured && accessState.isSignedIn) {
                     "Account login is active and access is resolved by AV Apps. This free state still stays local-first."
                 } else if (!AppConfig.isPremiumSubscriptionAvailable) {
                     "Add AVRADIO_PREMIUM_PRODUCT_IDS to the Android config to enable store subscriptions in this build."
-                } else if (authProvider == AppConfig.AuthProvider.CLERK && accessState.isSignedIn) {
+                } else if (accessState.isSignedIn) {
                     "Account login is active. Configure AVAPPS_API_BASE_URL to resolve access from the shared backend."
                 } else {
                     "Local-first mode with no backend dependency."
@@ -1635,78 +1534,38 @@ private fun ProfileScreen(
         item {
             ProfileCard(
                 title = "Actions",
-                detail = when (authProvider) {
-                    AppConfig.AuthProvider.CLERK ->
-                        if (accessState.isSignedIn) {
-                            "Signed in with AV Apps Account. Android now resolves account access through AV Apps when configured, while billing and app-data sync are still pending."
-                        } else {
-                            "Sign in with the same AV Apps Account flow used by iOS."
-                        }
-                    else -> "Local account simulation until backend auth is wired."
+                detail = if (accessState.isSignedIn) {
+                    "Signed in with AV Apps Account. Android resolves account access through AV Apps when configured."
+                } else {
+                    "Sign in with the same AV Apps Account flow used by iOS."
                 }
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (accessState.mode == AccessMode.GUEST) {
-                        when (authProvider) {
-                            AppConfig.AuthProvider.CLERK -> {
-                                if (isClerkAuthAvailable) {
-                                    Button(
-                                        onClick = { isShowingClerkAuth = !isShowingClerkAuth },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(if (isShowingClerkAuth) "Hide AV Apps Account" else "Use AV Apps Account")
-                                    }
-
-                                    if (isShowingClerkAuth) {
-                                        ClerkAuthCard(isInitialized = isClerkInitialized)
-                                    }
-                                } else {
-                                    OutlinedButton(
-                                        onClick = {},
-                                        enabled = false,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("AV Apps Account not configured in this build")
-                                    }
-                                }
-                            }
-
-                            AppConfig.AuthProvider.DEMO -> Button(
-                                onClick = onConnectDemo,
+                        if (isClerkAuthAvailable) {
+                            Button(
+                                onClick = { isShowingClerkAuth = !isShowingClerkAuth },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Connect demo account")
+                                Text(if (isShowingClerkAuth) "Hide AV Apps Account" else "Use AV Apps Account")
                             }
 
-                            AppConfig.AuthProvider.WEB -> Button(
-                                onClick = onOpenWebAuth,
-                                enabled = isWebAuthAvailable,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Open sign-in page")
+                            if (isShowingClerkAuth) {
+                                ClerkAuthCard(isInitialized = isClerkInitialized)
                             }
-
-                            AppConfig.AuthProvider.NONE -> OutlinedButton(
+                        } else {
+                            OutlinedButton(
                                 onClick = {},
                                 enabled = false,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("No account provider configured")
+                                Text("AV Apps Account not configured in this build")
                             }
                         }
                     } else {
                         if (accessState.capabilities.canManageAccount && AppConfig.accountManagementUrl != null) {
                             OutlinedButton(onClick = onOpenManageAccount, modifier = Modifier.fillMaxWidth()) {
                                 Text("Manage account")
-                            }
-                        }
-                        if (authProvider == AppConfig.AuthProvider.DEMO && accessState.mode == AccessMode.SIGNED_IN_FREE) {
-                            Button(onClick = onEnablePro, modifier = Modifier.fillMaxWidth()) {
-                                Text("Enable pro demo")
-                            }
-                        } else if (authProvider == AppConfig.AuthProvider.DEMO) {
-                            OutlinedButton(onClick = onDisablePro, modifier = Modifier.fillMaxWidth()) {
-                                Text("Return to free plan")
                             }
                         }
                         OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {

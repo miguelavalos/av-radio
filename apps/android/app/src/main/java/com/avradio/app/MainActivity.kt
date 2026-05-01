@@ -8,11 +8,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
 import com.clerk.api.Clerk
 import com.avradio.core.designsystem.theme.AvRadioTheme
 import com.avradio.core.player.PlaybackManager
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val appDependencies: AvRadioApplication
@@ -45,17 +43,8 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         val data = intent?.data ?: return
 
-        if (AppConfig.authProvider == AppConfig.AuthProvider.CLERK && AppConfig.isClerkAuthAvailable) {
+        if (AppConfig.isClerkAuthAvailable) {
             Clerk.auth.handle(data)
-            return
-        }
-
-        if (data.scheme != AppConfig.authCallbackScheme) return
-        if (data.host != AppConfig.authCallbackHost) return
-        if (data.path != "/callback") return
-
-        lifecycleScope.launch {
-            appDependencies.accessRepository.completeWebSignIn(data)
         }
     }
 }

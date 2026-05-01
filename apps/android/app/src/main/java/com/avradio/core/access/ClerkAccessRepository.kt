@@ -1,7 +1,6 @@
 package com.avradio.core.access
 
 import android.content.Context
-import android.net.Uri
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -76,17 +75,6 @@ class ClerkAccessRepository(
 
     override suspend fun continueAsGuest() {
         markOnboardingSeen()
-    }
-
-    override suspend fun signInDemo() {
-    }
-
-    override suspend fun completeWebSignIn(uri: Uri): Boolean = false
-
-    override suspend fun enableProDemo() {
-    }
-
-    override suspend fun disableProDemo() {
     }
 
     override suspend fun signOut() {

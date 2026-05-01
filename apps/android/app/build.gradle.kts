@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
@@ -40,8 +39,6 @@ android {
         versionName = "0.1.0"
 
         buildConfigField("String", "APPLICATION_ID_RUNTIME", buildConfigString("AVRADIO_APPLICATION_ID", "com.avalsys.avradio.dev"))
-        buildConfigField("String", "AUTH_PROVIDER", buildConfigString("AVRADIO_AUTH_PROVIDER", "clerk"))
-        buildConfigField("String", "AUTH_WEB_URL", buildConfigString("AVRADIO_AUTH_WEB_URL", ""))
         buildConfigField("String", "AUTH_CALLBACK_SCHEME", buildConfigString("AVRADIO_AUTH_CALLBACK_SCHEME", "avradio"))
         buildConfigField("String", "AUTH_CALLBACK_HOST", buildConfigString("AVRADIO_AUTH_CALLBACK_HOST", "auth"))
         buildConfigField("String", "AVAPPS_ACCOUNT_PUBLISHABLE_KEY", buildConfigString("AVAPPS_ACCOUNT_PUBLISHABLE_KEY", ""))

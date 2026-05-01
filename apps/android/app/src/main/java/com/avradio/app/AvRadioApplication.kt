@@ -8,7 +8,6 @@ import com.avradio.core.access.AccessRepository
 import com.avradio.core.access.AVAppsAccessApi
 import com.avradio.core.access.AVAppsAPIClient
 import com.avradio.core.access.ClerkAccessRepository
-import com.avradio.core.access.DataStoreAccessRepository
 import com.avradio.core.database.AVRadioAppDataService
 import com.avradio.core.database.DataStoreLibraryRepository
 import com.avradio.core.database.LibraryRepository
@@ -32,13 +31,10 @@ class AvRadioApplication : Application() {
     }
 
     val accessRepository: AccessRepository by lazy {
-        when (AppConfig.authProvider) {
-            AppConfig.AuthProvider.CLERK -> ClerkAccessRepository(
-                applicationContext,
-                AVAppsAccessApi(avAppsApiClient)
-            )
-            else -> DataStoreAccessRepository(applicationContext)
-        }
+        ClerkAccessRepository(
+            applicationContext,
+            AVAppsAccessApi(avAppsApiClient)
+        )
     }
 
     val libraryRepository: LibraryRepository by lazy {

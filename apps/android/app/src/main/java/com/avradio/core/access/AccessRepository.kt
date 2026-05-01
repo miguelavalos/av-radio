@@ -1,6 +1,5 @@
 package com.avradio.core.access
 
-import android.net.Uri
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -133,9 +132,5 @@ interface AccessRepository {
 
     suspend fun completeOnboarding()
     suspend fun continueAsGuest()
-    suspend fun signInDemo()
-    suspend fun completeWebSignIn(uri: Uri): Boolean
-    suspend fun enableProDemo()
-    suspend fun disableProDemo()
     suspend fun signOut()
 }

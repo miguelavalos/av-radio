@@ -42,7 +42,7 @@ class AVAppsAPIClient(
         runCatching {
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@use null
-                val responseBody = response.body.string()
+                val responseBody = response.body?.string() ?: return@use null
                 if (responseBody.isBlank()) return@use null
                 json.decodeFromString(serializer, responseBody)
             }

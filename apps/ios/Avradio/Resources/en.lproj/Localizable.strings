@@ -112,7 +112,7 @@
 "profile.account.status.guest" = "No AV Apps Account is connected on this device.";
 "profile.account.status.signedIn" = "This device is connected to your AV Apps Account.";
 "profile.account.status.title" = "Session";
-"profile.account.subtitle.guest" = "Account is optional. Connect when you want sync, backup, or premium features.";
+"profile.account.subtitle.guest" = "Connect AV Apps Account for sync, backup, and premium features.";
 "profile.account.subtitle.signedIn" = "Open the AV account portal to manage your account details, then come back here to sign out if needed.";
 "profile.account.title" = "Manage account";
 "profile.actions.clearData" = "Clear local data";

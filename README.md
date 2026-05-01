@@ -104,7 +104,7 @@ See [docs/install-ios.md](docs/install-ios.md) and [docs/install-android.md](doc
 - Playback relies on direct third-party station stream hosts that AV Radio does not control.
 - Artwork resolution may use Apple `iTunes Search`.
 - Favicon fallback resolution may use Google's favicon endpoint when station metadata does not provide a usable icon.
-- Optional signed-in account and entitlement flows depend on the private AV Apps backend and related identity infrastructure.
+- Signed-in account and entitlement flows depend on the private AV Apps backend and related identity infrastructure.
 - Profile surfaces now expose an in-product data-source reference for `Radio Browser`.
 
 ## Account Deletion Support
