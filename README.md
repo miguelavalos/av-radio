@@ -85,7 +85,7 @@ This public repo does not carry Infisical bootstrap examples or generated local 
 - private bootstrap material belongs in Avalsys private infrastructure
 - generated native local files stay local-only
 - native local files are generated through `varlock printenv`, not manual `infisical export` parsing
-- do not add `.env.example`, bootstrap examples, or placeholder secrets to this public repo
+- do not add `.env.example`, bootstrap examples, or example secret files to this public repo
 
 Run `bun run config:hygiene` before pushing config-related changes.
 

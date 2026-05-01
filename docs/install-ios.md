@@ -36,7 +36,7 @@ bun run ios:config:production
 ```
 
 `Local.xcconfig` is gitignored and should be regenerated locally instead of hand-maintained.
-Do not copy production values, placeholder secrets, or bootstrap examples into tracked files. See `docs/private-config-and-infisical.md`.
+Do not copy production values, example secret files, or bootstrap examples into tracked files. See `docs/private-config-and-infisical.md`.
 
 ## Run on simulator
 
