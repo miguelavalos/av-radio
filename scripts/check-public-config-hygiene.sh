@@ -29,4 +29,10 @@ if git ls-files -z \
   exit 1
 fi
 
+if git ls-files -z '*env.schema' '*/.env.schema' \
+  | xargs -0 rg -n --no-messages 'AVAPPS_SIGNED_IN_SMOKE_TOKEN'; then
+  printf 'Forbidden persistent signed-in smoke token schema entry found. Use the private runtime prompt wrapper instead.\n' >&2
+  exit 1
+fi
+
 printf 'Public config hygiene check passed.\n'
