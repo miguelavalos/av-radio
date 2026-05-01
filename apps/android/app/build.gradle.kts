@@ -44,6 +44,7 @@ android {
         buildConfigField("String", "AUTH_WEB_URL", buildConfigString("AVRADIO_AUTH_WEB_URL", ""))
         buildConfigField("String", "AUTH_CALLBACK_SCHEME", buildConfigString("AVRADIO_AUTH_CALLBACK_SCHEME", "avradio"))
         buildConfigField("String", "AUTH_CALLBACK_HOST", buildConfigString("AVRADIO_AUTH_CALLBACK_HOST", "auth"))
+        buildConfigField("String", "AVAPPS_ACCOUNT_PUBLISHABLE_KEY", buildConfigString("AVAPPS_ACCOUNT_PUBLISHABLE_KEY", ""))
         buildConfigField("String", "CLERK_PUBLISHABLE_KEY", buildConfigString("CLERK_PUBLISHABLE_KEY", ""))
         buildConfigField("String", "AVAPPS_API_BASE_URL", buildConfigString("AVAPPS_API_BASE_URL", ""))
         buildConfigField("String", "PREMIUM_PRODUCT_IDS", buildConfigString("AVRADIO_PREMIUM_PRODUCT_IDS", ""))

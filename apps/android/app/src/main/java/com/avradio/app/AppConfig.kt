@@ -24,7 +24,9 @@ object AppConfig {
         }
 
     val clerkPublishableKey: String?
-        get() = BuildConfig.CLERK_PUBLISHABLE_KEY.trim().ifBlank { null }
+        get() = BuildConfig.AVAPPS_ACCOUNT_PUBLISHABLE_KEY.trim().ifBlank {
+            BuildConfig.CLERK_PUBLISHABLE_KEY.trim().ifBlank { null }
+        }
 
     val avAppsApiBaseUrl: HttpUrl?
         get() = BuildConfig.AVAPPS_API_BASE_URL.trim().ifBlank { null }?.toHttpUrlOrNull()

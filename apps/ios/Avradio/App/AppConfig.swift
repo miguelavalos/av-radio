@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 enum AppConfig {
     static var avAppsAccountKey: String {
-        stringValue(for: "CLERK_PUBLISHABLE_KEY")
+        nonEmptyStringValue(for: "AVAPPS_ACCOUNT_PUBLISHABLE_KEY") ?? stringValue(for: "CLERK_PUBLISHABLE_KEY")
     }
 
     static var supportEmail: String? {
