@@ -83,6 +83,23 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         XCTAssertEqual(reloadedStore.preferredTag, "ambient")
     }
 
+    func testDailyFeatureUsageKeysOnlyCountUniqueUses() {
+        let store = LibraryStore(defaults: isolatedUserDefaults())
+        let lyricsURL = "https://www.google.com/search?q=artist%20song%20lyrics"
+
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: lyricsURL))
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: lyricsURL))
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: "  \(lyricsURL.uppercased())  "))
+
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: "https://www.google.com/search?q=artist%20song%202%20lyrics"))
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: "https://www.google.com/search?q=artist%20song%203%20lyrics"))
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: "https://www.google.com/search?q=artist%20song%204%20lyrics"))
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: "https://www.google.com/search?q=artist%20song%205%20lyrics"))
+
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: lyricsURL))
+        XCTAssertFalse(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: "https://www.google.com/search?q=artist%20song%206%20lyrics"))
+    }
+
     private func isolatedUserDefaults() -> UserDefaults {
         let suiteName = "LibraryStoreSnapshotTests.\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName)!

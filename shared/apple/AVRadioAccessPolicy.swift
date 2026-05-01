@@ -140,15 +140,15 @@ enum AVRadioAccessPolicy {
         switch accessMode {
         case "guest":
             AVRadioAccessLimitValues(
-                favoriteStations: 5,
-                recentStations: 10,
-                discoveredTracks: 20,
-                savedTracks: 5,
-                lyricsSearchesPerDay: 3,
-                youtubeSearchesPerDay: 3,
-                appleMusicSearchesPerDay: 3,
-                spotifySearchesPerDay: 3,
-                discoverySharesPerDay: 1
+                favoriteStations: 10,
+                recentStations: 12,
+                discoveredTracks: 25,
+                savedTracks: 10,
+                lyricsSearchesPerDay: 5,
+                youtubeSearchesPerDay: 5,
+                appleMusicSearchesPerDay: 5,
+                spotifySearchesPerDay: 5,
+                discoverySharesPerDay: 2
             )
         case "signedInFree":
             AVRadioAccessLimitValues(

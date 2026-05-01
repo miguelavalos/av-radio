@@ -165,7 +165,7 @@ struct NowPlayingView: View {
             homepageURL: homepageURL,
             discoveryShareText: discoveryShareText(for: station),
             onSaveDiscovery: { saveCurrentDiscovery(for: station) },
-            onShareDiscovery: { useDailyFeatureIfAllowed(.discoveryShare) },
+            onShareDiscovery: { useDailyFeatureIfAllowed(.discoveryShare, usageKey: discoveryShareText(for: station)) },
             onOpenYouTube: { openExternalSearch(.youtubeSearch, destination: .youtube) },
             onOpenLyrics: { openExternalSearch(.lyricsSearch, destination: .web, suffix: "lyrics") },
             onTogglePlayback: audioPlayer.togglePlayback,
@@ -736,12 +736,12 @@ struct NowPlayingView: View {
         suffix: String? = nil
     ) {
         guard var query = discoverySearchQuery else { return }
-        guard useDailyFeatureIfAllowed(feature) else { return }
         if let suffix {
             query += " \(suffix)"
         }
 
         guard let url = AVRadioExternalSearchURL.url(for: destination, query: query) else { return }
+        guard useDailyFeatureIfAllowed(feature, usageKey: url.absoluteString) else { return }
         browserDestination = BrowserDestination(url: url)
     }
 
@@ -763,13 +763,13 @@ struct NowPlayingView: View {
         libraryStore.toggleFavorite(for: station)
     }
 
-    private func useDailyFeatureIfAllowed(_ feature: LimitedFeature) -> Bool {
-        guard accessController.canUseDailyFeature(feature) else {
+    private func useDailyFeatureIfAllowed(_ feature: LimitedFeature, usageKey: String) -> Bool {
+        guard accessController.canUseDailyFeature(feature, usageKey: usageKey) else {
             accessController.presentUpgradePrompt(for: feature)
             return false
         }
 
-        accessController.recordDailyFeatureUse(feature)
+        accessController.recordDailyFeatureUse(feature, usageKey: usageKey)
         return true
     }
 

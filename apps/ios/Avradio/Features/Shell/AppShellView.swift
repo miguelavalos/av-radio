@@ -1586,23 +1586,20 @@ private struct MusicScreen: View {
 
     private func openArtistSearch(_ artistName: String, youtube: Bool) {
         let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
-        guard useDailyFeatureIfAllowed(feature) else { return }
-
         guard let url = AVRadioExternalSearchURL.web(query: artistName, youtube: youtube) else { return }
+        guard useDailyFeatureIfAllowed(feature, usageKey: url.absoluteString) else { return }
         browserDestination = BrowserDestination(url: url)
     }
 
     private func openAppleMusicArtistSearch(_ artistName: String) {
-        guard useDailyFeatureIfAllowed(.appleMusicSearch) else { return }
-
         guard let url = AVRadioExternalSearchURL.appleMusic(query: artistName) else { return }
+        guard useDailyFeatureIfAllowed(.appleMusicSearch, usageKey: url.absoluteString) else { return }
         openURL(url)
     }
 
     private func openSpotifyArtistSearch(_ artistName: String) {
-        guard useDailyFeatureIfAllowed(.spotifySearch) else { return }
-
         guard let url = AVRadioExternalSearchURL.spotify(query: artistName) else { return }
+        guard useDailyFeatureIfAllowed(.spotifySearch, usageKey: url.absoluteString) else { return }
         openURL(url)
     }
 
@@ -1620,7 +1617,7 @@ private struct MusicScreen: View {
     private var discoveryActions: some View {
         HStack(spacing: 10) {
             Button {
-                guard useDailyFeatureIfAllowed(.discoveryShare) else { return }
+                guard useDailyFeatureIfAllowed(.discoveryShare, usageKey: discoveriesShareText) else { return }
                 isShowingDiscoveriesShare = true
             } label: {
                 Image(systemName: "square.and.arrow.up")
@@ -1808,34 +1805,31 @@ private struct MusicScreen: View {
 
     private func openDiscoverySearch(_ discovery: DiscoveredTrack, suffix: String?, youtube: Bool) {
         let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
-        guard useDailyFeatureIfAllowed(feature) else { return }
-
         let query = AVRadioExternalSearchURL.query(parts: [discovery.searchQuery], suffix: suffix)
         guard let url = AVRadioExternalSearchURL.web(query: query, youtube: youtube) else { return }
+        guard useDailyFeatureIfAllowed(feature, usageKey: url.absoluteString) else { return }
         browserDestination = BrowserDestination(url: url)
     }
 
     private func openAppleMusicSearch(_ discovery: DiscoveredTrack) {
-        guard useDailyFeatureIfAllowed(.appleMusicSearch) else { return }
-
         guard let url = AVRadioExternalSearchURL.appleMusic(query: discovery.searchQuery) else { return }
+        guard useDailyFeatureIfAllowed(.appleMusicSearch, usageKey: url.absoluteString) else { return }
         openURL(url)
     }
 
     private func openSpotifySearch(_ discovery: DiscoveredTrack) {
-        guard useDailyFeatureIfAllowed(.spotifySearch) else { return }
-
         guard let url = AVRadioExternalSearchURL.spotify(query: discovery.searchQuery) else { return }
+        guard useDailyFeatureIfAllowed(.spotifySearch, usageKey: url.absoluteString) else { return }
         openURL(url)
     }
 
-    private func useDailyFeatureIfAllowed(_ feature: LimitedFeature) -> Bool {
-        guard accessController.canUseDailyFeature(feature) else {
+    private func useDailyFeatureIfAllowed(_ feature: LimitedFeature, usageKey: String) -> Bool {
+        guard accessController.canUseDailyFeature(feature, usageKey: usageKey) else {
             accessController.presentUpgradePrompt(for: feature)
             return false
         }
 
-        accessController.recordDailyFeatureUse(feature)
+        accessController.recordDailyFeatureUse(feature, usageKey: usageKey)
         return true
     }
 }

@@ -121,12 +121,38 @@ final class LibraryStore: ObservableObject {
     func useDailyFeatureIfAllowed(_ feature: LimitedFeature) -> Bool {
         guard let limit = limits.limit(for: feature) else { return true }
         let key = dailyCounterKey(for: feature)
-        let current = defaults.integer(forKey: key)
+        let current = dailyUsageCount(for: feature)
         guard current < limit else {
             upgradePrompt = .dailyFeature(feature, current: current, limit: limit)
             return false
         }
         defaults.set(current + 1, forKey: key)
+        return true
+    }
+
+    func useDailyFeatureIfAllowed(_ feature: LimitedFeature, usageKey: String) -> Bool {
+        let normalizedUsageKey = Self.normalizedUsageKey(usageKey)
+        guard !normalizedUsageKey.isEmpty else {
+            return useDailyFeatureIfAllowed(feature)
+        }
+
+        guard let limit = limits.limit(for: feature) else { return true }
+        let keysKey = dailyUsageKeysKey(for: feature)
+        var usageKeys = dailyUsageKeys(for: feature)
+        if usageKeys.contains(normalizedUsageKey) {
+            return true
+        }
+
+        let current = max(dailyUsageCount(for: feature), usageKeys.count)
+        guard current < limit else {
+            upgradePrompt = .dailyFeature(feature, current: current, limit: limit)
+            return false
+        }
+
+        usageKeys.insert(normalizedUsageKey)
+        let sortedUsageKeys = usageKeys.sorted()
+        defaults.set(sortedUsageKeys, forKey: keysKey)
+        defaults.set(max(current + 1, sortedUsageKeys.count), forKey: dailyCounterKey(for: feature))
         return true
     }
 
@@ -265,6 +291,26 @@ final class LibraryStore: ObservableObject {
     private func dailyCounterKey(for feature: LimitedFeature) -> String {
         let day = AVRadioDateCoding.dayIdentifier()
         return "avradio.mac.daily.\(feature.rawValue).\(day)"
+    }
+
+    private func dailyUsageKeysKey(for feature: LimitedFeature) -> String {
+        "\(dailyCounterKey(for: feature)).keys"
+    }
+
+    private func dailyUsageKeys(for feature: LimitedFeature) -> Set<String> {
+        Set(
+            defaults.stringArray(forKey: dailyUsageKeysKey(for: feature))?
+                .map(Self.normalizedUsageKey)
+                .filter { !$0.isEmpty } ?? []
+        )
+    }
+
+    private func dailyUsageCount(for feature: LimitedFeature) -> Int {
+        max(defaults.integer(forKey: dailyCounterKey(for: feature)), dailyUsageKeys(for: feature).count)
+    }
+
+    private static func normalizedUsageKey(_ usageKey: String) -> String {
+        usageKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
     private static func loadStations(forKey key: String, defaults: UserDefaults) -> [Station] {

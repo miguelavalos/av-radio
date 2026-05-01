@@ -11,7 +11,7 @@ struct MusicView: View {
     let restoreDiscovery: (DiscoveredTrack) -> Void
     let removeDiscovery: (DiscoveredTrack) -> Void
     let clearDiscoveries: () -> Void
-    let useDailyFeature: (LimitedFeature) -> Bool
+    let useDailyFeature: (LimitedFeature, String) -> Bool
 
     @State private var query = ""
     @State private var mode: MusicLibraryMode = .songs
@@ -188,25 +188,25 @@ struct MusicView: View {
         destination: AVRadioExternalSearchURL.Destination,
         suffix: String? = nil
     ) {
-        guard useDailyFeature(feature) else { return }
         let query = AVRadioExternalSearchURL.query(parts: [discovery.searchQuery], suffix: suffix)
 
         if let url = AVRadioExternalSearchURL.url(for: destination, query: query) {
+            guard useDailyFeature(feature, url.absoluteString) else { return }
             openURL(url)
         }
     }
 
     private func openArtist(_ artist: String, youtube: Bool) {
         let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
-        guard useDailyFeature(feature) else { return }
         if let url = AVRadioExternalSearchURL.web(query: artist, youtube: youtube) {
+            guard useDailyFeature(feature, url.absoluteString) else { return }
             openURL(url)
         }
     }
 
     private func openArtistSpotify(_ artist: String) {
-        guard useDailyFeature(.spotifySearch),
-              let url = AVRadioExternalSearchURL.spotify(query: artist) else { return }
+        guard let url = AVRadioExternalSearchURL.spotify(query: artist),
+              useDailyFeature(.spotifySearch, url.absoluteString) else { return }
         openURL(url)
     }
 }

@@ -341,7 +341,6 @@ struct MacNowPlayingView: View {
         destination: AVRadioExternalSearchURL.Destination,
         suffix: String? = nil
     ) {
-        guard libraryStore.useDailyFeatureIfAllowed(feature) else { return }
         let query = AVRadioExternalSearchURL.query(
             parts: [audioPlayer.currentTrackArtist, audioPlayer.currentTrackTitle],
             suffix: suffix
@@ -349,6 +348,7 @@ struct MacNowPlayingView: View {
         guard !query.isEmpty else { return }
 
         if let url = AVRadioExternalSearchURL.url(for: destination, query: query) {
+            guard libraryStore.useDailyFeatureIfAllowed(feature, usageKey: url.absoluteString) else { return }
             openURL(url)
         }
     }

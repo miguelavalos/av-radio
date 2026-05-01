@@ -197,7 +197,7 @@ struct ContentView: View {
                 restoreDiscovery: libraryStore.restoreDiscovery,
                 removeDiscovery: libraryStore.removeDiscovery,
                 clearDiscoveries: libraryStore.clearDiscoveries,
-                useDailyFeature: libraryStore.useDailyFeatureIfAllowed
+                useDailyFeature: libraryStore.useDailyFeatureIfAllowed(_:usageKey:)
             )
         case .profile:
             ProfileView(
@@ -731,6 +731,7 @@ private struct DesktopPlayerInspector: View {
         .joined(separator: " - ")
 
         let shareText = text.isEmpty ? station.name : "\(text) · \(station.name)"
+        guard libraryStore.useDailyFeatureIfAllowed(.discoveryShare, usageKey: shareText) else { return }
         let picker = NSSharingServicePicker(items: [shareText])
         guard let contentView = NSApp.keyWindow?.contentView else {
             NSPasteboard.general.clearContents()
@@ -768,7 +769,6 @@ private struct DesktopPlayerInspector: View {
         destination: AVRadioExternalSearchURL.Destination,
         suffix: String? = nil
     ) {
-        guard libraryStore.useDailyFeatureIfAllowed(feature) else { return }
         let query = AVRadioExternalSearchURL.query(
             parts: [audioPlayer.currentTrackArtist, audioPlayer.currentTrackTitle],
             suffix: suffix
@@ -776,6 +776,7 @@ private struct DesktopPlayerInspector: View {
         guard !query.isEmpty else { return }
 
         if let url = AVRadioExternalSearchURL.url(for: destination, query: query) {
+            guard libraryStore.useDailyFeatureIfAllowed(feature, usageKey: url.absoluteString) else { return }
             openURL(url)
         }
     }

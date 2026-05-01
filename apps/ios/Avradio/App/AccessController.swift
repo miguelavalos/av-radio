@@ -147,10 +147,36 @@ final class AccessController: ObservableObject {
         return dailyLimitState(for: feature).isAllowed
     }
 
+    func canUseDailyFeature(_ feature: LimitedFeature, usageKey: String) -> Bool {
+        let bucket = dailyUsageBucket(for: feature)
+        if bucket.usageKeys.contains(Self.normalizedUsageKey(usageKey)) {
+            return true
+        }
+
+        return limitState(for: feature, currentUsage: bucket.count).isAllowed
+    }
+
     func recordDailyFeatureUse(_ feature: LimitedFeature) {
         let bucket = dailyUsageBucket(for: feature)
         userDefaults.set(bucket.dayIdentifier, forKey: dailyUsageDayKey(for: feature))
         userDefaults.set(bucket.count + 1, forKey: dailyUsageCountKey(for: feature))
+    }
+
+    func recordDailyFeatureUse(_ feature: LimitedFeature, usageKey: String) {
+        let normalizedUsageKey = Self.normalizedUsageKey(usageKey)
+        guard !normalizedUsageKey.isEmpty else {
+            recordDailyFeatureUse(feature)
+            return
+        }
+
+        var bucket = dailyUsageBucket(for: feature)
+        userDefaults.set(bucket.dayIdentifier, forKey: dailyUsageDayKey(for: feature))
+        guard !bucket.usageKeys.contains(normalizedUsageKey) else { return }
+
+        bucket.usageKeys.insert(normalizedUsageKey)
+        let sortedUsageKeys = bucket.usageKeys.sorted()
+        userDefaults.set(sortedUsageKeys, forKey: dailyUsageKeysKey(for: feature))
+        userDefaults.set(max(bucket.count + 1, sortedUsageKeys.count), forKey: dailyUsageCountKey(for: feature))
     }
 
     func presentUpgradePrompt(for feature: LimitedFeature, currentUsage: Int? = nil) {
@@ -232,14 +258,19 @@ final class AccessController: ObservableObject {
         return bucket.count
     }
 
-    private func dailyUsageBucket(for feature: LimitedFeature) -> (dayIdentifier: String, count: Int) {
+    private func dailyUsageBucket(for feature: LimitedFeature) -> (dayIdentifier: String, count: Int, usageKeys: Set<String>) {
         let dayIdentifier = Self.dayIdentifier(for: now())
         let storedDay = userDefaults.string(forKey: dailyUsageDayKey(for: feature))
         guard storedDay == dayIdentifier else {
-            return (dayIdentifier, 0)
+            return (dayIdentifier, 0, [])
         }
 
-        return (dayIdentifier, userDefaults.integer(forKey: dailyUsageCountKey(for: feature)))
+        let usageKeys = Set(
+            userDefaults.stringArray(forKey: dailyUsageKeysKey(for: feature))?
+                .map(Self.normalizedUsageKey)
+                .filter { !$0.isEmpty } ?? []
+        )
+        return (dayIdentifier, max(userDefaults.integer(forKey: dailyUsageCountKey(for: feature)), usageKeys.count), usageKeys)
     }
 
     private func dailyUsageDayKey(for feature: LimitedFeature) -> String {
@@ -248,6 +279,14 @@ final class AccessController: ObservableObject {
 
     private func dailyUsageCountKey(for feature: LimitedFeature) -> String {
         "\(dailyUsagePrefix)\(feature.rawValue).count"
+    }
+
+    private func dailyUsageKeysKey(for feature: LimitedFeature) -> String {
+        "\(dailyUsagePrefix)\(feature.rawValue).keys"
+    }
+
+    private static func normalizedUsageKey(_ usageKey: String) -> String {
+        usageKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
     private static func dayIdentifier(for date: Date) -> String {
