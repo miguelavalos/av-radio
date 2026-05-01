@@ -31,6 +31,7 @@ Use `shared/apple` for Apple-only Modules whose Interface is stable enough to be
 
 - station domain shape and station service parsing
 - access policy limits and collection rules
+- library snapshots, library resource records, and sync planning shared by iOS and macOS Adapters
 - date/text/country normalization
 - now-playing metadata parsing
 - artwork and external-search URL construction

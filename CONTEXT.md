@@ -11,6 +11,9 @@
 - **entitlement**: the backend-owned resolution of plan tier, access mode, capabilities, and limits for one app and one user.
 - **capability**: a specific permission derived from entitlement, such as cloud sync, backend use, premium features, or plan management.
 - **library**: the user's AV Radio collection state, including favorites, recents, discoveries, saved tracks, and settings.
+- **library snapshot**: a portable representation of library state used by Apple clients and library sync. It contains favorites, recents, discoveries, and settings without binding callers to SwiftData, UserDefaults, or backend storage.
+- **library resource**: one independently versioned app data document inside library sync, such as `favorites`, `recents`, `discoveries`, or `settings`.
+- **library sync conflict**: the state where a library resource changed remotely after the client last pulled it, requiring the product to refresh from cloud or explicitly keep this device.
 - **app data**: backend-stored per-user, per-app documents used for cloud sync.
 - **library sync**: the workflow that compares local library state with app data, merges or rejects conflicting changes, and commits a new revision.
 
@@ -26,6 +29,7 @@
 ## Current Seams
 
 - `public/av-radio/shared/apple` is the shared Apple Module for iOS and macOS behaviour.
+- `public/av-radio/shared/apple/AVRadioLibrarySync.swift` owns the Apple library snapshot and library sync planning Interface. iOS SwiftData and macOS UserDefaults are Adapters at this seam.
 - `public/av-radio/shared/contracts` holds public platform-neutral AV Radio contracts used to validate native client policy.
 - `private/av-apps/packages/contracts` is the TypeScript contract Module for the private backend and frontend.
 - `private/av-apps/services/api/src/services/platform` owns backend Modules for account, entitlement, subscription, app data, and admin workflows.

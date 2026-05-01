@@ -37,6 +37,19 @@ struct DiscoveredTrack: Identifiable, Hashable, Codable {
         self.hiddenAt = hiddenAt
     }
 
+    init(record: DiscoveredTrackRecord) {
+        self.discoveryID = record.discoveryID
+        self.title = AVRadioDiscoveredTrackSupport.normalizedValue(record.title) ?? record.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.artist = AVRadioDiscoveredTrackSupport.normalizedValue(record.artist)
+        self.stationID = record.stationID
+        self.stationName = record.stationName
+        self.artworkURL = record.artworkURL
+        self.stationArtworkURL = record.stationArtworkURL
+        self.playedAt = AVRadioDateCoding.date(from: record.playedAt)
+        self.markedInterestedAt = record.markedInterestedAt.map(AVRadioDateCoding.date(from:))
+        self.hiddenAt = record.hiddenAt.map(AVRadioDateCoding.date(from:))
+    }
+
     var isMarkedInteresting: Bool {
         markedInterestedAt != nil
     }
@@ -62,6 +75,21 @@ struct DiscoveredTrack: Identifiable, Hashable, Codable {
 
     var resolvedStationArtworkURL: URL? {
         AVRadioDiscoveredTrackSupport.resolvedURL(stationArtworkURL)
+    }
+
+    var appDataRecord: DiscoveredTrackRecord {
+        DiscoveredTrackRecord(
+            discoveryID: discoveryID,
+            title: title,
+            artist: artist,
+            stationID: stationID,
+            stationName: stationName,
+            artworkURL: artworkURL,
+            stationArtworkURL: stationArtworkURL,
+            playedAt: AVRadioDateCoding.string(from: playedAt),
+            markedInterestedAt: markedInterestedAt.map(AVRadioDateCoding.string(from:)),
+            hiddenAt: hiddenAt.map(AVRadioDateCoding.string(from:))
+        )
     }
 
     private var artistNormalized: String? {

@@ -14,7 +14,9 @@
 		0E0EB0EF7C1C18EDA96B4BA9 /* AVRadioTrackMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A55A6FBEBE79D0D1639C962 /* AVRadioTrackMetadata.swift */; };
 		0E1CC3B20DE4C12661192283 /* AVRadioEighties80sNowPlaying.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F77F48694D520C36E611E45 /* AVRadioEighties80sNowPlaying.swift */; };
 		0EA536E51B9C6A55C13DF752 /* SearchQueueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC094A093EFF7ABFF788955E /* SearchQueueUITests.swift */; };
+		1211EF9FF32376215FD68F51 /* ShellChromeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F23CFECE9B4BD12655FE68 /* ShellChromeViews.swift */; };
 		180F8E48A3E6675B2AFA0129 /* LaunchContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */; };
+		1DFAF30F93394403643109BD /* MiniPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDE602D029FF80028FA7B01F /* MiniPlayerView.swift */; };
 		1E99EC0A3AE4FCEF48807340 /* AVAppsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22222D9C6C6F7ABAF8EB7626 /* AVAppsAPIClient.swift */; };
 		1F7CEF563A71B7B47F161E97 /* StationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8B90DE206EB81665E13922 /* StationService.swift */; };
 		2283DE9C92A3EFCE44E1631C /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = F17C3145DAD23B00F9300C1B /* ClerkKit */; };
@@ -39,6 +41,7 @@
 		7C6BE9FAA388A9D589FAAE2F /* AVRadioAppDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8D00A7BFD966ADBB4C63D1 /* AVRadioAppDataService.swift */; };
 		7DF7D854F244258532E4AA78 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6532FECDD1FED2117D65F45 /* AppConfig.swift */; };
 		8A3890458DEB15E61E43CCA0 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 660122FCDABDC467AF9E4B75 /* Localizable.strings */; };
+		8C602D718EA8E4901BEC5C17 /* AppShellTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DD6539B6B17562C311A3A55 /* AppShellTab.swift */; };
 		916DCB42EFFE8833CE087CCB /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1599C4A37FF6F3C0CD8402FD /* LibraryStore.swift */; };
 		A0F80C9A9AAD44CEEAD4D9C9 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9963A1C1E14528B4564B0429 /* AppShellView.swift */; };
 		A3544B62F7BBD9430B8C1B1A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DCE0A0330B23768F9B796D89 /* Assets.xcassets */; };
@@ -47,6 +50,7 @@
 		A874D995B8D76BD25F091F2E /* StationDetailQueueUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFD8C94C7BA46B88FBF60DA /* StationDetailQueueUITests.swift */; };
 		AA806E6147179B4E5FE845F0 /* AVRadioCollectionRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FE1B5444E93E5CC5C58028 /* AVRadioCollectionRules.swift */; };
 		AF4C9BB353A832A74E9620AB /* AccessController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850B0F51DE8B45597DDA0079 /* AccessController.swift */; };
+		AFD966F470E78D854C1D0997 /* AVRadioLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7C36C685A2427F4A7416D4E /* AVRadioLibrarySync.swift */; };
 		B0F4EF08F471979C55B127CE /* StationArtworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD59F5C58CDA836BE0C2F465 /* StationArtworkView.swift */; };
 		B5DD991407F22700885E9BDB /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399FF821B26BEC48DCA0C37E /* NowPlayingView.swift */; };
 		BCC64DC73CB9E711E679DDA4 /* AppShellSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EEB7C2901DB1EB5E13D6DAD /* AppShellSearch.swift */; };
@@ -57,11 +61,13 @@
 		D9BD317D031267C3579E1AB0 /* AvradioTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C016C1DBED538A066A92DC60 /* AvradioTheme.swift */; };
 		DD3AC279849D5316CC602250 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = D574F10DE15A78E8B706AC58 /* L10n.swift */; };
 		E395E769F7F68011264A88A1 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D896B7DFEF73E858D65B8D /* Station.swift */; };
+		E8DB3856CEFAE45454EBAF6F /* MusicDiscoveryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1146CB13D6A0D8D1321E1E7D /* MusicDiscoveryViews.swift */; };
 		E9E9B9428B72579C7CFC5DDD /* InAppBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742BB71F49A27AA9014E9462 /* InAppBrowserView.swift */; };
 		EA05A24B2F7AFF93E7534B7D /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1068AF59C71A5453058D86 /* ProfileScreen.swift */; };
 		EE0995F84551EFB3C9C412BE /* HomeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1D079A9F075D1A27C4F4EDE /* HomeUITests.swift */; };
 		F344E49B1C7A1C29D3886467 /* AVRadioStation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309B3CD134A3773742CBBDD3 /* AVRadioStation.swift */; };
 		F3909C353F2641867B42B11E /* DiscoveriesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48C8E7493193B9FA193164E0 /* DiscoveriesUITests.swift */; };
+		F78F8A98D39907FACD7BF269 /* AppShellNowPlayingPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE3C854D8A9A0DEB75377DBB /* AppShellNowPlayingPreviews.swift */; };
 		FC4A61253D954CA8938AD67D /* LimitsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C74B701737B69E4FE26007D4 /* LimitsUITests.swift */; };
 		FD2CB2B4D42D97825E9A929C /* HomeEmptyStateUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6D9CAA15891A8D026894BBB /* HomeEmptyStateUITests.swift */; };
 /* End PBXBuildFile section */
@@ -88,14 +94,17 @@
 		0644A16C8AC43085774A0629 /* ProfileUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileUITests.swift; sourceTree = "<group>"; };
 		08ADAC84C439464C73FD306E /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		0EEB7C2901DB1EB5E13D6DAD /* AppShellSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellSearch.swift; sourceTree = "<group>"; };
+		1146CB13D6A0D8D1321E1E7D /* MusicDiscoveryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicDiscoveryViews.swift; sourceTree = "<group>"; };
 		137827AF48AF789C60DC2ECC /* AVRadioDiscoveredTrackSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioDiscoveredTrackSupport.swift; sourceTree = "<group>"; };
 		14075907EF423B605398129E /* AVRadioDateCoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioDateCoding.swift; sourceTree = "<group>"; };
 		1599C4A37FF6F3C0CD8402FD /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		22222D9C6C6F7ABAF8EB7626 /* AVAppsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAppsAPIClient.swift; sourceTree = "<group>"; };
+		22F23CFECE9B4BD12655FE68 /* ShellChromeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellChromeViews.swift; sourceTree = "<group>"; };
 		288A6542E099CBD9A4FC8BFF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2A81D2EE988CE3B964C6E2E1 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		2B1068AF59C71A5453058D86 /* ProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileScreen.swift; sourceTree = "<group>"; };
 		2D512F4A2A2C553F8C7DC177 /* PlayerQueueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerQueueUITests.swift; sourceTree = "<group>"; };
+		2DD6539B6B17562C311A3A55 /* AppShellTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellTab.swift; sourceTree = "<group>"; };
 		2F77F48694D520C36E611E45 /* AVRadioEighties80sNowPlaying.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioEighties80sNowPlaying.swift; sourceTree = "<group>"; };
 		309B3CD134A3773742CBBDD3 /* AVRadioStation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioStation.swift; sourceTree = "<group>"; };
 		31A3125C9DDEE5B453F6A1EF /* AccessMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessMode.swift; sourceTree = "<group>"; };
@@ -133,12 +142,15 @@
 		B897706C593D8F3BEC5CE5EC /* LaunchContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchContext.swift; sourceTree = "<group>"; };
 		BB8D00A7BFD966ADBB4C63D1 /* AVRadioAppDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioAppDataService.swift; sourceTree = "<group>"; };
 		BC094A093EFF7ABFF788955E /* SearchQueueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchQueueUITests.swift; sourceTree = "<group>"; };
+		BDE602D029FF80028FA7B01F /* MiniPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerView.swift; sourceTree = "<group>"; };
 		BF06E8B543FBF9303DB1A2FB /* AVRadioText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioText.swift; sourceTree = "<group>"; };
 		BFBA473200A46F0FAD5F4754 /* AccessLimitsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessLimitsTests.swift; sourceTree = "<group>"; };
 		C016C1DBED538A066A92DC60 /* AvradioTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioTheme.swift; sourceTree = "<group>"; };
 		C74B701737B69E4FE26007D4 /* LimitsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitsUITests.swift; sourceTree = "<group>"; };
+		C7C36C685A2427F4A7416D4E /* AVRadioLibrarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioLibrarySync.swift; sourceTree = "<group>"; };
 		C92EF66FF0B954E444248B80 /* AvradioSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioSplashView.swift; sourceTree = "<group>"; };
 		CB9F1237B3EEA042F91D4D8A /* AVRadioCountry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioCountry.swift; sourceTree = "<group>"; };
+		CE3C854D8A9A0DEB75377DBB /* AppShellNowPlayingPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellNowPlayingPreviews.swift; sourceTree = "<group>"; };
 		CF9C84B8884B01BF507AA9BC /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D2D896B7DFEF73E858D65B8D /* Station.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
 		D557ED627719061DAC1D0085 /* HomeRefreshUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeRefreshUITests.swift; sourceTree = "<group>"; };
@@ -176,6 +188,7 @@
 				137827AF48AF789C60DC2ECC /* AVRadioDiscoveredTrackSupport.swift */,
 				2F77F48694D520C36E611E45 /* AVRadioEighties80sNowPlaying.swift */,
 				67B144B661514214AA47BC7C /* AVRadioExternalSearchURL.swift */,
+				C7C36C685A2427F4A7416D4E /* AVRadioLibrarySync.swift */,
 				309B3CD134A3773742CBBDD3 /* AVRadioStation.swift */,
 				FA270C6E2E050B7A9C7E6BDF /* AVRadioStationService.swift */,
 				BF06E8B543FBF9303DB1A2FB /* AVRadioText.swift */,
@@ -333,8 +346,13 @@
 			children = (
 				3F8B45383C7D7EEE8E16EF23 /* AppShellHomeFeed.swift */,
 				4FDD3C47C372011383FE599B /* AppShellMusicLibrary.swift */,
+				CE3C854D8A9A0DEB75377DBB /* AppShellNowPlayingPreviews.swift */,
 				0EEB7C2901DB1EB5E13D6DAD /* AppShellSearch.swift */,
+				2DD6539B6B17562C311A3A55 /* AppShellTab.swift */,
 				9963A1C1E14528B4564B0429 /* AppShellView.swift */,
+				BDE602D029FF80028FA7B01F /* MiniPlayerView.swift */,
+				1146CB13D6A0D8D1321E1E7D /* MusicDiscoveryViews.swift */,
+				22F23CFECE9B4BD12655FE68 /* ShellChromeViews.swift */,
 			);
 			path = Shell;
 			sourceTree = "<group>";
@@ -529,6 +547,7 @@
 				6CF4068D6610786625AD6913 /* AVRadioDiscoveredTrackSupport.swift in Sources */,
 				0E1CC3B20DE4C12661192283 /* AVRadioEighties80sNowPlaying.swift in Sources */,
 				43ED8BA579025206691FAC1A /* AVRadioExternalSearchURL.swift in Sources */,
+				AFD966F470E78D854C1D0997 /* AVRadioLibrarySync.swift in Sources */,
 				F344E49B1C7A1C29D3886467 /* AVRadioStation.swift in Sources */,
 				2B2F3E8040E1C1EDC55FEC7A /* AVRadioStationService.swift in Sources */,
 				30F006EC0228E92B0B692765 /* AVRadioText.swift in Sources */,
@@ -539,7 +558,9 @@
 				7DF7D854F244258532E4AA78 /* AppConfig.swift in Sources */,
 				A796D60659D97FAEDB227176 /* AppShellHomeFeed.swift in Sources */,
 				C4FE3FB819134133756C9CAC /* AppShellMusicLibrary.swift in Sources */,
+				F78F8A98D39907FACD7BF269 /* AppShellNowPlayingPreviews.swift in Sources */,
 				BCC64DC73CB9E711E679DDA4 /* AppShellSearch.swift in Sources */,
+				8C602D718EA8E4901BEC5C17 /* AppShellTab.swift in Sources */,
 				A0F80C9A9AAD44CEEAD4D9C9 /* AppShellView.swift in Sources */,
 				09D875E93270F39DD13FFF68 /* AudioPlayerService.swift in Sources */,
 				36B0C9480D52616C1E761C3C /* AuthOnboardingView.swift in Sources */,
@@ -551,11 +572,14 @@
 				DD3AC279849D5316CC602250 /* L10n.swift in Sources */,
 				180F8E48A3E6675B2AFA0129 /* LaunchContext.swift in Sources */,
 				916DCB42EFFE8833CE087CCB /* LibraryStore.swift in Sources */,
+				1DFAF30F93394403643109BD /* MiniPlayerView.swift in Sources */,
+				E8DB3856CEFAE45454EBAF6F /* MusicDiscoveryViews.swift in Sources */,
 				328AA80E680681C056D5C1C8 /* NowPlayingService.swift in Sources */,
 				B5DD991407F22700885E9BDB /* NowPlayingView.swift in Sources */,
 				36CE732939A106FAF37965EB /* PersistenceController.swift in Sources */,
 				EA05A24B2F7AFF93E7534B7D /* ProfileScreen.swift in Sources */,
 				5643A09C70B5B09760A9EF0A /* RootView.swift in Sources */,
+				1211EF9FF32376215FD68F51 /* ShellChromeViews.swift in Sources */,
 				E395E769F7F68011264A88A1 /* Station.swift in Sources */,
 				B0F4EF08F471979C55B127CE /* StationArtworkView.swift in Sources */,
 				1F7CEF563A71B7B47F161E97 /* StationService.swift in Sources */,

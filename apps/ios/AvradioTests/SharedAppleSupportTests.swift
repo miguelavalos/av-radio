@@ -217,6 +217,16 @@ final class SharedAppleSupportTests: XCTestCase {
         XCTAssertEqual(worldwide.searchLimit, 12)
     }
 
+    func testAppShellTabResolvesLaunchContextDefaults() {
+        XCTAssertEqual(AppShellTab(nil, preferredSearchQuery: nil), .home)
+        XCTAssertEqual(AppShellTab(nil, preferredSearchQuery: "jazz"), .search)
+        XCTAssertEqual(AppShellTab(.search, preferredSearchQuery: nil), .search)
+        XCTAssertEqual(AppShellTab(.library, preferredSearchQuery: nil), .library)
+        XCTAssertEqual(AppShellTab(.music, preferredSearchQuery: nil), .music)
+        XCTAssertEqual(AppShellTab(.settings, preferredSearchQuery: nil), .profile)
+        XCTAssertEqual(AppShellTab(.player, preferredSearchQuery: nil), .home)
+    }
+
     func testSearchFiltersLocalUITestSamples() {
         let jazz = Station(
             id: "jazz-es",
@@ -272,6 +282,51 @@ final class SharedAppleSupportTests: XCTestCase {
                 fallbackCountryCodes: ["US", "ES", "EU"]
             ),
             ["ES", "FR", "US"]
+        )
+    }
+
+    func testNowPlayingPreviewCandidatesFollowSelectedTabAndDeduplicate() {
+        let first = station(id: "first", countryCode: "ES")
+        let second = station(id: "second", countryCode: "FR")
+        let third = station(id: "third", countryCode: "US")
+        let homeSnapshot = HomeFeedSnapshot(
+            stations: [first, third],
+            recentStations: [first, second],
+            favoriteStations: [second],
+            feedContext: .popularWorldwide
+        )
+
+        XCTAssertEqual(
+            AppShellNowPlayingPreviews.candidateStations(
+                selectedTab: .home,
+                homeSnapshot: homeSnapshot,
+                searchResults: [third],
+                favoriteStations: [second],
+                recentStations: [first],
+                isEnabled: true
+            ).map(\.id),
+            ["first", "second", "third"]
+        )
+        XCTAssertEqual(
+            AppShellNowPlayingPreviews.candidateStations(
+                selectedTab: .library,
+                homeSnapshot: homeSnapshot,
+                searchResults: [],
+                favoriteStations: [second, first],
+                recentStations: [first, third],
+                isEnabled: true
+            ).map(\.id),
+            ["second", "first", "third"]
+        )
+        XCTAssertTrue(
+            AppShellNowPlayingPreviews.candidateStations(
+                selectedTab: .search,
+                homeSnapshot: homeSnapshot,
+                searchResults: [first],
+                favoriteStations: [],
+                recentStations: [],
+                isEnabled: false
+            ).isEmpty
         )
     }
 
@@ -495,5 +550,17 @@ final class SharedAppleSupportTests: XCTestCase {
             return nil
         }
         return components.queryItems?.first { $0.name == name }?.value
+    }
+
+    private func station(id: String, countryCode: String) -> Station {
+        Station(
+            id: id,
+            name: "Station \(id)",
+            country: "Country \(countryCode)",
+            countryCode: countryCode,
+            language: "English",
+            tags: "live",
+            streamURL: "https://example.com/\(id)"
+        )
     }
 }

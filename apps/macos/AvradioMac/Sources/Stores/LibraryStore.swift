@@ -170,6 +170,50 @@ final class LibraryStore: ObservableObject {
         preferredCountryCode = nil
     }
 
+    func librarySnapshot() -> AVRadioLibrarySnapshot {
+        AVRadioLibrarySnapshot(
+            favorites: favorites.map {
+                FavoriteStationRecord(
+                    station: $0.appDataRecord,
+                    createdAt: AVRadioDateCoding.string(from: .now)
+                )
+            },
+            recents: recents.map {
+                RecentStationRecord(
+                    station: $0.appDataRecord,
+                    lastPlayedAt: AVRadioDateCoding.string(from: .now)
+                )
+            },
+            discoveries: discoveries.map(\.appDataRecord),
+            settings: AppSettingsRecord(
+                preferredCountry: preferredCountryCode ?? "",
+                preferredLanguage: "",
+                preferredTag: preferredTag,
+                lastPlayedStationID: recents.first?.id,
+                sleepTimerMinutes: nil,
+                updatedAt: AVRadioDateCoding.string(from: .now)
+            )
+        )
+    }
+
+    func applyLibrarySnapshot(_ snapshot: AVRadioLibrarySnapshot) {
+        favorites = snapshot.favorites.map { Station(record: $0.station) }
+        recents = snapshot.recents.map { Station(record: $0.station) }
+        discoveries = snapshot.discoveries.map(DiscoveredTrack.init(record:))
+        preferredCountryCode = snapshot.settings.preferredCountry.isEmpty ? nil : snapshot.settings.preferredCountry
+        preferredTag = snapshot.settings.preferredTag.isEmpty ? "ambient" : snapshot.settings.preferredTag
+
+        persist(stations: favorites, key: favoritesKey)
+        persist(stations: recents, key: recentsKey)
+        persist(discoveries: discoveries)
+        defaults.set(preferredTag, forKey: preferredTagKey)
+        if let preferredCountryCode {
+            defaults.set(preferredCountryCode, forKey: preferredCountryKey)
+        } else {
+            defaults.removeObject(forKey: preferredCountryKey)
+        }
+    }
+
     private func persist(stations: [Station], key: String) {
         guard let data = try? JSONEncoder().encode(stations) else { return }
         defaults.set(data, forKey: key)
