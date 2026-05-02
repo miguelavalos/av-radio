@@ -262,6 +262,23 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         XCTAssertEqual(controller.lastRefreshError as? MacAccessRefreshError, .requestFailed(statusCode: 503))
     }
 
+    func testAccessClientRequiresAVRadioAppAccessFromBackendPayload() async {
+        let client = AVAppsMacAccessClient(
+            baseURL: URL(string: "https://api.example.com")!,
+            tokenProvider: { "token" },
+            urlSession: mockURLSession(statusCode: 200, body: Self.missingAVRadioAccessResponseJSON)
+        )
+
+        do {
+            _ = try await client.fetchAccessState()
+            XCTFail("Expected missing AV Radio access to fail")
+        } catch let error as MacAccessRefreshError {
+            XCTAssertEqual(error, .avRadioAccessMissing)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testAppDataClientPullsLibraryFromResourceDocuments() async throws {
         var requestedPaths: [String] = []
         let client = MacAVRadioAppDataClient(
@@ -1207,6 +1224,28 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         XCTAssertEqual(store.cloudSyncBlockerDescription, "Refresh backend access before syncing this Mac.")
     }
 
+    func testBackendBootstrapHandlesMissingAVRadioAccessAsRefreshFailure() async {
+        let store = LibraryStore(defaults: isolatedUserDefaults())
+
+        await store.configureBackendClients(
+            baseURL: URL(string: "https://api.example.com")!,
+            tokenProvider: { "token" },
+            urlSession: mockURLSession(statusCode: 200, body: Self.missingAVRadioAccessResponseJSON)
+        )
+
+        XCTAssertEqual(store.accessMode, .guest)
+        XCTAssertFalse(store.accessModeIsBackendManaged)
+        XCTAssertFalse(store.capabilities.canUseCloudSync)
+        XCTAssertEqual(store.backendConnectionStatus, .accessRefreshFailed)
+        XCTAssertEqual(store.accountConnectionState, .accessRefreshFailed)
+        XCTAssertEqual(store.backendConnectionFailureTitle, "AV Radio access missing")
+        XCTAssertTrue(store.canRetryBackendConnection)
+        XCTAssertFalse(store.isCloudSyncConfigured)
+        XCTAssertFalse(store.canRunCloudSync)
+        XCTAssertEqual(store.cloudSyncReadinessTitle, "Access refresh failed")
+        XCTAssertEqual(store.cloudSyncBlockerDescription, "Refresh backend access before syncing this Mac.")
+    }
+
     func testBackendRetryAvailableAfterMissingTokenFromLocalFallback() async {
         let store = LibraryStore(defaults: isolatedUserDefaults())
 
@@ -1866,6 +1905,43 @@ final class LibraryStoreSnapshotTests: XCTestCase {
             "appleMusicSearchesPerDay": 10,
             "spotifySearchesPerDay": 10,
             "discoverySharesPerDay": 3
+          }
+        }
+      ],
+      "generatedAt": "2026-05-02T12:00:00.000Z"
+    }
+    """
+
+    private static let missingAVRadioAccessResponseJSON = """
+    {
+      "viewer": {
+        "isAuthenticated": true,
+        "userId": "user_123",
+        "identityProvider": "clerk"
+      },
+      "apps": [
+        {
+          "appId": "avclips",
+          "accessMode": "signedInPro",
+          "planTier": "pro",
+          "capabilities": {
+            "isSignedIn": true,
+            "canUseBackend": true,
+            "canUsePremiumFeatures": true,
+            "canUseCloudSync": true,
+            "canManagePlan": true
+          },
+          "limits": {
+            "favoriteStations": 500,
+            "recentStations": 200,
+            "discoveredTracks": 1000,
+            "savedTracks": 1000,
+            "lyricsSearchesPerDay": null,
+            "webSearchesPerDay": null,
+            "youtubeSearchesPerDay": null,
+            "appleMusicSearchesPerDay": null,
+            "spotifySearchesPerDay": null,
+            "discoverySharesPerDay": null
           }
         }
       ],
