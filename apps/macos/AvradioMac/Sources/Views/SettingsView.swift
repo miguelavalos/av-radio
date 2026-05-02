@@ -54,7 +54,9 @@ struct SettingsView: View {
                 LabeledContent("Favorites", value: libraryStore.favoritesUsage.title)
                 LabeledContent("Recents", value: libraryStore.recentsUsage.title)
                 LabeledContent("Saved tracks", value: libraryStore.savedTracksUsage.title)
+                LabeledContent("Web", value: libraryStore.dailyUsage(for: .webSearch).title)
                 LabeledContent("YouTube", value: libraryStore.dailyUsage(for: .youtubeSearch).title)
+                LabeledContent("Shares", value: libraryStore.dailyUsage(for: .discoveryShare).title)
 
                 if let accountManagementURL = MacAppConfig.accountManagementURL {
                     Button("Manage account") {
@@ -119,8 +121,10 @@ struct SettingsView: View {
             Section("Local Data") {
                 LabeledContent("Discoveries", value: libraryStore.discoveriesUsage.title)
                 LabeledContent("Lyrics", value: libraryStore.dailyUsage(for: .lyricsSearch).title)
+                LabeledContent("Web", value: libraryStore.dailyUsage(for: .webSearch).title)
                 LabeledContent("Apple Music", value: libraryStore.dailyUsage(for: .appleMusicSearch).title)
                 LabeledContent("Spotify", value: libraryStore.dailyUsage(for: .spotifySearch).title)
+                LabeledContent("Shares", value: libraryStore.dailyUsage(for: .discoveryShare).title)
 
                 Button("Clear local library", role: .destructive) {
                     libraryStore.clearLocalState()

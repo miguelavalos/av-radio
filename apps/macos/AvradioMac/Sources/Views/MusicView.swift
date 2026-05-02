@@ -10,6 +10,7 @@ struct MusicView: View {
     let hideDiscovery: (DiscoveredTrack) -> Void
     let restoreDiscovery: (DiscoveredTrack) -> Void
     let removeDiscovery: (DiscoveredTrack) -> Void
+    let shareDiscoveries: ([DiscoveredTrack]) -> Void
     let clearDiscoveries: () -> Void
     let useDailyFeature: (LimitedFeature, String) -> Bool
 
@@ -54,6 +55,13 @@ struct MusicView: View {
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 280)
+
+                    Button {
+                        shareDiscoveries(filteredDiscoveries)
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .disabled(filteredDiscoveries.isEmpty)
 
                     Button(role: .destructive) {
                         isConfirmingClear = true

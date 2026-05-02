@@ -209,9 +209,11 @@ struct ProfileView: View {
     let discoveriesUsage: LimitUsageSummary
     let savedTracksUsage: LimitUsageSummary
     let lyricsUsage: LimitUsageSummary
+    let webUsage: LimitUsageSummary
     let youtubeUsage: LimitUsageSummary
     let appleMusicUsage: LimitUsageSummary
     let spotifyUsage: LimitUsageSummary
+    let discoveryShareUsage: LimitUsageSummary
     let cloudSyncStatus: CloudSyncStatus
     let cloudSyncConflictSummary: CloudSyncConflictSummary?
     let cloudSyncFailureTitle: String?
@@ -451,9 +453,11 @@ struct ProfileView: View {
             SettingsStatsRow(title: "Discoveries", value: discoveriesUsage.title)
             SettingsStatsRow(title: "Saved tracks", value: savedTracksUsage.title)
             SettingsStatsRow(title: "Lyrics", value: lyricsUsage.title)
+            SettingsStatsRow(title: "Web", value: webUsage.title)
             SettingsStatsRow(title: "YouTube", value: youtubeUsage.title)
             SettingsStatsRow(title: "Apple Music", value: appleMusicUsage.title)
             SettingsStatsRow(title: "Spotify", value: spotifyUsage.title)
+            SettingsStatsRow(title: "Shares", value: discoveryShareUsage.title)
 
             Button("Clear local library", action: clearAction)
                 .buttonStyle(.bordered)
@@ -491,7 +495,7 @@ struct ProfileView: View {
     }
 
     private var dailyLookupText: String {
-        let usages = [lyricsUsage, youtubeUsage, appleMusicUsage, spotifyUsage]
+        let usages = [lyricsUsage, webUsage, youtubeUsage, appleMusicUsage, spotifyUsage, discoveryShareUsage]
         let limits = usages.compactMap(\.limit)
         guard limits.count == usages.count else {
             return "Practical unlimited"

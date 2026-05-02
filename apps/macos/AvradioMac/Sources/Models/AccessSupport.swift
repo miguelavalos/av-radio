@@ -142,7 +142,7 @@ final class AVAppsMacAccessClient: MacAccessProviding {
         guard let token = try await tokenProvider(), !token.isEmpty else {
             throw MacAccessRefreshError.missingToken
         }
-        guard let baseURL else {
+        guard let baseURL, baseURL.isSupportedAVAppsBaseURL else {
             throw MacAccessRefreshError.missingBaseURL
         }
 
@@ -186,7 +186,21 @@ enum MacAppConfig {
         }
         let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        return URL(string: trimmed)
+        guard let url = URL(string: trimmed), url.isSupportedAVAppsBaseURL else {
+            return nil
+        }
+        return url
+    }
+}
+
+extension URL {
+    var isSupportedAVAppsBaseURL: Bool {
+        guard let scheme = scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              host?.isEmpty == false else {
+            return false
+        }
+        return true
     }
 }
 
@@ -262,7 +276,7 @@ final class MacAVRadioAppDataClient: MacAVRadioLibrarySyncing {
     }
 
     func isConfigured() -> Bool {
-        baseURL != nil
+        baseURL?.isSupportedAVAppsBaseURL == true
     }
 
     func pullLibrary() async throws -> AVRadioLibraryDocument {
@@ -379,7 +393,7 @@ final class MacAVRadioAppDataClient: MacAVRadioLibrarySyncing {
         guard let token = try await tokenProvider(), !token.isEmpty else {
             throw MacAppDataClientError.missingToken
         }
-        guard let baseURL else {
+        guard let baseURL, baseURL.isSupportedAVAppsBaseURL else {
             throw MacAppDataClientError.missingBaseURL
         }
 

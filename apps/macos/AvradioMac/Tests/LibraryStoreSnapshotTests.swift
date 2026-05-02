@@ -40,6 +40,54 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         XCTAssertNil(token)
     }
 
+    func testMacAppConfigOnlyAcceptsHTTPBaseURLs() {
+        XCTAssertTrue(URL(string: "https://api.example.com")!.isSupportedAVAppsBaseURL)
+        XCTAssertTrue(URL(string: "http://localhost:3000")!.isSupportedAVAppsBaseURL)
+        XCTAssertFalse(URL(string: "api.example.com")!.isSupportedAVAppsBaseURL)
+        XCTAssertFalse(URL(fileURLWithPath: "/tmp/avapps").isSupportedAVAppsBaseURL)
+    }
+
+    func testDiscoveryShareTextFormatterBuildsLimitedVisibleList() {
+        let station = station(id: "share")
+        let hidden = DiscoveredTrack(
+            title: "Hidden Track",
+            artist: "Hidden Artist",
+            station: station,
+            artworkURL: nil,
+            hiddenAt: Date(timeIntervalSince1970: 1)
+        )
+        let discoveries = [hidden] + (1...26).map { index in
+            DiscoveredTrack(
+                title: " Song \(index) ",
+                artist: index.isMultiple(of: 2) ? nil : " Artist \(index) ",
+                station: station,
+                artworkURL: nil
+            )
+        }
+
+        let shareText = DiscoveryShareTextFormatter.text(for: discoveries)
+        let lines = shareText.components(separatedBy: "\n")
+
+        XCTAssertEqual(lines.first, "AV Radio discoveries")
+        XCTAssertEqual(lines.count, 26)
+        XCTAssertEqual(lines[1], "Artist 1 - Song 1")
+        XCTAssertEqual(lines[2], "Song 2")
+        XCTAssertFalse(shareText.contains("Hidden Track"))
+        XCTAssertFalse(shareText.contains("Song 26"))
+    }
+
+    func testDiscoveryShareTextFormatterReturnsEmptyForNoVisibleTracks() {
+        let hidden = DiscoveredTrack(
+            title: "Hidden Track",
+            artist: nil,
+            station: station(id: "hidden"),
+            artworkURL: nil,
+            hiddenAt: Date(timeIntervalSince1970: 1)
+        )
+
+        XCTAssertEqual(DiscoveryShareTextFormatter.text(for: [hidden]), "")
+    }
+
     func testBackendBootstrapAcceptsInjectedMacAccountTokenProvider() async {
         struct StubTokenProvider: MacAccountTokenProviding {
             func currentToken() async throws -> String? {
@@ -58,6 +106,26 @@ final class LibraryStoreSnapshotTests: XCTestCase {
 
         XCTAssertEqual(store.accessMode, .signedInPro)
         XCTAssertTrue(store.canRunCloudSync)
+    }
+
+    func testBackendBootstrapTreatsUnsupportedBaseURLAsMissingConfiguration() async {
+        let store = LibraryStore(defaults: isolatedUserDefaults())
+        store.updateAccessMode(.signedInPro)
+
+        await store.configureBackendClients(
+            baseURL: URL(fileURLWithPath: "/tmp/avapps"),
+            tokenProvider: { "token" },
+            urlSession: mockURLSession(expectedAuthorization: nil) { request in
+                XCTFail("Unexpected backend request: \(request.url?.absoluteString ?? "")")
+                return Self.appDataResourceResponse(resource: "settings")
+            }
+        )
+
+        XCTAssertEqual(store.backendConnectionStatus, .notConfigured)
+        XCTAssertFalse(store.isCloudSyncConfigured)
+        XCTAssertFalse(store.canRunCloudSync)
+        XCTAssertFalse(store.canRetryBackendConnection)
+        XCTAssertEqual(store.cloudSyncReadinessTitle, "Waiting for backend config")
     }
 
     func testAccessModeSourceDistinguishesLocalFallbackFromBackendManagedAccess() async {
@@ -1340,13 +1408,17 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         )
         XCTAssertTrue(store.useDailyFeatureIfAllowed(.youtubeSearch, usageKey: "https://example.com/1"))
         XCTAssertTrue(store.useDailyFeatureIfAllowed(.youtubeSearch, usageKey: "https://example.com/2"))
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.webSearch, usageKey: "https://example.com/search?q=ambient"))
+        XCTAssertTrue(store.useDailyFeatureIfAllowed(.discoveryShare, usageKey: "Artist - Track"))
 
         XCTAssertEqual(store.favoritesUsage, LimitUsageSummary(used: 2, limit: 5))
         XCTAssertEqual(store.favoritesUsage.title, "2 of 5")
         XCTAssertEqual(store.recentsUsage, LimitUsageSummary(used: 1, limit: 10))
         XCTAssertEqual(store.discoveriesUsage, LimitUsageSummary(used: 1, limit: 20))
         XCTAssertEqual(store.savedTracksUsage, LimitUsageSummary(used: 1, limit: 5))
+        XCTAssertEqual(store.dailyUsage(for: .webSearch), LimitUsageSummary(used: 1, limit: 3))
         XCTAssertEqual(store.dailyUsage(for: .youtubeSearch), LimitUsageSummary(used: 2, limit: 3))
+        XCTAssertEqual(store.dailyUsage(for: .discoveryShare), LimitUsageSummary(used: 1, limit: 1))
     }
 
     func testFavoriteLimitShowsUpgradePrompt() {

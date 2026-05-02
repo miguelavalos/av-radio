@@ -15,6 +15,7 @@
 		28C20701927C36369E5992C7 /* LibraryProfileViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 537D723B2A859E6D025D2B97 /* LibraryProfileViews.swift */; };
 		2BC1D49A4E189FC3DEAC04B1 /* AvradioMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77D3286C35742F21D7B01CD /* AvradioMacApp.swift */; };
 		2C105AE4DB1011BF46BC83CE /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192BBC134625E1EE29E6832E /* HomeView.swift */; };
+		3895C27872E246EF9E71F2D7 /* DiscoveryShareTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7F11E2F8D48A1A8841CB845 /* DiscoveryShareTextFormatter.swift */; };
 		4AE69F9A6CF53F31566B81E8 /* AVRadioEighties80sNowPlaying.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B2ADC8498AE97D87F74337 /* AVRadioEighties80sNowPlaying.swift */; };
 		5F4DD98B533CB9E717F6CEF2 /* StationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DAF2C5AFDE1F5D30550366E /* StationService.swift */; };
 		6140085C820F85C7ECE7F8A9 /* DiscoveredTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D180D8586C35EB77B8F464 /* DiscoveredTrack.swift */; };
@@ -79,6 +80,7 @@
 		9EE5540364543372757AB5E2 /* TrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackArtworkService.swift; sourceTree = "<group>"; };
 		AE0EA5812E41ADF125416284 /* AVRadioTrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioTrackArtworkService.swift; sourceTree = "<group>"; };
 		B4B35696A94B263229488E19 /* AvradioMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AvradioMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B7F11E2F8D48A1A8841CB845 /* DiscoveryShareTextFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveryShareTextFormatter.swift; sourceTree = "<group>"; };
 		B77D3286C35742F21D7B01CD /* AvradioMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioMacApp.swift; sourceTree = "<group>"; };
 		BE6FFFBA1118BD25B098DAB3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD6E5FD85DFE5F777D00FE0E /* AvradioTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioTheme.swift; sourceTree = "<group>"; };
@@ -196,6 +198,7 @@
 			children = (
 				434DC79A3A1961A9DC26AEAB /* AccessSupport.swift */,
 				01D180D8586C35EB77B8F464 /* DiscoveredTrack.swift */,
+				B7F11E2F8D48A1A8841CB845 /* DiscoveryShareTextFormatter.swift */,
 				D68C3D4CDF8BA0F553EABAFF /* SidebarSection.swift */,
 			);
 			path = Models;
@@ -344,6 +347,7 @@
 				B9956F9EAAAF3A3A8826D94F /* AvradioTheme.swift in Sources */,
 				DADEEE268301169E84FE0D1B /* ContentView.swift in Sources */,
 				6140085C820F85C7ECE7F8A9 /* DiscoveredTrack.swift in Sources */,
+				3895C27872E246EF9E71F2D7 /* DiscoveryShareTextFormatter.swift in Sources */,
 				2C105AE4DB1011BF46BC83CE /* HomeView.swift in Sources */,
 				28C20701927C36369E5992C7 /* LibraryProfileViews.swift in Sources */,
 				C78B97137154BE0DFE3175C9 /* LibraryStore.swift in Sources */,

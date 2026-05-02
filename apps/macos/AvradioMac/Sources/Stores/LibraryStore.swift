@@ -232,11 +232,12 @@ final class LibraryStore: ObservableObject {
         tokenProvider: @escaping () async throws -> String?,
         urlSession: URLSession = .shared
     ) async {
-        backendBaseURL = baseURL
+        let supportedBaseURL = baseURL?.isSupportedAVAppsBaseURL == true ? baseURL : nil
+        backendBaseURL = supportedBaseURL
         backendTokenProvider = tokenProvider
         backendURLSession = urlSession
 
-        guard let baseURL else {
+        guard let baseURL = supportedBaseURL else {
             backendConnectionStatus = .notConfigured
             backendConnectionFailureTitle = nil
             setAppDataClient(nil)

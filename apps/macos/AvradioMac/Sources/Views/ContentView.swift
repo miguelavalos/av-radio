@@ -202,6 +202,7 @@ struct ContentView: View {
                 hideDiscovery: libraryStore.hideDiscovery,
                 restoreDiscovery: libraryStore.restoreDiscovery,
                 removeDiscovery: libraryStore.removeDiscovery,
+                shareDiscoveries: { self.shareDiscoveries($0) },
                 clearDiscoveries: libraryStore.clearDiscoveries,
                 useDailyFeature: libraryStore.useDailyFeatureIfAllowed(_:usageKey:)
             )
@@ -224,9 +225,11 @@ struct ContentView: View {
                 discoveriesUsage: libraryStore.discoveriesUsage,
                 savedTracksUsage: libraryStore.savedTracksUsage,
                 lyricsUsage: libraryStore.dailyUsage(for: .lyricsSearch),
+                webUsage: libraryStore.dailyUsage(for: .webSearch),
                 youtubeUsage: libraryStore.dailyUsage(for: .youtubeSearch),
                 appleMusicUsage: libraryStore.dailyUsage(for: .appleMusicSearch),
                 spotifyUsage: libraryStore.dailyUsage(for: .spotifySearch),
+                discoveryShareUsage: libraryStore.dailyUsage(for: .discoveryShare),
                 cloudSyncStatus: libraryStore.cloudSyncStatus,
                 cloudSyncConflictSummary: libraryStore.cloudSyncConflictSummary,
                 cloudSyncFailureTitle: libraryStore.cloudSyncFailureTitle,
@@ -378,6 +381,19 @@ struct ContentView: View {
         guard let station = libraryStore.station(for: discovery.stationID) else { return }
         selectedSection = .music
         play(station)
+    }
+
+    private func shareDiscoveries(_ discoveries: [DiscoveredTrack]) {
+        let shareText = DiscoveryShareTextFormatter.text(for: discoveries)
+        guard !shareText.isEmpty,
+              libraryStore.useDailyFeatureIfAllowed(.discoveryShare, usageKey: shareText) else { return }
+        let picker = NSSharingServicePicker(items: [shareText])
+        guard let contentView = NSApp.keyWindow?.contentView else {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(shareText, forType: .string)
+            return
+        }
+        picker.show(relativeTo: contentView.bounds, of: contentView, preferredEdge: .minY)
     }
 
     private func performSearch(initial: Bool = false, force: Bool = false) async {
