@@ -791,14 +791,11 @@ private struct DesktopPlayerInspector: View {
     }
 
     private func shareCurrentDiscovery(for station: Station) {
-        let text = [
-            normalized(audioPlayer.currentTrackArtist),
-            normalized(audioPlayer.currentTrackTitle)
-        ]
-        .compactMap { $0 }
-        .joined(separator: " - ")
-
-        let shareText = text.isEmpty ? station.name : "\(text) · \(station.name)"
+        let shareText = DiscoveryShareTextFormatter.text(
+            title: audioPlayer.currentTrackTitle,
+            artist: audioPlayer.currentTrackArtist,
+            stationName: station.name
+        )
         guard libraryStore.useDailyFeatureIfAllowed(.discoveryShare, usageKey: shareText) else { return }
         let picker = NSSharingServicePicker(items: [shareText])
         guard let contentView = NSApp.keyWindow?.contentView else {

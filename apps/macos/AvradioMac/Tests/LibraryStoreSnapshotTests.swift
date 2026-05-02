@@ -76,6 +76,26 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         XCTAssertFalse(shareText.contains("Song 26"))
     }
 
+    func testDiscoveryShareTextFormatterBuildsCurrentTrackText() {
+        XCTAssertEqual(
+            DiscoveryShareTextFormatter.text(
+                title: " Song Title ",
+                artist: " Artist Name ",
+                stationName: " Station Name "
+            ),
+            "Artist Name - Song Title · Station Name"
+        )
+
+        XCTAssertEqual(
+            DiscoveryShareTextFormatter.text(
+                title: nil,
+                artist: nil,
+                stationName: " Station Name "
+            ),
+            "Station Name"
+        )
+    }
+
     func testDiscoveryShareTextFormatterReturnsEmptyForNoVisibleTracks() {
         let hidden = DiscoveredTrack(
             title: "Hidden Track",
