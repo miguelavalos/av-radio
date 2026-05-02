@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var libraryStore: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerService
 
@@ -75,10 +76,15 @@ struct ContentView: View {
         .sheet(item: $libraryStore.upgradePrompt) { context in
             UpgradePromptSheet(
                 context: context,
-                accessMode: libraryStore.accessMode,
+                accountConnectionState: libraryStore.accountConnectionState,
+                primaryActionTitle: MacAppConfig.accountManagementURL == nil ? "Open Profile" : "Manage account",
                 primaryAction: {
                     libraryStore.upgradePrompt = nil
-                    selectedSection = .profile
+                    if let accountManagementURL = MacAppConfig.accountManagementURL {
+                        openURL(accountManagementURL)
+                    } else {
+                        selectedSection = .profile
+                    }
                 },
                 dismissAction: {
                     libraryStore.upgradePrompt = nil
@@ -127,7 +133,7 @@ struct ContentView: View {
             }
 
             Section("Account") {
-                SidebarSectionRow(section: .profile, detail: libraryStore.accessMode.title)
+                SidebarSectionRow(section: .profile, detail: libraryStore.accountConnectionState.title)
                     .tag(SidebarSection.profile)
             }
 
@@ -210,8 +216,54 @@ struct ContentView: View {
                     set: { libraryStore.updateAccessMode($0) }
                 ),
                 capabilities: libraryStore.capabilities,
+                planTier: libraryStore.planTier,
+                accountConnectionState: libraryStore.accountConnectionState,
                 limits: libraryStore.limits,
-                clearAction: libraryStore.clearLocalState
+                favoritesUsage: libraryStore.favoritesUsage,
+                recentsUsage: libraryStore.recentsUsage,
+                discoveriesUsage: libraryStore.discoveriesUsage,
+                savedTracksUsage: libraryStore.savedTracksUsage,
+                lyricsUsage: libraryStore.dailyUsage(for: .lyricsSearch),
+                youtubeUsage: libraryStore.dailyUsage(for: .youtubeSearch),
+                appleMusicUsage: libraryStore.dailyUsage(for: .appleMusicSearch),
+                spotifyUsage: libraryStore.dailyUsage(for: .spotifySearch),
+                cloudSyncStatus: libraryStore.cloudSyncStatus,
+                cloudSyncConflictSummary: libraryStore.cloudSyncConflictSummary,
+                cloudSyncFailureTitle: libraryStore.cloudSyncFailureTitle,
+                backendConnectionStatus: libraryStore.backendConnectionStatus,
+                backendConnectionFailureTitle: libraryStore.backendConnectionFailureTitle,
+                cloudSyncReadinessTitle: libraryStore.cloudSyncReadinessTitle,
+                cloudSyncBlockerDescription: libraryStore.cloudSyncBlockerDescription,
+                accessModeIsBackendManaged: libraryStore.accessModeIsBackendManaged,
+                accessModeSourceTitle: libraryStore.accessModeSourceTitle,
+                isCloudSyncConfigured: libraryStore.isCloudSyncConfigured,
+                canRunCloudSync: libraryStore.canRunCloudSync,
+                canRetryBackendConnection: libraryStore.canRetryBackendConnection,
+                canClearCloudSyncStatus: libraryStore.canClearCloudSyncStatus,
+                canResolveCloudConflict: libraryStore.canResolveCloudConflict,
+                accountManagementURL: MacAppConfig.accountManagementURL,
+                clearAction: libraryStore.clearLocalState,
+                retryBackendAction: {
+                    Task {
+                        await libraryStore.retryBackendConnection()
+                    }
+                },
+                syncAction: {
+                    Task {
+                        await libraryStore.refreshCloudLibraryIfNeeded()
+                    }
+                },
+                useCloudAction: {
+                    Task {
+                        await libraryStore.replaceLocalLibraryWithCloudData()
+                    }
+                },
+                overwriteCloudAction: {
+                    Task {
+                        await libraryStore.overwriteCloudLibraryWithLocalData()
+                    }
+                },
+                clearSyncStatusAction: libraryStore.clearCloudSyncStatus
             )
         }
     }

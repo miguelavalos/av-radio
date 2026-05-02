@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var libraryStore: LibraryStore
     @AppStorage("avradio.mac.appearance") private var appearanceMode = "system"
     @AppStorage("avradio.mac.launchToSearch") private var launchToSearch = false
@@ -29,22 +30,98 @@ struct SettingsView: View {
             }
 
             Section("Access") {
-                Picker("Mode", selection: Binding(
-                    get: { libraryStore.accessMode },
-                    set: { libraryStore.updateAccessMode($0) }
-                )) {
-                    ForEach(AccessMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+                if libraryStore.accessModeIsBackendManaged {
+                    LabeledContent("Mode", value: libraryStore.accessMode.title)
+                    LabeledContent("Source", value: libraryStore.accessModeSourceTitle)
+                } else {
+                    Picker("Local fallback mode", selection: Binding(
+                        get: { libraryStore.accessMode },
+                        set: { libraryStore.updateAccessMode($0) }
+                    )) {
+                        ForEach(AccessMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                LabeledContent("Cloud sync", value: libraryStore.cloudSyncReadinessTitle)
+                LabeledContent("Backend access", value: libraryStore.backendConnectionStatus.title)
+                if let backendConnectionFailureTitle = libraryStore.backendConnectionFailureTitle {
+                    LabeledContent("Backend error", value: backendConnectionFailureTitle)
+                }
+                LabeledContent("Account", value: libraryStore.accountConnectionState.title)
+                LabeledContent("Favorites", value: libraryStore.favoritesUsage.title)
+                LabeledContent("Recents", value: libraryStore.recentsUsage.title)
+                LabeledContent("Saved tracks", value: libraryStore.savedTracksUsage.title)
+                LabeledContent("YouTube", value: libraryStore.dailyUsage(for: .youtubeSearch).title)
+
+                if let accountManagementURL = MacAppConfig.accountManagementURL {
+                    Button("Manage account") {
+                        openURL(accountManagementURL)
                     }
                 }
-                .pickerStyle(.segmented)
+            }
 
-                LabeledContent("Cloud sync", value: libraryStore.capabilities.canUseCloudSync ? "Enabled for Pro" : "Pro only")
-                LabeledContent("Favorites", value: limitText(libraryStore.limits.favoriteStations))
-                LabeledContent("Music lookups", value: libraryStore.capabilities.canAccessPremiumFeatures ? "Practical unlimited" : "Limited daily")
+            Section("Cloud Sync") {
+                LabeledContent("Status", value: libraryStore.cloudSyncStatus.title)
+                LabeledContent("Backend", value: libraryStore.cloudSyncReadinessTitle)
+                if let cloudSyncBlockerDescription = libraryStore.cloudSyncBlockerDescription {
+                    Text(cloudSyncBlockerDescription)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                if let cloudSyncFailureTitle = libraryStore.cloudSyncFailureTitle,
+                   libraryStore.cloudSyncStatus == .failed {
+                    LabeledContent("Error", value: cloudSyncFailureTitle)
+                }
+                Button(primaryCloudSyncActionTitle) {
+                    Task {
+                        await libraryStore.refreshCloudLibraryIfNeeded()
+                    }
+                }
+                .disabled(!libraryStore.canRunCloudSync || libraryStore.cloudSyncStatus == .syncing)
+
+                if libraryStore.cloudSyncStatus == .conflict {
+                    LabeledContent("This Mac", value: localConflictText)
+                    LabeledContent("Cloud", value: cloudConflictText)
+                }
+
+                if libraryStore.canResolveCloudConflict {
+                    Button("Use Cloud") {
+                        Task {
+                            await libraryStore.replaceLocalLibraryWithCloudData()
+                        }
+                    }
+
+                    Button("Keep this Mac") {
+                        Task {
+                            await libraryStore.overwriteCloudLibraryWithLocalData()
+                        }
+                    }
+                }
+
+                if libraryStore.canRetryBackendConnection {
+                    Button("Retry backend") {
+                        Task {
+                            await libraryStore.retryBackendConnection()
+                        }
+                    }
+                }
+
+                if libraryStore.canClearCloudSyncStatus {
+                    Button("Clear sync status") {
+                        libraryStore.clearCloudSyncStatus()
+                    }
+                }
             }
 
             Section("Local Data") {
+                LabeledContent("Discoveries", value: libraryStore.discoveriesUsage.title)
+                LabeledContent("Lyrics", value: libraryStore.dailyUsage(for: .lyricsSearch).title)
+                LabeledContent("Apple Music", value: libraryStore.dailyUsage(for: .appleMusicSearch).title)
+                LabeledContent("Spotify", value: libraryStore.dailyUsage(for: .spotifySearch).title)
+
                 Button("Clear local library", role: .destructive) {
                     libraryStore.clearLocalState()
                 }
@@ -55,7 +132,25 @@ struct SettingsView: View {
         .frame(width: 440)
     }
 
-    private func limitText(_ limit: Int?) -> String {
-        limit.map(String.init) ?? "Practical unlimited"
+    private var primaryCloudSyncActionTitle: String {
+        switch libraryStore.cloudSyncStatus {
+        case .syncing:
+            return "Syncing..."
+        case .conflict:
+            return "Refresh"
+        default:
+            return "Sync now"
+        }
+    }
+
+    private var localConflictText: String {
+        guard let summary = libraryStore.cloudSyncConflictSummary else { return "Changed locally" }
+        return "\(summary.localFavoritesCount) favorites, \(summary.localRecentsCount) recents, \(summary.localDiscoveriesCount) discoveries"
+    }
+
+    private var cloudConflictText: String {
+        guard let summary = libraryStore.cloudSyncConflictSummary else { return "Changed remotely" }
+        guard summary.hasCloudSnapshot else { return "Unavailable" }
+        return "\(summary.cloudFavoritesCount ?? 0) favorites, \(summary.cloudRecentsCount ?? 0) recents, \(summary.cloudDiscoveriesCount ?? 0) discoveries"
     }
 }

@@ -6,6 +6,7 @@ struct AvradioMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var libraryStore = LibraryStore()
     @StateObject private var audioPlayer = AudioPlayerService()
+    private let accountTokenProvider: MacAccountTokenProviding = LocalFallbackMacAccountTokenProvider()
 
     var body: some Scene {
         WindowGroup("AV Radio") {
@@ -13,6 +14,9 @@ struct AvradioMacApp: App {
                 .environmentObject(libraryStore)
                 .environmentObject(audioPlayer)
                 .frame(minWidth: AppWindowDefaults.minimumWidth, minHeight: AppWindowDefaults.minimumHeight)
+                .task {
+                    await libraryStore.configureBackendClients(tokenProvider: accountTokenProvider.currentToken)
+                }
         }
         .defaultSize(width: AppWindowDefaults.defaultWidth, height: AppWindowDefaults.defaultHeight)
 

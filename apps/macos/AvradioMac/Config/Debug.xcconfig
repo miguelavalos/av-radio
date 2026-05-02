@@ -1,0 +1,7 @@
+AVRADIO_BUNDLE_IDENTIFIER = com.example.avradio.mac.dev
+PRODUCT_BUNDLE_IDENTIFIER = $(AVRADIO_BUNDLE_IDENTIFIER)
+AVRADIO_DISPLAY_NAME = AV Radio
+AVAPPS_API_BASE_URL = $(inherited)
+AVRADIO_ACCOUNT_MANAGEMENT_URL = $(inherited)
+
+#include? "Local.xcconfig"

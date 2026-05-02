@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>AV Radio</string>
+	<string>$(AVRADIO_DISPLAY_NAME)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -20,6 +20,10 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>AVAPPS_API_BASE_URL</key>
+	<string>$(AVAPPS_API_BASE_URL)</string>
+	<key>AVRADIO_ACCOUNT_MANAGEMENT_URL</key>
+	<string>$(AVRADIO_ACCOUNT_MANAGEMENT_URL)</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.music</string>
 	<key>NSAppTransportSecurity</key>

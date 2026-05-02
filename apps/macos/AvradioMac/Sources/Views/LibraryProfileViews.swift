@@ -197,11 +197,42 @@ struct LibraryView: View {
 }
 
 struct ProfileView: View {
+    @Environment(\.openURL) private var openURL
     @Binding var preferredTag: String
     @Binding var accessMode: AccessMode
     let capabilities: AccessCapabilities
+    let planTier: PlanTier
+    let accountConnectionState: AccountConnectionState
     let limits: AccessLimits
+    let favoritesUsage: LimitUsageSummary
+    let recentsUsage: LimitUsageSummary
+    let discoveriesUsage: LimitUsageSummary
+    let savedTracksUsage: LimitUsageSummary
+    let lyricsUsage: LimitUsageSummary
+    let youtubeUsage: LimitUsageSummary
+    let appleMusicUsage: LimitUsageSummary
+    let spotifyUsage: LimitUsageSummary
+    let cloudSyncStatus: CloudSyncStatus
+    let cloudSyncConflictSummary: CloudSyncConflictSummary?
+    let cloudSyncFailureTitle: String?
+    let backendConnectionStatus: BackendConnectionStatus
+    let backendConnectionFailureTitle: String?
+    let cloudSyncReadinessTitle: String
+    let cloudSyncBlockerDescription: String?
+    let accessModeIsBackendManaged: Bool
+    let accessModeSourceTitle: String
+    let isCloudSyncConfigured: Bool
+    let canRunCloudSync: Bool
+    let canRetryBackendConnection: Bool
+    let canClearCloudSyncStatus: Bool
+    let canResolveCloudConflict: Bool
+    let accountManagementURL: URL?
     let clearAction: () -> Void
+    let retryBackendAction: () -> Void
+    let syncAction: () -> Void
+    let useCloudAction: () -> Void
+    let overwriteCloudAction: () -> Void
+    let clearSyncStatusAction: () -> Void
     @AppStorage("avradio.mac.appearance") private var appearanceMode = "system"
     @AppStorage("avradio.mac.launchToSearch") private var launchToSearch = false
 
@@ -231,13 +262,16 @@ struct ProfileView: View {
                         preferredTag: preferredTag,
                         appearanceMode: appearanceLabel,
                         launchToSearch: launchToSearch,
-                        accessMode: accessMode
+                        accessMode: accessMode,
+                        accountConnectionState: accountConnectionState,
+                        accessDetail: cloudSyncReadinessTitle
                     )
 
                     if compact {
                         VStack(spacing: 16) {
                             discoveryCard
                             accessCard
+                            cloudSyncCard
                             appearanceCard
                             localDataCard
                             aboutCard
@@ -247,6 +281,7 @@ struct ProfileView: View {
                             VStack(spacing: 16) {
                                 discoveryCard
                                 accessCard
+                                cloudSyncCard
                                 localDataCard
                             }
                             .frame(maxWidth: .infinity, alignment: .top)
@@ -290,23 +325,107 @@ struct ProfileView: View {
 
     private var accessCard: some View {
         SettingsCard(title: "Access", subtitle: "Matches the AV Radio product model across iOS and macOS.") {
-            SettingsFieldRow(
-                title: "Current mode",
-                description: "Guest and signed-in Free stay local-only. Pro is the backend-backed cloud sync mode."
-            ) {
-                Picker("Access mode", selection: $accessMode) {
-                    ForEach(AccessMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+            if accessModeIsBackendManaged {
+                SettingsStatsRow(title: "Current mode", value: accessMode.title)
+                SettingsStatsRow(title: "Source", value: accessModeSourceTitle)
+            } else {
+                SettingsFieldRow(
+                    title: "Local fallback mode",
+                    description: "Used until account-backed access is connected on macOS."
+                ) {
+                    Picker("Access mode", selection: $accessMode) {
+                        ForEach(AccessMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
                     }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
             }
 
-            SettingsStatsRow(title: "Cloud sync", value: capabilities.canUseCloudSync ? "Enabled for Pro" : "Pro only")
-            SettingsStatsRow(title: "Favorites", value: limitText(limits.favoriteStations))
-            SettingsStatsRow(title: "Recents", value: limitText(limits.recentStations))
-            SettingsStatsRow(title: "Music lookups", value: capabilities.canAccessPremiumFeatures ? "Practical unlimited" : "Limited daily")
+            SettingsStatsRow(title: "Cloud sync", value: cloudSyncReadinessTitle)
+            SettingsStatsRow(title: "Backend access", value: backendConnectionStatus.title)
+            if let backendConnectionFailureTitle {
+                SettingsStatsRow(title: "Backend error", value: backendConnectionFailureTitle)
+            }
+            SettingsStatsRow(title: "Account", value: accountConnectionState.title)
+            SettingsStatsRow(title: "Favorites", value: favoritesUsage.title)
+            SettingsStatsRow(title: "Recents", value: recentsUsage.title)
+            SettingsStatsRow(title: "Saved tracks", value: savedTracksUsage.title)
+            SettingsStatsRow(title: "Daily lookups", value: dailyLookupText)
         }
+    }
+
+    private var cloudSyncCard: some View {
+        SettingsCard(title: "Cloud Sync", subtitle: "Manual sync surface for backend-backed Pro libraries.") {
+            SettingsStatsRow(title: "Status", value: cloudSyncStatus.title)
+            SettingsStatsRow(title: "Mode", value: cloudSyncModeText)
+            if let cloudSyncBlockerDescription {
+                SettingsLabel(title: "Sync unavailable", description: cloudSyncBlockerDescription)
+            }
+            if let cloudSyncFailureTitle, cloudSyncStatus == .failed {
+                SettingsStatsRow(title: "Error", value: cloudSyncFailureTitle)
+            }
+
+            if cloudSyncStatus == .conflict {
+                SettingsLabel(
+                    title: "Library conflict",
+                    description: cloudConflictDescription
+                )
+            }
+
+            HStack(spacing: 10) {
+                Button(primaryCloudSyncActionTitle, action: syncAction)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!canRunCloudSync || cloudSyncStatus == .syncing)
+
+                if canResolveCloudConflict {
+                    Button("Use Cloud", action: useCloudAction)
+                        .buttonStyle(.borderedProminent)
+
+                    Button("Keep this Mac", action: overwriteCloudAction)
+                        .buttonStyle(.bordered)
+                }
+
+                if canRetryBackendConnection {
+                    Button("Retry backend", action: retryBackendAction)
+                        .buttonStyle(.bordered)
+                }
+
+                if canClearCloudSyncStatus {
+                    Button("Clear status", action: clearSyncStatusAction)
+                        .buttonStyle(.borderless)
+                }
+            }
+        }
+    }
+
+    private var cloudSyncModeText: String {
+        cloudSyncReadinessTitle
+    }
+
+    private var primaryCloudSyncActionTitle: String {
+        switch cloudSyncStatus {
+        case .syncing:
+            return "Syncing..."
+        case .conflict:
+            return "Refresh"
+        default:
+            return "Sync now"
+        }
+    }
+
+    private var cloudConflictDescription: String {
+        guard let summary = cloudSyncConflictSummary else {
+            return "Cloud and this Mac both changed. Refresh from cloud or keep this Mac when account sync is connected."
+        }
+
+        let localText = "This Mac: \(summary.localFavoritesCount) favorites, \(summary.localRecentsCount) recents, \(summary.localDiscoveriesCount) discoveries."
+        guard summary.hasCloudSnapshot else {
+            return "\(localText) Cloud snapshot was not available after the conflict."
+        }
+
+        let cloudText = "Cloud: \(summary.cloudFavoritesCount ?? 0) favorites, \(summary.cloudRecentsCount ?? 0) recents, \(summary.cloudDiscoveriesCount ?? 0) discoveries."
+        return "\(localText) \(cloudText)"
     }
 
     private var appearanceCard: some View {
@@ -326,9 +445,15 @@ struct ProfileView: View {
     }
 
     private var localDataCard: some View {
-        SettingsCard(title: "Local Data", subtitle: "Everything in this Mac app stays on-device.") {
-            SettingsStatsRow(title: "Favorites", value: "Saved locally")
-            SettingsStatsRow(title: "History", value: "Recent playback retained on this Mac")
+        SettingsCard(title: "Local Data", subtitle: "Current library usage against active limits.") {
+            SettingsStatsRow(title: "Favorites", value: favoritesUsage.title)
+            SettingsStatsRow(title: "Recents", value: recentsUsage.title)
+            SettingsStatsRow(title: "Discoveries", value: discoveriesUsage.title)
+            SettingsStatsRow(title: "Saved tracks", value: savedTracksUsage.title)
+            SettingsStatsRow(title: "Lyrics", value: lyricsUsage.title)
+            SettingsStatsRow(title: "YouTube", value: youtubeUsage.title)
+            SettingsStatsRow(title: "Apple Music", value: appleMusicUsage.title)
+            SettingsStatsRow(title: "Spotify", value: spotifyUsage.title)
 
             Button("Clear local library", action: clearAction)
                 .buttonStyle(.bordered)
@@ -339,12 +464,19 @@ struct ProfileView: View {
         SettingsCard(title: "About", subtitle: "Independent macOS edition.") {
             SettingsStatsRow(title: "Edition", value: "macOS standalone")
             SettingsStatsRow(title: "Design", value: "Desktop UX aligned with AV Radio iOS")
-            SettingsStatsRow(title: "Backend", value: capabilities.canUseBackend ? "AV Apps enabled" : "Local-only mode")
-        }
-    }
+            SettingsStatsRow(title: "Backend", value: backendConnectionStatus.title)
+            if let backendConnectionFailureTitle {
+                SettingsStatsRow(title: "Backend error", value: backendConnectionFailureTitle)
+            }
+            SettingsStatsRow(title: "Account", value: accountConnectionState.title)
 
-    private func limitText(_ limit: Int?) -> String {
-        limit.map(String.init) ?? "Practical unlimited"
+            if let accountManagementURL {
+                Button("Manage account") {
+                    openURL(accountManagementURL)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
     }
 
     private var appearanceLabel: String {
@@ -355,6 +487,37 @@ struct ProfileView: View {
             return "Dark"
         default:
             return "System"
+        }
+    }
+
+    private var dailyLookupText: String {
+        let usages = [lyricsUsage, youtubeUsage, appleMusicUsage, spotifyUsage]
+        let limits = usages.compactMap(\.limit)
+        guard limits.count == usages.count else {
+            return "Practical unlimited"
+        }
+
+        if Set(limits).count == 1, let limit = limits.first {
+            return "\(usages.map(\.used).max() ?? 0) of \(limit) used today"
+        }
+
+        return "Limited daily"
+    }
+}
+
+extension CloudSyncStatus {
+    var title: String {
+        switch self {
+        case .idle:
+            return "Ready"
+        case .syncing:
+            return "Syncing"
+        case .synced:
+            return "Synced"
+        case .conflict:
+            return "Conflict"
+        case .failed:
+            return "Failed"
         }
     }
 }

@@ -73,7 +73,9 @@
 		475A650CBCE99174197178D2 /* AudioPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerService.swift; sourceTree = "<group>"; };
 		49B2ADC8498AE97D87F74337 /* AVRadioEighties80sNowPlaying.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioEighties80sNowPlaying.swift; sourceTree = "<group>"; };
 		537D723B2A859E6D025D2B97 /* LibraryProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryProfileViews.swift; sourceTree = "<group>"; };
+		5B1D86E64D1F48C98A8F604D /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		75705DCF60557E7718EAD1C6 /* AVRadioCountry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioCountry.swift; sourceTree = "<group>"; };
+		8F99CF87607F4D71A3C37615 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		9EE5540364543372757AB5E2 /* TrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackArtworkService.swift; sourceTree = "<group>"; };
 		AE0EA5812E41ADF125416284 /* AVRadioTrackArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioTrackArtworkService.swift; sourceTree = "<group>"; };
 		B4B35696A94B263229488E19 /* AvradioMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AvradioMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -100,6 +102,7 @@
 			children = (
 				E390F8349021B2467E8257A0 /* Assets.xcassets */,
 				E76FBCC63946E7BE64BEC0B1 /* apple */,
+				7D0BA16DF7404F5C8EE2F89D /* Config */,
 				CA8479CFF12E932BA870D2AE /* Sources */,
 				6D452F319E7B23547AF6CBCF /* Tests */,
 				FF081662D1616267E4D2FA25 /* Products */,
@@ -123,6 +126,15 @@
 				2D768F01D7339F077BF8C37B /* LibraryStoreSnapshotTests.swift */,
 			);
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		7D0BA16DF7404F5C8EE2F89D /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				8F99CF87607F4D71A3C37615 /* Debug.xcconfig */,
+				5B1D86E64D1F48C98A8F604D /* Release.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 		81229A171F5262994C02C0C0 /* Stores */ = {
@@ -362,6 +374,7 @@
 /* Begin XCBuildConfiguration section */
 		01DA6F3404B9EFA5AE20E237 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F99CF87607F4D71A3C37615 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGNING_ALLOWED = NO;
@@ -371,7 +384,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.avalsys.avradio.mac;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVRADIO_BUNDLE_IDENTIFIER)";
 				PRODUCT_MODULE_NAME = AvradioMac;
 				PRODUCT_NAME = "AV Radio";
 				SDKROOT = macosx;
@@ -417,6 +430,7 @@
 		};
 		8066A79013B0481CEAC211BF /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5B1D86E64D1F48C98A8F604D /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGNING_ALLOWED = NO;
@@ -426,7 +440,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.avalsys.avradio.mac;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(AVRADIO_BUNDLE_IDENTIFIER)";
 				PRODUCT_MODULE_NAME = AvradioMac;
 				PRODUCT_NAME = "AV Radio";
 				SDKROOT = macosx;

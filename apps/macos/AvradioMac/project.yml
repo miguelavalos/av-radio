@@ -7,10 +7,15 @@ targets:
   AvradioMac:
     type: application
     platform: macOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
     info:
       path: Supporting/Info.plist
       properties:
-        CFBundleDisplayName: AV Radio
+        CFBundleDisplayName: $(AVRADIO_DISPLAY_NAME)
+        AVAPPS_API_BASE_URL: $(AVAPPS_API_BASE_URL)
+        AVRADIO_ACCOUNT_MANAGEMENT_URL: $(AVRADIO_ACCOUNT_MANAGEMENT_URL)
         LSApplicationCategoryType: public.app-category.music
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
@@ -20,7 +25,7 @@ targets:
       - path: Assets.xcassets
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.avalsys.avradio.mac
+        PRODUCT_BUNDLE_IDENTIFIER: "$(AVRADIO_BUNDLE_IDENTIFIER)"
         PRODUCT_NAME: AV Radio
         PRODUCT_MODULE_NAME: AvradioMac
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

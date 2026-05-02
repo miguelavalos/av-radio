@@ -8,9 +8,11 @@ output_mode="${2:-write}"
 case "$profile" in
   local)
     bundle_identifier="com.avalsys.avradio.dev"
+    mac_bundle_identifier="com.avalsys.avradio.mac.dev"
     ;;
   production)
     bundle_identifier="com.avalsys.avradio"
+    mac_bundle_identifier="com.avalsys.avradio.mac"
     ;;
   *)
     echo "Unsupported profile: $profile" >&2
@@ -66,8 +68,10 @@ for value_name in "${required_values[@]}"; do
   fi
 done
 
-rendered_config="$(cat <<EOF
-AVRADIO_BUNDLE_IDENTIFIER = $bundle_identifier
+render_config() {
+  local resolved_bundle_identifier="$1"
+  cat <<EOF
+AVRADIO_BUNDLE_IDENTIFIER = $resolved_bundle_identifier
 AVAPPS_ACCOUNT_PUBLISHABLE_KEY = $account_publishable_key
 AVRADIO_PREMIUM_PRODUCT_IDS = $premium_product_ids
 AVRADIO_SUPPORT_EMAIL = $support_email
@@ -77,18 +81,24 @@ AVRADIO_TERMS_URL = $(xcodebuild_url_value "$terms_url")
 AVRADIO_PRIVACY_URL = $(xcodebuild_url_value "$privacy_url")
 AVRADIO_OPEN_SOURCE_URL = $(xcodebuild_url_value "$open_source_url")
 EOF
-)"
+}
 
-target_file="$repo_root/apps/ios/Config/Local.xcconfig"
+ios_rendered_config="$(render_config "$bundle_identifier")"
+macos_rendered_config="$(render_config "$mac_bundle_identifier")"
+
+ios_target_file="$repo_root/apps/ios/Config/Local.xcconfig"
+macos_target_file="$repo_root/apps/macos/AvradioMac/Config/Local.xcconfig"
 
 case "$output_mode" in
   write)
     umask 077
-    printf '%s\n' "$rendered_config" > "$target_file"
-    echo "Wrote $target_file for profile '$profile'."
+    mkdir -p "$(dirname "$ios_target_file")" "$(dirname "$macos_target_file")"
+    printf '%s\n' "$ios_rendered_config" > "$ios_target_file"
+    printf '%s\n' "$macos_rendered_config" > "$macos_target_file"
+    echo "Wrote $ios_target_file and $macos_target_file for profile '$profile'."
     ;;
   stdout)
-    printf '%s\n' "$rendered_config"
+    printf '# %s\n%s\n\n# %s\n%s\n' "$ios_target_file" "$ios_rendered_config" "$macos_target_file" "$macos_rendered_config"
     ;;
   *)
     echo "Unsupported output mode: $output_mode" >&2

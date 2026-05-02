@@ -31,3 +31,6 @@ apps/android/.kotlin/
 # Override global ignore rules so macOS app sources remain trackable.
 !/apps/macos/
 !/apps/macos/**
+
+# macOS local config is generated from private Infisical/Varlock values.
+apps/macos/AvradioMac/Config/Local.xcconfig

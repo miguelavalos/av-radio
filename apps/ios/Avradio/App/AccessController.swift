@@ -206,7 +206,9 @@ final class AccessController: ObservableObject {
         planTier = resolvedAccess.planTier
         accessMode = resolvedAccess.accessMode
         capabilities = resolvedAccess.capabilities
-        limits = limitsWithUITestOverrides(resolvedAccess.limits)
+        limits = limitsWithUITestOverrides(
+            dailyActionsUnlimitedForPro(resolvedAccess.limits, accessMode: resolvedAccess.accessMode)
+        )
         accountSession = AccountSession(
             user: accountUser,
             planTier: planTier,
@@ -254,6 +256,23 @@ final class AccessController: ObservableObject {
             appleMusicSearchesPerDay: appleMusicSearchesPerDay,
             spotifySearchesPerDay: spotifySearchesPerDay,
             discoverySharesPerDay: discoverySharesPerDay
+        )
+    }
+
+    private func dailyActionsUnlimitedForPro(_ resolvedLimits: AccessLimits, accessMode: AccessMode) -> AccessLimits {
+        guard accessMode == .signedInPro else { return resolvedLimits }
+
+        return AccessLimits(
+            favoriteStations: resolvedLimits.favoriteStations,
+            recentStations: resolvedLimits.recentStations,
+            discoveredTracks: resolvedLimits.discoveredTracks,
+            savedTracks: resolvedLimits.savedTracks,
+            lyricsSearchesPerDay: nil,
+            webSearchesPerDay: nil,
+            youtubeSearchesPerDay: nil,
+            appleMusicSearchesPerDay: nil,
+            spotifySearchesPerDay: nil,
+            discoverySharesPerDay: nil
         )
     }
 

@@ -12,6 +12,8 @@ for forbidden_path in \
   ".env.example" \
   "apps/ios/Config/Local.xcconfig" \
   "apps/ios/Config/Local.xcconfig.example" \
+  "apps/macos/AvradioMac/Config/Local.xcconfig" \
+  "apps/macos/AvradioMac/Config/Local.xcconfig.example" \
   "apps/android/local.properties"
 do
   if git ls-files --error-unmatch "$forbidden_path" >/dev/null 2>&1 && [ -e "$forbidden_path" ]; then

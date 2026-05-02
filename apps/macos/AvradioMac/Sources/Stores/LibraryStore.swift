@@ -1,5 +1,83 @@
 import Foundation
 
+enum CloudSyncStatus: Equatable {
+    case idle
+    case syncing
+    case synced(Date)
+    case conflict
+    case failed
+}
+
+struct CloudSyncConflictSummary: Equatable {
+    let localFavoritesCount: Int
+    let localRecentsCount: Int
+    let localDiscoveriesCount: Int
+    let localUpdatedAt: Date
+    let cloudFavoritesCount: Int?
+    let cloudRecentsCount: Int?
+    let cloudDiscoveriesCount: Int?
+    let cloudUpdatedAt: Date?
+
+    var hasCloudSnapshot: Bool {
+        cloudFavoritesCount != nil || cloudRecentsCount != nil || cloudDiscoveriesCount != nil
+    }
+}
+
+struct LimitUsageSummary: Equatable {
+    let used: Int
+    let limit: Int?
+
+    var title: String {
+        guard let limit else {
+            return "\(used) used"
+        }
+        return "\(used) of \(limit)"
+    }
+}
+
+enum BackendConnectionStatus: Equatable {
+    case notConfigured
+    case missingToken
+    case accessRefreshFailed
+    case ready
+
+    var title: String {
+        switch self {
+        case .notConfigured:
+            return "Waiting for backend config"
+        case .missingToken:
+            return "Waiting for account token"
+        case .accessRefreshFailed:
+            return "Access refresh failed"
+        case .ready:
+            return "Backend ready"
+        }
+    }
+}
+
+enum AccountConnectionState: Equatable {
+    case localOnly
+    case waitingForToken
+    case accessRefreshFailed
+    case connectedFree
+    case connectedPro
+
+    var title: String {
+        switch self {
+        case .localOnly:
+            return "Local"
+        case .waitingForToken:
+            return "Waiting for account"
+        case .accessRefreshFailed:
+            return "Account refresh failed"
+        case .connectedFree:
+            return "Connected Free"
+        case .connectedPro:
+            return "Connected Pro"
+        }
+    }
+}
+
 @MainActor
 final class LibraryStore: ObservableObject {
     @Published private(set) var favorites: [Station]
@@ -8,6 +86,11 @@ final class LibraryStore: ObservableObject {
     @Published var preferredTag: String
     @Published var preferredCountryCode: String?
     @Published private(set) var accessMode: AccessMode
+    @Published private(set) var cloudSyncStatus: CloudSyncStatus = .idle
+    @Published private(set) var cloudSyncConflictSummary: CloudSyncConflictSummary?
+    @Published private(set) var cloudSyncFailureTitle: String?
+    @Published private(set) var backendConnectionStatus: BackendConnectionStatus = .notConfigured
+    @Published private(set) var backendConnectionFailureTitle: String?
     @Published var upgradePrompt: UpgradePromptContext?
 
     private let defaults: UserDefaults
@@ -17,26 +100,201 @@ final class LibraryStore: ObservableObject {
     private let preferredTagKey = "avradio.mac.preferredTag"
     private let preferredCountryKey = "avradio.mac.preferredCountry"
     private let accessModeKey = "avradio.mac.accessMode"
+    private let lastLocalUpdatedAtKey = "avradio.mac.lastLocalUpdatedAt"
+    private let accessController: MacAccessController
+    private var appDataClient: MacAVRadioLibrarySyncing?
+    private var backendBaseURL: URL?
+    private var backendTokenProvider: (() async throws -> String?)?
+    private var backendURLSession: URLSession = .shared
+    private var isApplyingRemoteSnapshot = false
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.accessController = MacAccessController(defaults: defaults, accessModeKey: accessModeKey)
         self.favorites = Self.loadStations(forKey: favoritesKey, defaults: defaults)
         self.recents = Self.loadStations(forKey: recentsKey, defaults: defaults)
         self.discoveries = Self.loadDiscoveries(forKey: discoveriesKey, defaults: defaults)
         self.preferredTag = defaults.string(forKey: preferredTagKey) ?? "ambient"
         self.preferredCountryCode = defaults.string(forKey: preferredCountryKey)
-        self.accessMode = AccessMode(rawValue: defaults.string(forKey: accessModeKey) ?? "") ?? .guest
+        self.accessMode = accessController.accessMode
         self.favorites = AVRadioCollectionRules.trimmed(Self.loadStations(forKey: favoritesKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).favoriteStations)
         self.recents = AVRadioCollectionRules.trimmed(Self.loadStations(forKey: recentsKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).recentStations)
         self.discoveries = AVRadioCollectionRules.trimmed(Self.loadDiscoveries(forKey: discoveriesKey, defaults: defaults), limit: AccessLimits.forMode(accessMode).discoveredTracks)
+        self.discoveries = Self.trimmedSavedDiscoveries(self.discoveries, limit: AccessLimits.forMode(accessMode).savedTracks)
     }
 
     var capabilities: AccessCapabilities {
-        AccessCapabilities.forMode(accessMode)
+        accessController.capabilities
+    }
+
+    var planTier: PlanTier {
+        accessController.planTier
     }
 
     var limits: AccessLimits {
-        AccessLimits.forMode(accessMode)
+        accessController.limits
+    }
+
+    var isCloudSyncConfigured: Bool {
+        appDataClient?.isConfigured() == true
+    }
+
+    var canRunCloudSync: Bool {
+        capabilities.canUseCloudSync && isCloudSyncConfigured
+    }
+
+    var canRetryBackendConnection: Bool {
+        capabilities.canUseCloudSync && !canRunCloudSync && backendBaseURL != nil && backendTokenProvider != nil
+    }
+
+    var canClearCloudSyncStatus: Bool {
+        cloudSyncStatus != .idle && cloudSyncStatus != .syncing
+    }
+
+    var canResolveCloudConflict: Bool {
+        cloudSyncStatus == .conflict && canRunCloudSync
+    }
+
+    var cloudSyncReadinessTitle: String {
+        if canRunCloudSync {
+            return "Ready"
+        }
+        if !capabilities.canUseCloudSync {
+            return "Pro only"
+        }
+        if backendConnectionStatus == .ready {
+            return "Cloud sync not configured"
+        }
+        return backendConnectionStatus.title
+    }
+
+    var cloudSyncBlockerDescription: String? {
+        guard !canRunCloudSync else { return nil }
+        if !capabilities.canUseCloudSync {
+            return "Cloud Sync is available with Pro access."
+        }
+
+        switch backendConnectionStatus {
+        case .notConfigured:
+            return "Backend configuration is missing for this build."
+        case .missingToken:
+            return "Connect an account before syncing this Mac."
+        case .accessRefreshFailed:
+            return "Refresh backend access before syncing this Mac."
+        case .ready:
+            return "Backend access is ready, but Cloud Sync is not configured."
+        }
+    }
+
+    var accessModeIsBackendManaged: Bool {
+        backendConnectionStatus == .ready
+    }
+
+    var accessModeSourceTitle: String {
+        accessModeIsBackendManaged ? "Backend access" : "Local fallback"
+    }
+
+    var accountConnectionState: AccountConnectionState {
+        switch backendConnectionStatus {
+        case .notConfigured:
+            return .localOnly
+        case .missingToken:
+            return .waitingForToken
+        case .accessRefreshFailed:
+            return .accessRefreshFailed
+        case .ready:
+            return planTier == .pro ? .connectedPro : .connectedFree
+        }
+    }
+
+    var favoritesUsage: LimitUsageSummary {
+        LimitUsageSummary(used: favorites.count, limit: limits.favoriteStations)
+    }
+
+    var recentsUsage: LimitUsageSummary {
+        LimitUsageSummary(used: recents.count, limit: limits.recentStations)
+    }
+
+    var discoveriesUsage: LimitUsageSummary {
+        LimitUsageSummary(used: discoveries.count, limit: limits.discoveredTracks)
+    }
+
+    var savedTracksUsage: LimitUsageSummary {
+        LimitUsageSummary(used: savedDiscoveriesCount, limit: limits.savedTracks)
+    }
+
+    func dailyUsage(for feature: LimitedFeature) -> LimitUsageSummary {
+        LimitUsageSummary(used: dailyUsageCount(for: feature), limit: limits.limit(for: feature))
+    }
+
+    func configureBackendClients(
+        baseURL: URL? = MacAppConfig.avAppsAPIBaseURL,
+        tokenProvider: @escaping () async throws -> String?,
+        urlSession: URLSession = .shared
+    ) async {
+        backendBaseURL = baseURL
+        backendTokenProvider = tokenProvider
+        backendURLSession = urlSession
+
+        guard let baseURL else {
+            backendConnectionStatus = .notConfigured
+            backendConnectionFailureTitle = nil
+            setAppDataClient(nil)
+            return
+        }
+        guard let token = try? await tokenProvider(), !token.isEmpty else {
+            backendConnectionStatus = .missingToken
+            backendConnectionFailureTitle = nil
+            setAppDataClient(nil)
+            return
+        }
+
+        let accessClient = AVAppsMacAccessClient(
+            baseURL: baseURL,
+            tokenProvider: tokenProvider,
+            urlSession: urlSession
+        )
+        let didRefreshAccess = await accessController.refresh(using: accessClient)
+        accessMode = accessController.accessMode
+        applyCurrentAccessLimits()
+        guard didRefreshAccess else {
+            backendConnectionStatus = accessController.lastRefreshError?.isAccessTokenFailure == true ? .missingToken : .accessRefreshFailed
+            backendConnectionFailureTitle = accessController.lastRefreshError?.accessFailureTitle
+            setAppDataClient(nil)
+            return
+        }
+
+        backendConnectionStatus = .ready
+        backendConnectionFailureTitle = nil
+        cloudSyncStatus = .idle
+        cloudSyncConflictSummary = nil
+        cloudSyncFailureTitle = nil
+        guard capabilities.canUseCloudSync else {
+            setAppDataClient(nil)
+            return
+        }
+        setAppDataClient(
+            MacAVRadioAppDataClient(
+                baseURL: baseURL,
+                tokenProvider: tokenProvider,
+                urlSession: urlSession
+            )
+        )
+    }
+
+    func retryBackendConnection() async {
+        guard let backendTokenProvider else {
+            backendConnectionStatus = .notConfigured
+            backendConnectionFailureTitle = nil
+            setAppDataClient(nil)
+            return
+        }
+
+        await configureBackendClients(
+            baseURL: backendBaseURL,
+            tokenProvider: backendTokenProvider,
+            urlSession: backendURLSession
+        )
     }
 
     func isFavorite(_ station: Station) -> Bool {
@@ -157,28 +415,47 @@ final class LibraryStore: ObservableObject {
     }
 
     func updateAccessMode(_ mode: AccessMode) {
-        accessMode = mode
-        defaults.set(mode.rawValue, forKey: accessModeKey)
+        guard !accessModeIsBackendManaged else { return }
+        accessController.updateAccessMode(mode)
+        accessMode = accessController.accessMode
+        if !capabilities.canUseCloudSync {
+            setAppDataClient(nil)
+            backendConnectionStatus = .notConfigured
+            backendConnectionFailureTitle = nil
+            clearBackendConnectionContext()
+            cloudSyncStatus = .idle
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+        }
+        applyCurrentAccessLimits()
+    }
+
+    private func applyCurrentAccessLimits() {
         favorites = AVRadioCollectionRules.trimmed(favorites, limit: limits.favoriteStations)
         recents = AVRadioCollectionRules.trimmed(recents, limit: limits.recentStations)
         discoveries = AVRadioCollectionRules.trimmed(discoveries, limit: limits.discoveredTracks)
+        discoveries = Self.trimmedSavedDiscoveries(discoveries, limit: limits.savedTracks)
         persist(stations: favorites, key: favoritesKey)
         persist(stations: recents, key: recentsKey)
         persist(discoveries: discoveries)
     }
 
     func updatePreferredTag(_ tag: String) {
+        guard preferredTag != tag else { return }
         preferredTag = tag
         defaults.set(tag, forKey: preferredTagKey)
+        markLocalUpdated()
     }
 
     func updatePreferredCountryCode(_ code: String?) {
+        guard preferredCountryCode != code else { return }
         preferredCountryCode = code
         if let code {
             defaults.set(code, forKey: preferredCountryKey)
         } else {
             defaults.removeObject(forKey: preferredCountryKey)
         }
+        markLocalUpdated()
     }
 
     func clearLocalState() {
@@ -186,28 +463,40 @@ final class LibraryStore: ObservableObject {
         recents = []
         discoveries = []
         preferredTag = "ambient"
-        accessMode = .guest
+        upgradePrompt = nil
+        accessController.updateAccessMode(.guest)
+        accessMode = accessController.accessMode
+        cloudSyncStatus = .idle
+        cloudSyncConflictSummary = nil
+        cloudSyncFailureTitle = nil
+        backendConnectionStatus = .notConfigured
+        backendConnectionFailureTitle = nil
+        setAppDataClient(nil)
+        clearBackendConnectionContext()
         defaults.removeObject(forKey: favoritesKey)
         defaults.removeObject(forKey: recentsKey)
         defaults.removeObject(forKey: discoveriesKey)
         defaults.set(preferredTag, forKey: preferredTagKey)
         defaults.removeObject(forKey: preferredCountryKey)
         defaults.set(accessMode.rawValue, forKey: accessModeKey)
+        clearCurrentDailyUsage()
         preferredCountryCode = nil
+        markLocalUpdated()
     }
 
     func librarySnapshot() -> AVRadioLibrarySnapshot {
-        AVRadioLibrarySnapshot(
+        let snapshotTimestamp = AVRadioDateCoding.string(from: storedLocalUpdatedAt() ?? .now)
+        return AVRadioLibrarySnapshot(
             favorites: favorites.map {
                 FavoriteStationRecord(
                     station: $0.appDataRecord,
-                    createdAt: AVRadioDateCoding.string(from: .now)
+                    createdAt: snapshotTimestamp
                 )
             },
             recents: recents.map {
                 RecentStationRecord(
                     station: $0.appDataRecord,
-                    lastPlayedAt: AVRadioDateCoding.string(from: .now)
+                    lastPlayedAt: snapshotTimestamp
                 )
             },
             discoveries: discoveries.map(\.appDataRecord),
@@ -217,12 +506,13 @@ final class LibraryStore: ObservableObject {
                 preferredTag: preferredTag,
                 lastPlayedStationID: recents.first?.id,
                 sleepTimerMinutes: nil,
-                updatedAt: AVRadioDateCoding.string(from: .now)
+                updatedAt: snapshotTimestamp
             )
         )
     }
 
     func applyLibrarySnapshot(_ snapshot: AVRadioLibrarySnapshot) {
+        let wasApplyingRemoteSnapshot = isApplyingRemoteSnapshot
         favorites = snapshot.favorites.map { Station(record: $0.station) }
         recents = snapshot.recents.map { Station(record: $0.station) }
         discoveries = snapshot.discoveries.map(DiscoveredTrack.init(record:))
@@ -238,20 +528,216 @@ final class LibraryStore: ObservableObject {
         } else {
             defaults.removeObject(forKey: preferredCountryKey)
         }
+
+        if !wasApplyingRemoteSnapshot {
+            markLocalUpdated()
+        }
+    }
+
+    func setAppDataClient(_ client: MacAVRadioLibrarySyncing?) {
+        appDataClient = client
+        if client == nil {
+            cloudSyncStatus = .idle
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+        }
+    }
+
+    private func clearBackendConnectionContext() {
+        backendBaseURL = nil
+        backendTokenProvider = nil
+        backendURLSession = .shared
+    }
+
+    func refreshCloudLibraryIfNeeded() async {
+        guard canRunCloudSync, let appDataClient else {
+            cloudSyncStatus = .idle
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+            return
+        }
+
+        var conflictSummary: CloudSyncConflictSummary?
+        do {
+            cloudSyncStatus = .syncing
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+            let remoteDocument = try await appDataClient.pullLibrary()
+            let localSnapshot = librarySnapshot()
+            conflictSummary = makeConflictSummary(localSnapshot: localSnapshot, remoteDocument: remoteDocument)
+
+            switch AVRadioLibrarySyncPlanner.decision(
+                localSnapshot: localSnapshot,
+                localUpdatedAt: latestLocalUpdatedAt(localSnapshot: localSnapshot),
+                remoteDocument: remoteDocument
+            ) {
+            case .pullRemote(let remoteSnapshot):
+                let mergedSnapshot = AVRadioLibrarySnapshotMerger.merged(local: localSnapshot, remote: remoteSnapshot)
+                applyRemoteSnapshot(mergedSnapshot, updatedAt: remoteDocument.updatedAt)
+                if mergedSnapshot != remoteSnapshot {
+                    conflictSummary = makeConflictSummary(localSnapshot: mergedSnapshot, remoteDocument: remoteDocument)
+                    try await appDataClient.pushLibrary(mergedSnapshot)
+                    markLocalUpdated()
+                }
+            case .pushLocal:
+                try await appDataClient.pushLibrary(localSnapshot)
+                markLocalUpdated()
+            case .noContent, .alreadyCurrent:
+                break
+            }
+
+            cloudSyncStatus = .synced(.now)
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+        } catch {
+            handleCloudSyncError(error, conflictSummary: conflictSummary)
+        }
+    }
+
+    func overwriteCloudLibraryWithLocalData() async {
+        guard canRunCloudSync, let appDataClient else {
+            cloudSyncStatus = .idle
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+            return
+        }
+
+        var conflictSummary: CloudSyncConflictSummary?
+        do {
+            cloudSyncStatus = .syncing
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+            let localSnapshot = librarySnapshot()
+            conflictSummary = makeConflictSummary(localSnapshot: localSnapshot, remoteDocument: nil)
+            try await appDataClient.overwriteLibrary(localSnapshot)
+            markLocalUpdated()
+            cloudSyncStatus = .synced(.now)
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+        } catch {
+            handleCloudSyncError(error, conflictSummary: conflictSummary)
+        }
+    }
+
+    func replaceLocalLibraryWithCloudData() async {
+        guard canRunCloudSync, let appDataClient else {
+            cloudSyncStatus = .idle
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+            return
+        }
+
+        var conflictSummary: CloudSyncConflictSummary?
+        do {
+            cloudSyncStatus = .syncing
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+            let remoteDocument = try await appDataClient.pullLibrary()
+            let localSnapshot = librarySnapshot()
+            conflictSummary = makeConflictSummary(localSnapshot: localSnapshot, remoteDocument: remoteDocument)
+
+            applyRemoteSnapshot(remoteDocument.snapshot ?? Self.emptyLibrarySnapshot, updatedAt: remoteDocument.updatedAt)
+
+            cloudSyncStatus = .synced(.now)
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = nil
+        } catch {
+            handleCloudSyncError(error, conflictSummary: conflictSummary)
+        }
+    }
+
+    func clearCloudSyncStatus() {
+        guard canClearCloudSyncStatus else { return }
+        cloudSyncStatus = .idle
+        cloudSyncConflictSummary = nil
+        cloudSyncFailureTitle = nil
+    }
+
+    private func handleCloudSyncError(_ error: Error, conflictSummary: CloudSyncConflictSummary?) {
+        if case AVRadioAppDataError.conflict = error {
+            cloudSyncStatus = .conflict
+            cloudSyncConflictSummary = conflictSummary
+            cloudSyncFailureTitle = nil
+            return
+        }
+
+        guard let appDataError = error as? MacAppDataClientError else {
+            cloudSyncStatus = .failed
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = "Sync failed"
+            return
+        }
+
+        switch appDataError {
+        case .missingToken:
+            backendConnectionStatus = .missingToken
+            backendConnectionFailureTitle = nil
+            setAppDataClient(nil)
+        case .requestFailed(let statusCode) where statusCode == 401 || statusCode == 403:
+            backendConnectionStatus = .missingToken
+            backendConnectionFailureTitle = appDataError.failureTitle
+            setAppDataClient(nil)
+        case .missingBaseURL, .requestFailed:
+            cloudSyncStatus = .failed
+            cloudSyncConflictSummary = nil
+            cloudSyncFailureTitle = appDataError.failureTitle
+        }
+    }
+
+    private func makeConflictSummary(
+        localSnapshot: AVRadioLibrarySnapshot,
+        remoteDocument: AVRadioLibraryDocument?
+    ) -> CloudSyncConflictSummary {
+        CloudSyncConflictSummary(
+            localFavoritesCount: localSnapshot.favorites.count,
+            localRecentsCount: localSnapshot.recents.count,
+            localDiscoveriesCount: localSnapshot.discoveries.count,
+            localUpdatedAt: latestLocalUpdatedAt(localSnapshot: localSnapshot),
+            cloudFavoritesCount: remoteDocument?.snapshot?.favorites.count,
+            cloudRecentsCount: remoteDocument?.snapshot?.recents.count,
+            cloudDiscoveriesCount: remoteDocument?.snapshot?.discoveries.count,
+            cloudUpdatedAt: remoteDocument?.updatedAt
+        )
+    }
+
+    private static var emptyLibrarySnapshot: AVRadioLibrarySnapshot {
+        AVRadioLibrarySnapshot(
+            favorites: [],
+            recents: [],
+            discoveries: [],
+            settings: .empty
+        )
     }
 
     private func persist(stations: [Station], key: String) {
         guard let data = try? JSONEncoder().encode(stations) else { return }
         defaults.set(data, forKey: key)
+        markLocalUpdated()
     }
 
     private func persist(discoveries: [DiscoveredTrack]) {
         guard let data = try? JSONEncoder().encode(discoveries) else { return }
         defaults.set(data, forKey: discoveriesKey)
+        markLocalUpdated()
     }
 
     private var savedDiscoveriesCount: Int {
         discoveries.filter(\.isMarkedInteresting).count
+    }
+
+    private static func trimmedSavedDiscoveries(_ discoveries: [DiscoveredTrack], limit: Int?) -> [DiscoveredTrack] {
+        guard let limit else { return discoveries }
+        var remainingSavedTracks = limit
+        return discoveries.map { discovery in
+            guard discovery.isMarkedInteresting else { return discovery }
+            guard remainingSavedTracks > 0 else {
+                var unsavedDiscovery = discovery
+                unsavedDiscovery.markedInterestedAt = nil
+                return unsavedDiscovery
+            }
+            remainingSavedTracks -= 1
+            return discovery
+        }
     }
 
     private func saveDiscoveredTrack(title: String?, artist: String?, station: Station?, artworkURL: URL?, markInteresting: Bool) {
@@ -309,6 +795,13 @@ final class LibraryStore: ObservableObject {
         max(defaults.integer(forKey: dailyCounterKey(for: feature)), dailyUsageKeys(for: feature).count)
     }
 
+    private func clearCurrentDailyUsage() {
+        for feature in LimitedFeature.allCases {
+            defaults.removeObject(forKey: dailyCounterKey(for: feature))
+            defaults.removeObject(forKey: dailyUsageKeysKey(for: feature))
+        }
+    }
+
     private static func normalizedUsageKey(_ usageKey: String) -> String {
         usageKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
@@ -323,4 +816,92 @@ final class LibraryStore: ObservableObject {
         return (try? JSONDecoder().decode([DiscoveredTrack].self, from: data)) ?? []
     }
 
+    private func applyRemoteSnapshot(_ snapshot: AVRadioLibrarySnapshot, updatedAt: Date) {
+        isApplyingRemoteSnapshot = true
+        applyLibrarySnapshot(snapshot)
+        isApplyingRemoteSnapshot = false
+        defaults.set(AVRadioDateCoding.string(from: updatedAt), forKey: lastLocalUpdatedAtKey)
+    }
+
+    private func latestLocalUpdatedAt(localSnapshot: AVRadioLibrarySnapshot) -> Date {
+        guard localSnapshot.hasMeaningfulContent else {
+            return .distantPast
+        }
+
+        return storedLocalUpdatedAt() ?? .now
+    }
+
+    private func markLocalUpdated() {
+        guard !isApplyingRemoteSnapshot else { return }
+        defaults.set(AVRadioDateCoding.string(from: .now), forKey: lastLocalUpdatedAtKey)
+        clearStaleSyncStatusAfterLocalMutation()
+    }
+
+    private func storedLocalUpdatedAt() -> Date? {
+        guard let storedValue = defaults.string(forKey: lastLocalUpdatedAtKey) else {
+            return nil
+        }
+        return AVRadioDateCoding.date(from: storedValue)
+    }
+
+    private func clearStaleSyncStatusAfterLocalMutation() {
+        guard cloudSyncStatus != .syncing else { return }
+        cloudSyncStatus = .idle
+        cloudSyncConflictSummary = nil
+        cloudSyncFailureTitle = nil
+    }
+}
+
+private extension Error {
+    var accessFailureTitle: String? {
+        guard let error = self as? MacAccessRefreshError else {
+            return nil
+        }
+        return error.failureTitle
+    }
+}
+
+private extension Error {
+    var isAccessTokenFailure: Bool {
+        guard let error = self as? MacAccessRefreshError else {
+            return false
+        }
+
+        switch error {
+        case .missingToken:
+            return true
+        case .requestFailed(let statusCode) where statusCode == 401 || statusCode == 403:
+            return true
+        case .missingBaseURL, .requestFailed, .avRadioAccessMissing:
+            return false
+        }
+    }
+}
+
+private extension MacAccessRefreshError {
+    var failureTitle: String {
+        switch self {
+        case .missingToken:
+            return "Waiting for account token"
+        case .missingBaseURL:
+            return "Waiting for backend config"
+        case .requestFailed(let statusCode):
+            return "Access request failed (\(statusCode))"
+        case .avRadioAccessMissing:
+            return "AV Radio access missing"
+        }
+    }
+}
+
+private extension MacAppDataClientError {
+    var failureTitle: String {
+        switch self {
+        case .missingToken:
+            return "Waiting for account token"
+        case .missingBaseURL:
+            return "Waiting for backend config"
+        case .requestFailed(let statusCode):
+            return "Sync request failed (\(statusCode))"
+        }
+    }
 }

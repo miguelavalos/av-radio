@@ -5,6 +5,8 @@ struct ProfileSummaryRow: View {
     let appearanceMode: String
     let launchToSearch: Bool
     let accessMode: AccessMode
+    let accountConnectionState: AccountConnectionState
+    let accessDetail: String
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -37,8 +39,8 @@ struct ProfileSummaryRow: View {
         )
         LibraryMetricCard(
             title: "Access",
-            value: accessMode.title,
-            detail: accessMode == .signedInPro ? "Cloud-backed" : "Local-only"
+            value: accountConnectionState.title,
+            detail: accessDetail
         )
     }
 }
@@ -177,7 +179,8 @@ struct SettingsStatsRow: View {
 
 struct UpgradePromptSheet: View {
     let context: UpgradePromptContext
-    let accessMode: AccessMode
+    let accountConnectionState: AccountConnectionState
+    let primaryActionTitle: String
     let primaryAction: () -> Void
     let dismissAction: () -> Void
 
@@ -193,7 +196,7 @@ struct UpgradePromptSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(context.title)
                         .font(.title2.weight(.bold))
-                    Text(accessMode.title)
+                    Text(accountConnectionState.title)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -223,7 +226,7 @@ struct UpgradePromptSheet: View {
 
                 Spacer()
 
-                Button("View Pro", action: primaryAction)
+                Button(primaryActionTitle, action: primaryAction)
                     .buttonStyle(.borderedProminent)
                     .tint(AvradioTheme.highlight)
                     .keyboardShortcut(.defaultAction)

@@ -58,6 +58,57 @@ struct AccessLimits: Codable, Equatable {
     let spotifySearchesPerDay: Int?
     let discoverySharesPerDay: Int?
 
+    enum CodingKeys: String, CodingKey {
+        case favoriteStations
+        case recentStations
+        case discoveredTracks
+        case savedTracks
+        case lyricsSearchesPerDay
+        case webSearchesPerDay
+        case youtubeSearchesPerDay
+        case appleMusicSearchesPerDay
+        case spotifySearchesPerDay
+        case discoverySharesPerDay
+    }
+
+    init(
+        favoriteStations: Int?,
+        recentStations: Int?,
+        discoveredTracks: Int?,
+        savedTracks: Int?,
+        lyricsSearchesPerDay: Int?,
+        webSearchesPerDay: Int?,
+        youtubeSearchesPerDay: Int?,
+        appleMusicSearchesPerDay: Int?,
+        spotifySearchesPerDay: Int?,
+        discoverySharesPerDay: Int?
+    ) {
+        self.favoriteStations = favoriteStations
+        self.recentStations = recentStations
+        self.discoveredTracks = discoveredTracks
+        self.savedTracks = savedTracks
+        self.lyricsSearchesPerDay = lyricsSearchesPerDay
+        self.webSearchesPerDay = webSearchesPerDay
+        self.youtubeSearchesPerDay = youtubeSearchesPerDay
+        self.appleMusicSearchesPerDay = appleMusicSearchesPerDay
+        self.spotifySearchesPerDay = spotifySearchesPerDay
+        self.discoverySharesPerDay = discoverySharesPerDay
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.favoriteStations = try container.decodeIfPresent(Int.self, forKey: .favoriteStations)
+        self.recentStations = try container.decodeIfPresent(Int.self, forKey: .recentStations)
+        self.discoveredTracks = try container.decodeIfPresent(Int.self, forKey: .discoveredTracks)
+        self.savedTracks = try container.decodeIfPresent(Int.self, forKey: .savedTracks)
+        self.lyricsSearchesPerDay = try container.decodeIfPresent(Int.self, forKey: .lyricsSearchesPerDay)
+        self.webSearchesPerDay = try container.decodeIfPresent(Int.self, forKey: .webSearchesPerDay)
+        self.youtubeSearchesPerDay = try container.decodeIfPresent(Int.self, forKey: .youtubeSearchesPerDay)
+        self.appleMusicSearchesPerDay = try container.decodeIfPresent(Int.self, forKey: .appleMusicSearchesPerDay)
+        self.spotifySearchesPerDay = try container.decodeIfPresent(Int.self, forKey: .spotifySearchesPerDay)
+        self.discoverySharesPerDay = try container.decodeIfPresent(Int.self, forKey: .discoverySharesPerDay)
+    }
+
     func limit(for feature: LimitedFeature) -> Int? {
         switch feature {
         case .favoriteStations:
@@ -146,16 +197,16 @@ enum AVRadioAccessPolicy {
         switch accessMode {
         case "guest":
             AVRadioAccessLimitValues(
-                favoriteStations: 10,
-                recentStations: 12,
-                discoveredTracks: 25,
-                savedTracks: 10,
-                lyricsSearchesPerDay: 5,
-                webSearchesPerDay: 5,
-                youtubeSearchesPerDay: 5,
-                appleMusicSearchesPerDay: 5,
-                spotifySearchesPerDay: 5,
-                discoverySharesPerDay: 2
+                favoriteStations: 5,
+                recentStations: 10,
+                discoveredTracks: 20,
+                savedTracks: 5,
+                lyricsSearchesPerDay: 3,
+                webSearchesPerDay: 3,
+                youtubeSearchesPerDay: 3,
+                appleMusicSearchesPerDay: 3,
+                spotifySearchesPerDay: 3,
+                discoverySharesPerDay: 1
             )
         case "signedInFree":
             AVRadioAccessLimitValues(
