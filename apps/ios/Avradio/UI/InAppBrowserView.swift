@@ -20,6 +20,7 @@ struct InAppBrowserView: View {
         NavigationStack {
             WebBrowser(url: destination.url)
                 .ignoresSafeArea(edges: .bottom)
+                .accessibilityIdentifier("browser.webView")
                 .navigationTitle(destination.url.host() ?? L10n.string("browser.title"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -27,6 +28,7 @@ struct InAppBrowserView: View {
                         Button(L10n.string("common.done")) {
                             dismiss()
                         }
+                        .accessibilityIdentifier("browser.done")
                     }
 
                     ToolbarItem(placement: .primaryAction) {
@@ -36,6 +38,7 @@ struct InAppBrowserView: View {
                             Image(systemName: "arrow.up.forward.app")
                         }
                         .accessibilityLabel(L10n.string("browser.openExternal"))
+                        .accessibilityIdentifier("browser.openExternal")
                     }
 
                     ToolbarItem(placement: .primaryAction) {
@@ -45,9 +48,11 @@ struct InAppBrowserView: View {
                             Image(systemName: "ellipsis.circle")
                         }
                         .accessibilityLabel(L10n.string("browser.openWith"))
+                        .accessibilityIdentifier("browser.openWith")
                     }
                 }
         }
+        .accessibilityIdentifier("browser.sheet")
         .sheet(isPresented: $isShowingOpenWith) {
             OpenWithView(url: destination.url)
         }

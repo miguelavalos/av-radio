@@ -177,6 +177,25 @@ final class LibraryStore: ObservableObject {
         return true
     }
 
+    func toggleDiscoveredTrackSaved(title: String?, artist: String?, station: Station?, artworkURL: URL?, savedLimit: Int? = nil, discoveryLimit: Int? = nil) -> Bool {
+        if let existing = discovery(for: title, artist: artist, station: station) {
+            return toggleDiscoverySaved(existing, savedLimit: savedLimit)
+        }
+
+        if let savedLimit, savedDiscoveriesCount >= savedLimit {
+            return false
+        }
+
+        markTrackInteresting(
+            title: title,
+            artist: artist,
+            station: station,
+            artworkURL: artworkURL,
+            discoveryLimit: discoveryLimit
+        )
+        return true
+    }
+
     func hideDiscovery(_ discovery: DiscoveredTrack) {
         discovery.hiddenAt = .now
         discovery.markedInterestedAt = nil

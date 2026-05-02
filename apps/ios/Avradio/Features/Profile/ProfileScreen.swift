@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct ProfileScreen: View {
-    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var accessController: AccessController
     @EnvironmentObject private var languageController: AppLanguageController
     @EnvironmentObject private var themeController: AppThemeController
@@ -15,6 +14,7 @@ struct ProfileScreen: View {
     @State private var isSigningOut = false
     @State private var signOutErrorMessage = ""
     @State private var isShowingSignOutError = false
+    @State private var browserDestination: BrowserDestination?
     private let genreTags = ["rock", "pop", "jazz", "news", "electronic", "ambient"]
 
     var body: some View {
@@ -67,6 +67,9 @@ struct ProfileScreen: View {
             Button(L10n.string("profile.alert.close"), role: .cancel) {}
         } message: {
             Text(signOutErrorMessage)
+        }
+        .sheet(item: $browserDestination) { destination in
+            InAppBrowserView(destination: destination)
         }
     }
 
@@ -680,7 +683,7 @@ struct ProfileScreen: View {
 
     private func open(_ url: URL?) {
         guard let url else { return }
-        openURL(url)
+        browserDestination = BrowserDestination(url: url)
     }
 
     private func signOut() async {

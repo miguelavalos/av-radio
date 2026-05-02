@@ -306,7 +306,15 @@ struct AppShellView: View {
         guard
             let station = audioPlayer.currentStation,
             normalizedTrackValue(audioPlayer.currentTrackTitle) != nil,
-            normalizedTrackValue(audioPlayer.currentTrackArtist) != nil
+            normalizedTrackValue(audioPlayer.currentTrackArtist) != nil,
+            !AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata(
+                audioPlayer.currentTrackTitle,
+                stationName: station.name
+            ),
+            !AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata(
+                audioPlayer.currentTrackArtist,
+                stationName: station.name
+            )
         else {
             return
         }
@@ -1398,7 +1406,6 @@ private struct LibraryScreen: View {
 }
 
 private struct MusicScreen: View {
-    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var accessController: AccessController
     @State private var query = ""
     @State private var musicMode: MusicLibraryMode = .songs
@@ -1559,7 +1566,7 @@ private struct MusicScreen: View {
     }
 
     private func openArtistSearch(_ artistName: String, youtube: Bool) {
-        let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
+        let feature: LimitedFeature = youtube ? .youtubeSearch : .webSearch
         guard let url = AVRadioExternalSearchURL.web(query: artistName, youtube: youtube) else { return }
         guard useDailyFeatureIfAllowed(feature, usageKey: url.absoluteString) else { return }
         browserDestination = BrowserDestination(url: url)
@@ -1568,13 +1575,13 @@ private struct MusicScreen: View {
     private func openAppleMusicArtistSearch(_ artistName: String) {
         guard let url = AVRadioExternalSearchURL.appleMusic(query: artistName) else { return }
         guard useDailyFeatureIfAllowed(.appleMusicSearch, usageKey: url.absoluteString) else { return }
-        openURL(url)
+        browserDestination = BrowserDestination(url: url)
     }
 
     private func openSpotifyArtistSearch(_ artistName: String) {
         guard let url = AVRadioExternalSearchURL.spotify(query: artistName) else { return }
         guard useDailyFeatureIfAllowed(.spotifySearch, usageKey: url.absoluteString) else { return }
-        openURL(url)
+        browserDestination = BrowserDestination(url: url)
     }
 
     private var discoverySongsHeader: some View {
@@ -1778,7 +1785,7 @@ private struct MusicScreen: View {
     }
 
     private func openDiscoverySearch(_ discovery: DiscoveredTrack, suffix: String?, youtube: Bool) {
-        let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
+        let feature: LimitedFeature = youtube ? .youtubeSearch : (suffix == nil ? .webSearch : .lyricsSearch)
         let query = AVRadioExternalSearchURL.query(parts: [discovery.searchQuery], suffix: suffix)
         guard let url = AVRadioExternalSearchURL.web(query: query, youtube: youtube) else { return }
         guard useDailyFeatureIfAllowed(feature, usageKey: url.absoluteString) else { return }
@@ -1788,13 +1795,13 @@ private struct MusicScreen: View {
     private func openAppleMusicSearch(_ discovery: DiscoveredTrack) {
         guard let url = AVRadioExternalSearchURL.appleMusic(query: discovery.searchQuery) else { return }
         guard useDailyFeatureIfAllowed(.appleMusicSearch, usageKey: url.absoluteString) else { return }
-        openURL(url)
+        browserDestination = BrowserDestination(url: url)
     }
 
     private func openSpotifySearch(_ discovery: DiscoveredTrack) {
         guard let url = AVRadioExternalSearchURL.spotify(query: discovery.searchQuery) else { return }
         guard useDailyFeatureIfAllowed(.spotifySearch, usageKey: url.absoluteString) else { return }
-        openURL(url)
+        browserDestination = BrowserDestination(url: url)
     }
 
     private func useDailyFeatureIfAllowed(_ feature: LimitedFeature, usageKey: String) -> Bool {
@@ -2411,7 +2418,7 @@ private struct StationCompactCard: View {
 
 private struct StationDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
+    @State private var browserDestination: BrowserDestination?
 
     let station: Station
     let isFavorite: Bool
@@ -2478,7 +2485,7 @@ private struct StationDetailSheet: View {
 
                         if let homepageURL {
                             Button {
-                                openURL(homepageURL)
+                                browserDestination = BrowserDestination(url: homepageURL)
                             } label: {
                                 Image(systemName: "arrow.up.right.square")
                                     .font(.system(size: 18, weight: .bold))
@@ -2547,6 +2554,9 @@ private struct StationDetailSheet: View {
             .padding(.bottom, 16)
         }
         .background(AvradioTheme.shellBackground.ignoresSafeArea())
+        .sheet(item: $browserDestination) { destination in
+            InAppBrowserView(destination: destination)
+        }
     }
 
     private var homepageURL: URL? {

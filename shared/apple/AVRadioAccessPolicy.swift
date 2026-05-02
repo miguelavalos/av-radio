@@ -18,6 +18,7 @@ enum LimitedFeature: String, CaseIterable, Codable {
     case savedTracks
     case discoveredTracks
     case lyricsSearch
+    case webSearch
     case youtubeSearch
     case appleMusicSearch
     case spotifySearch
@@ -30,6 +31,7 @@ struct AVRadioAccessLimitValues: Equatable {
     let discoveredTracks: Int?
     let savedTracks: Int?
     let lyricsSearchesPerDay: Int?
+    let webSearchesPerDay: Int?
     let youtubeSearchesPerDay: Int?
     let appleMusicSearchesPerDay: Int?
     let spotifySearchesPerDay: Int?
@@ -50,6 +52,7 @@ struct AccessLimits: Codable, Equatable {
     let discoveredTracks: Int?
     let savedTracks: Int?
     let lyricsSearchesPerDay: Int?
+    let webSearchesPerDay: Int?
     let youtubeSearchesPerDay: Int?
     let appleMusicSearchesPerDay: Int?
     let spotifySearchesPerDay: Int?
@@ -65,6 +68,8 @@ struct AccessLimits: Codable, Equatable {
             discoveredTracks
         case .lyricsSearch:
             lyricsSearchesPerDay
+        case .webSearch:
+            webSearchesPerDay
         case .youtubeSearch:
             youtubeSearchesPerDay
         case .appleMusicSearch:
@@ -84,6 +89,7 @@ struct AccessLimits: Codable, Equatable {
             discoveredTracks: values.discoveredTracks,
             savedTracks: values.savedTracks,
             lyricsSearchesPerDay: values.lyricsSearchesPerDay,
+            webSearchesPerDay: values.webSearchesPerDay,
             youtubeSearchesPerDay: values.youtubeSearchesPerDay,
             appleMusicSearchesPerDay: values.appleMusicSearchesPerDay,
             spotifySearchesPerDay: values.spotifySearchesPerDay,
@@ -145,6 +151,7 @@ enum AVRadioAccessPolicy {
                 discoveredTracks: 25,
                 savedTracks: 10,
                 lyricsSearchesPerDay: 5,
+                webSearchesPerDay: 5,
                 youtubeSearchesPerDay: 5,
                 appleMusicSearchesPerDay: 5,
                 spotifySearchesPerDay: 5,
@@ -157,6 +164,7 @@ enum AVRadioAccessPolicy {
                 discoveredTracks: 50,
                 savedTracks: 20,
                 lyricsSearchesPerDay: 10,
+                webSearchesPerDay: 10,
                 youtubeSearchesPerDay: 10,
                 appleMusicSearchesPerDay: 10,
                 spotifySearchesPerDay: 10,
@@ -169,6 +177,7 @@ enum AVRadioAccessPolicy {
                 discoveredTracks: 1_000,
                 savedTracks: 1_000,
                 lyricsSearchesPerDay: nil,
+                webSearchesPerDay: nil,
                 youtubeSearchesPerDay: nil,
                 appleMusicSearchesPerDay: nil,
                 spotifySearchesPerDay: nil,

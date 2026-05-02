@@ -227,6 +227,9 @@ final class AccessController: ObservableObject {
         let lyricsSearchesPerDay = environment["AVRADIO_UI_TEST_LYRICS_LIMIT"]
             .flatMap(Int.init)
             ?? resolvedLimits.lyricsSearchesPerDay
+        let webSearchesPerDay = environment["AVRADIO_UI_TEST_WEB_LIMIT"]
+            .flatMap(Int.init)
+            ?? resolvedLimits.webSearchesPerDay
         let youtubeSearchesPerDay = environment["AVRADIO_UI_TEST_YOUTUBE_LIMIT"]
             .flatMap(Int.init)
             ?? resolvedLimits.youtubeSearchesPerDay
@@ -246,6 +249,7 @@ final class AccessController: ObservableObject {
             discoveredTracks: resolvedLimits.discoveredTracks,
             savedTracks: resolvedLimits.savedTracks,
             lyricsSearchesPerDay: lyricsSearchesPerDay,
+            webSearchesPerDay: webSearchesPerDay,
             youtubeSearchesPerDay: youtubeSearchesPerDay,
             appleMusicSearchesPerDay: appleMusicSearchesPerDay,
             spotifySearchesPerDay: spotifySearchesPerDay,

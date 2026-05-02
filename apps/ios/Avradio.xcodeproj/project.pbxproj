@@ -30,6 +30,7 @@
 		39582C64371A315F8CAAB495 /* HomeRefreshUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D557ED627719061DAC1D0085 /* HomeRefreshUITests.swift */; };
 		3E668C9CA128B73F1F85CF97 /* SharedAppleSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05916A66FBCD64BAFD48BFB5 /* SharedAppleSupportTests.swift */; };
 		43ED8BA579025206691FAC1A /* AVRadioExternalSearchURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B144B661514214AA47BC7C /* AVRadioExternalSearchURL.swift */; };
+		4D4C2A1C9F9D43E0A96112B7 /* LibraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4C2A1B9F9D43E0A96112B7 /* LibraryStoreTests.swift */; };
 		51C73A8FA4963E37C592B046 /* ProfileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0644A16C8AC43085774A0629 /* ProfileUITests.swift */; };
 		51CE379CFC22F600026763D4 /* AVAppsAccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863EE791000F20A74E2CE014 /* AVAppsAccountService.swift */; };
 		52E8BFEB422EA8213DDA85CB /* AvradioUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5975BBCAC364A805BA73B41F /* AvradioUITestCase.swift */; };
@@ -115,6 +116,7 @@
 		3DFD8C94C7BA46B88FBF60DA /* StationDetailQueueUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationDetailQueueUITests.swift; sourceTree = "<group>"; };
 		3F8B45383C7D7EEE8E16EF23 /* AppShellHomeFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellHomeFeed.swift; sourceTree = "<group>"; };
 		48C8E7493193B9FA193164E0 /* DiscoveriesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveriesUITests.swift; sourceTree = "<group>"; };
+		4D4C2A1B9F9D43E0A96112B7 /* LibraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStoreTests.swift; sourceTree = "<group>"; };
 		4F77065AA29100C9F1C79A16 /* AvradioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvradioApp.swift; sourceTree = "<group>"; };
 		4FDD3C47C372011383FE599B /* AppShellMusicLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellMusicLibrary.swift; sourceTree = "<group>"; };
 		52FE1B5444E93E5CC5C58028 /* AVRadioCollectionRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVRadioCollectionRules.swift; sourceTree = "<group>"; };
@@ -302,6 +304,7 @@
 			isa = PBXGroup;
 			children = (
 				BFBA473200A46F0FAD5F4754 /* AccessLimitsTests.swift */,
+				4D4C2A1B9F9D43E0A96112B7 /* LibraryStoreTests.swift */,
 				05916A66FBCD64BAFD48BFB5 /* SharedAppleSupportTests.swift */,
 			);
 			path = AvradioTests;
@@ -609,6 +612,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				60F452258FE22FCB671DB640 /* AccessLimitsTests.swift in Sources */,
+				4D4C2A1C9F9D43E0A96112B7 /* LibraryStoreTests.swift in Sources */,
 				3E668C9CA128B73F1F85CF97 /* SharedAppleSupportTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
