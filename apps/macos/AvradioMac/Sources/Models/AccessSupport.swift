@@ -492,6 +492,15 @@ struct UpgradePromptContext: Identifiable, Equatable {
         )
     }
 
+    static func savedTracks(current: Int, limit: Int) -> UpgradePromptContext {
+        UpgradePromptContext(
+            title: "Saved track limit reached",
+            message: "You have saved \(current) of \(limit) discovered tracks.",
+            benefit: "Pro unlocks a larger radio library, cloud sync, and richer discovery history.",
+            progressText: "\(current) of \(limit) saved tracks used"
+        )
+    }
+
     static func dailyFeature(_ feature: LimitedFeature, current: Int, limit: Int) -> UpgradePromptContext {
         let featureName: String
         switch feature {

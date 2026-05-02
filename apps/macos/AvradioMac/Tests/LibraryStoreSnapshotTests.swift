@@ -1455,6 +1455,30 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         XCTAssertEqual(store.upgradePrompt?.progressText, "5 of 5 favorites used")
     }
 
+    func testSavedTrackLimitShowsNonDailyUpgradePrompt() {
+        let store = LibraryStore(defaults: isolatedUserDefaults())
+
+        for index in 0..<5 {
+            store.markTrackInteresting(
+                title: "Track \(index)",
+                artist: "Artist",
+                station: station(id: "saved-\(index)"),
+                artworkURL: nil
+            )
+        }
+
+        store.markTrackInteresting(
+            title: "Track over limit",
+            artist: "Artist",
+            station: station(id: "saved-over-limit"),
+            artworkURL: nil
+        )
+
+        XCTAssertEqual(store.savedTracksUsage, LimitUsageSummary(used: 5, limit: 5))
+        XCTAssertEqual(store.upgradePrompt?.title, "Saved track limit reached")
+        XCTAssertEqual(store.upgradePrompt?.progressText, "5 of 5 saved tracks used")
+    }
+
     func testApplyLibrarySnapshotPersistsRoundTripState() {
         let defaults = isolatedUserDefaults()
         let store = LibraryStore(defaults: defaults)

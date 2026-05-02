@@ -328,7 +328,7 @@ final class LibraryStore: ObservableObject {
 
     func markTrackInteresting(title: String?, artist: String?, station: Station?, artworkURL: URL?) {
         if let limit = limits.savedTracks, savedDiscoveriesCount >= limit {
-            upgradePrompt = .dailyFeature(.savedTracks, current: savedDiscoveriesCount, limit: limit)
+            upgradePrompt = .savedTracks(current: savedDiscoveriesCount, limit: limit)
             return
         }
         saveDiscoveredTrack(title: title, artist: artist, station: station, artworkURL: artworkURL, markInteresting: true)
@@ -340,7 +340,7 @@ final class LibraryStore: ObservableObject {
             discoveries[index].markedInterestedAt = nil
         } else {
             if let limit = limits.savedTracks, savedDiscoveriesCount >= limit {
-                upgradePrompt = .dailyFeature(.savedTracks, current: savedDiscoveriesCount, limit: limit)
+                upgradePrompt = .savedTracks(current: savedDiscoveriesCount, limit: limit)
                 return
             }
             discoveries[index].markedInterestedAt = .now
