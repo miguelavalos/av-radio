@@ -353,7 +353,7 @@ struct ProfileView: View {
             SettingsStatsRow(title: "Favorites", value: favoritesUsage.title)
             SettingsStatsRow(title: "Recents", value: recentsUsage.title)
             SettingsStatsRow(title: "Saved tracks", value: savedTracksUsage.title)
-            SettingsStatsRow(title: "Daily lookups", value: dailyLookupText)
+            SettingsStatsRow(title: "Daily actions", value: dailyActionsText)
         }
     }
 
@@ -494,7 +494,7 @@ struct ProfileView: View {
         }
     }
 
-    private var dailyLookupText: String {
+    private var dailyActionsText: String {
         let usages = [lyricsUsage, webUsage, youtubeUsage, appleMusicUsage, spotifyUsage, discoveryShareUsage]
         let limits = usages.compactMap(\.limit)
         guard limits.count == usages.count else {
