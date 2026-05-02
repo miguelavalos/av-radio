@@ -224,7 +224,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func dailyUsage(for feature: LimitedFeature) -> LimitUsageSummary {
-        LimitUsageSummary(used: dailyUsageCount(for: feature), limit: limits.limit(for: feature))
+        LimitUsageSummary(used: dailyUsageCount(for: feature), limit: dailyLimit(for: feature))
     }
 
     func configureBackendClients(
@@ -378,7 +378,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func useDailyFeatureIfAllowed(_ feature: LimitedFeature) -> Bool {
-        guard let limit = limits.limit(for: feature) else { return true }
+        guard let limit = dailyLimit(for: feature) else { return true }
         let key = dailyCounterKey(for: feature)
         let current = dailyUsageCount(for: feature)
         guard current < limit else {
@@ -395,7 +395,7 @@ final class LibraryStore: ObservableObject {
             return useDailyFeatureIfAllowed(feature)
         }
 
-        guard let limit = limits.limit(for: feature) else { return true }
+        guard let limit = dailyLimit(for: feature) else { return true }
         let keysKey = dailyUsageKeysKey(for: feature)
         var usageKeys = dailyUsageKeys(for: feature)
         if usageKeys.contains(normalizedUsageKey) {
@@ -793,15 +793,30 @@ final class LibraryStore: ObservableObject {
     }
 
     private func dailyUsageCount(for feature: LimitedFeature) -> Int {
-        max(defaults.integer(forKey: dailyCounterKey(for: feature)), dailyUsageKeys(for: feature).count)
+        guard Self.dailyLimitedFeatures.contains(feature) else { return 0 }
+        return max(defaults.integer(forKey: dailyCounterKey(for: feature)), dailyUsageKeys(for: feature).count)
     }
 
     private func clearCurrentDailyUsage() {
-        for feature in LimitedFeature.allCases {
+        for feature in Self.dailyLimitedFeatures {
             defaults.removeObject(forKey: dailyCounterKey(for: feature))
             defaults.removeObject(forKey: dailyUsageKeysKey(for: feature))
         }
     }
+
+    private func dailyLimit(for feature: LimitedFeature) -> Int? {
+        guard Self.dailyLimitedFeatures.contains(feature) else { return nil }
+        return limits.limit(for: feature)
+    }
+
+    private static let dailyLimitedFeatures: Set<LimitedFeature> = [
+        .lyricsSearch,
+        .webSearch,
+        .youtubeSearch,
+        .appleMusicSearch,
+        .spotifySearch,
+        .discoveryShare
+    ]
 
     private static func normalizedUsageKey(_ usageKey: String) -> String {
         usageKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

@@ -1573,6 +1573,19 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         XCTAssertFalse(store.useDailyFeatureIfAllowed(.lyricsSearch, usageKey: "https://www.google.com/search?q=artist%20song%204%20lyrics"))
     }
 
+    func testCollectionFeaturesDoNotUseDailyCounters() {
+        let store = LibraryStore(defaults: isolatedUserDefaults())
+
+        XCTAssertEqual(store.dailyUsage(for: .savedTracks), LimitUsageSummary(used: 0, limit: nil))
+
+        for index in 0..<10 {
+            XCTAssertTrue(store.useDailyFeatureIfAllowed(.savedTracks, usageKey: "saved-\(index)"))
+        }
+
+        XCTAssertNil(store.upgradePrompt)
+        XCTAssertEqual(store.dailyUsage(for: .savedTracks), LimitUsageSummary(used: 0, limit: nil))
+    }
+
     private func isolatedUserDefaults() -> UserDefaults {
         let suiteName = "LibraryStoreSnapshotTests.\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName)!
