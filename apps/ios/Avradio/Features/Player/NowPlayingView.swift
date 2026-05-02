@@ -955,7 +955,7 @@ private struct FlippingPlayerArtwork: View {
             }
             .overlay(alignment: .topTrailing) {
                 artworkFlipIndicator
-                    .padding(18)
+                    .padding(flipControlPadding)
             }
             .overlay(alignment: .bottomLeading) {
                 if trackArtworkURL != nil {
@@ -967,10 +967,10 @@ private struct FlippingPlayerArtwork: View {
 
     private var artworkFlipIndicator: some View {
         Image(systemName: "arrow.triangle.2.circlepath")
-            .font(.system(size: 15, weight: .bold))
-            .foregroundStyle(.white.opacity(0.92))
-            .frame(width: 38, height: 38)
-            .background(.black.opacity(0.30), in: Circle())
+            .font(.system(size: 16, weight: .bold))
+            .foregroundStyle(.white.opacity(0.9))
+            .frame(width: flipControlSize, height: flipControlSize)
+            .background(.black.opacity(0.32), in: Circle())
             .overlay {
                 Circle()
                     .stroke(.white.opacity(0.18), lineWidth: 1)
@@ -1024,12 +1024,12 @@ private struct FlippingPlayerArtwork: View {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white.opacity(0.9))
-                    .frame(width: 32, height: 32)
+                    .frame(width: flipControlSize, height: flipControlSize)
                     .background(.white.opacity(0.08), in: Circle())
             }
             .buttonStyle(.plain)
-            .frame(width: 32, height: 32)
-            .padding(size < 260 ? 12 : 14)
+            .frame(width: flipControlSize, height: flipControlSize)
+            .padding(flipControlPadding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             .accessibilityLabel(L10n.string("player.artwork.flipToFront.accessibility.label"))
             .accessibilityIdentifier("player.artwork.options.close")
@@ -1493,7 +1493,7 @@ private struct FlippingPlayerArtwork: View {
                             .resizable()
                             .scaledToFill()
                             .frame(width: size, height: size)
-                            .scaleEffect(1.24)
+                            .scaleEffect(1.06)
                             .clipped()
                     default:
                         fallbackArtwork(cornerRadius: cornerRadius)
@@ -1528,6 +1528,14 @@ private struct FlippingPlayerArtwork: View {
 
     private var heroArtworkURL: URL? {
         trackArtworkURL ?? station.displayArtworkURL
+    }
+
+    private var flipControlSize: CGFloat {
+        32
+    }
+
+    private var flipControlPadding: CGFloat {
+        size < 260 ? 12 : 14
     }
 
     private var backTitle: String {
