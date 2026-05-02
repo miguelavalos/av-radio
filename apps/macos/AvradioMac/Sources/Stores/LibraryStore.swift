@@ -144,7 +144,7 @@ final class LibraryStore: ObservableObject {
     }
 
     var canRetryBackendConnection: Bool {
-        capabilities.canUseCloudSync && !canRunCloudSync && backendBaseURL != nil && backendTokenProvider != nil
+        !canRunCloudSync && backendConnectionStatus != .ready && backendBaseURL != nil && backendTokenProvider != nil
     }
 
     var canClearCloudSyncStatus: Bool {
@@ -159,6 +159,9 @@ final class LibraryStore: ObservableObject {
         if canRunCloudSync {
             return "Ready"
         }
+        if backendConnectionStatus == .missingToken || backendConnectionStatus == .accessRefreshFailed {
+            return backendConnectionStatus.title
+        }
         if !capabilities.canUseCloudSync {
             return "Pro only"
         }
@@ -170,18 +173,21 @@ final class LibraryStore: ObservableObject {
 
     var cloudSyncBlockerDescription: String? {
         guard !canRunCloudSync else { return nil }
-        if !capabilities.canUseCloudSync {
-            return "Cloud Sync is available with Pro access."
-        }
 
         switch backendConnectionStatus {
-        case .notConfigured:
-            return "Backend configuration is missing for this build."
         case .missingToken:
             return "Connect an account before syncing this Mac."
         case .accessRefreshFailed:
             return "Refresh backend access before syncing this Mac."
+        case .notConfigured:
+            if !capabilities.canUseCloudSync {
+                return "Cloud Sync is available with Pro access."
+            }
+            return "Backend configuration is missing for this build."
         case .ready:
+            if !capabilities.canUseCloudSync {
+                return "Cloud Sync is available with Pro access."
+            }
             return "Backend access is ready, but Cloud Sync is not configured."
         }
     }

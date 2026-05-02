@@ -1181,6 +1181,32 @@ final class LibraryStoreSnapshotTests: XCTestCase {
         XCTAssertEqual(store.cloudSyncStatus, .idle)
     }
 
+    func testBackendRetryAvailableAfterAccessRefreshFailureFromLocalFallback() async {
+        let store = LibraryStore(defaults: isolatedUserDefaults())
+
+        await store.configureBackendClients(
+            baseURL: URL(string: "https://api.example.com")!,
+            tokenProvider: { "token" },
+            urlSession: mockURLSession(expectedAuthorization: "Bearer token") { request in
+                XCTAssertEqual(request.url?.path, "/v1/me/access")
+                let response = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 503,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                return (response, Data("{}".utf8))
+            }
+        )
+
+        XCTAssertEqual(store.accessMode, .guest)
+        XCTAssertFalse(store.capabilities.canUseCloudSync)
+        XCTAssertEqual(store.backendConnectionStatus, .accessRefreshFailed)
+        XCTAssertTrue(store.canRetryBackendConnection)
+        XCTAssertEqual(store.cloudSyncReadinessTitle, "Access refresh failed")
+        XCTAssertEqual(store.cloudSyncBlockerDescription, "Refresh backend access before syncing this Mac.")
+    }
+
     func testBackendBootstrapMapsUnauthorizedAccessRefreshToMissingToken() async {
         let store = LibraryStore(defaults: isolatedUserDefaults())
         store.updateAccessMode(.signedInPro)
