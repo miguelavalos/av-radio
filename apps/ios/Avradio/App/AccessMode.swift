@@ -44,6 +44,8 @@ struct UpgradePrompt: Identifiable, Equatable {
             L10n.string("limits.upgrade.discoveredTracks.title")
         case .lyricsSearch:
             L10n.string("limits.upgrade.lyrics.title")
+        case .webSearch:
+            L10n.string("limits.upgrade.web.title")
         case .youtubeSearch:
             L10n.string("limits.upgrade.youtube.title")
         case .appleMusicSearch:
@@ -69,6 +71,8 @@ struct UpgradePrompt: Identifiable, Equatable {
             return L10n.string("limits.upgrade.discoveredTracks.message", limit)
         case .lyricsSearch:
             return L10n.string("limits.upgrade.lyrics.message", limit)
+        case .webSearch:
+            return L10n.string("limits.upgrade.web.message", limit)
         case .youtubeSearch:
             return L10n.string("limits.upgrade.youtube.message", limit)
         case .appleMusicSearch:

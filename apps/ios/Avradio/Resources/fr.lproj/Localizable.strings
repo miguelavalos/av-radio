@@ -62,6 +62,8 @@
 "limits.upgrade.savedTracks.title" = "Limite de titres enregistrés atteinte";
 "limits.upgrade.spotify.message" = "Vous avez utilisé les %d recherches Spotify du jour. Pro garde les recherches musicales disponibles sans limites quotidiennes du mode local.";
 "limits.upgrade.spotify.title" = "Les recherches Spotify sont limitées";
+"limits.upgrade.web.message" = "Vous avez utilisé les %d recherches web du jour. Pro garde les recherches d'artistes et de musique disponibles sans limites quotidiennes du mode local.";
+"limits.upgrade.web.title" = "Les recherches web sont limitées";
 "limits.upgrade.youtube.message" = "Vous avez utilisé les %d recherches YouTube du jour. Pro garde la recherche musicale disponible sans limites quotidiennes du mode local.";
 "limits.upgrade.youtube.title" = "Les recherches YouTube sont limitées";
 "player.close.accessibility.hint" = "Ferme cet écran";
@@ -71,6 +73,7 @@
 "player.empty" = "Choisissez une station depuis Accueil ou Recherche pour commencer la lecture.";
 "player.fromStation" = "Depuis %@";
 "player.header.nowPlaying" = "Lecture en cours";
+"player.artwork.flipToFront.accessibility.label" = "Revenir à la pochette";
 "player.discovery.lyrics" = "Rechercher les paroles";
 "player.discovery.appleMusic" = "Rechercher sur Apple Music";
 "player.discovery.remove" = "Supprimer la découverte";
@@ -81,6 +84,8 @@
 "player.discovery.saveShort" = "Enreg.";
 "player.discovery.saved" = "Enregistré dans Musique";
 "player.discovery.savedShort" = "Enreg.";
+"player.discovery.removed" = "Retiré de Musique";
+"player.discovery.removedShort" = "Retiré";
 "player.discovery.share" = "Partager la découverte";
 "player.discovery.shareShort" = "Partager";
 "player.discovery.shareText" = "J'ai découvert \"%@\" de %@ sur %@ avec AV Radio.";
@@ -90,7 +95,17 @@
 "player.discovery.stateSaved" = "Enregistré";
 "player.discovery.youtube" = "Rechercher sur YouTube";
 "player.discovery.youtubeShort" = "Voir";
+"player.discovery.videoShort" = "YouTube";
 "player.discovery.lyricsShort" = "Paroles";
+"player.artist.view" = "Voir l'artiste";
+"player.artist.viewShort" = "Artiste";
+"player.artist.search" = "Rechercher l'artiste sur Google";
+"player.artist.searchShort" = "Chercher";
+"player.artist.stationContext" = "Sur %@";
+"player.artist.web" = "Rechercher l'artiste sur le web";
+"player.artist.webShort" = "Web";
+"player.artist.youtube" = "Rechercher l'artiste sur YouTube";
+"player.artist.youtubeShort" = "YouTube";
 "player.menu.addFavorite" = "Ajouter aux favoris";
 "player.menu.copyStreamURL" = "Copier l'URL du flux";
 "player.menu.openWebsite" = "Ouvrir le site de la station";

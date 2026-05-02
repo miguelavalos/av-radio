@@ -62,6 +62,8 @@
 "limits.upgrade.savedTracks.title" = "Saved songs limit reached";
 "limits.upgrade.spotify.message" = "You have used today's %d Spotify searches. Pro keeps music lookups available without daily local-mode limits.";
 "limits.upgrade.spotify.title" = "Spotify searches are limited";
+"limits.upgrade.web.message" = "You have used today's %d web searches. Pro keeps artist and music lookup available without daily local-mode limits.";
+"limits.upgrade.web.title" = "Web searches are limited";
 "limits.upgrade.youtube.message" = "You have used today's %d YouTube searches. Pro keeps music lookup available without daily local-mode limits.";
 "limits.upgrade.youtube.title" = "YouTube searches are limited";
 "player.close.accessibility.hint" = "Closes this screen";
@@ -71,6 +73,7 @@
 "player.empty" = "Pick a station from Home or Search to start playback.";
 "player.fromStation" = "From %@";
 "player.header.nowPlaying" = "Now Playing";
+"player.artwork.flipToFront.accessibility.label" = "Return to artwork";
 "player.discovery.lyrics" = "Search lyrics";
 "player.discovery.appleMusic" = "Search on Apple Music";
 "player.discovery.remove" = "Remove discovery";
@@ -81,6 +84,8 @@
 "player.discovery.saveShort" = "Save";
 "player.discovery.saved" = "Saved to Music";
 "player.discovery.savedShort" = "Saved";
+"player.discovery.removed" = "Removed from Music";
+"player.discovery.removedShort" = "Removed";
 "player.discovery.share" = "Share discovery";
 "player.discovery.shareShort" = "Share";
 "player.discovery.shareText" = "I found \"%@\" by %@ on %@ with AV Radio.";
@@ -90,7 +95,17 @@
 "player.discovery.stateSaved" = "Saved";
 "player.discovery.youtube" = "Search on YouTube";
 "player.discovery.youtubeShort" = "Watch";
+"player.discovery.videoShort" = "YouTube";
 "player.discovery.lyricsShort" = "Lyrics";
+"player.artist.view" = "View artist";
+"player.artist.viewShort" = "Artist";
+"player.artist.search" = "Search artist on Google";
+"player.artist.searchShort" = "Search";
+"player.artist.stationContext" = "On %@";
+"player.artist.web" = "Search artist on web";
+"player.artist.webShort" = "Web";
+"player.artist.youtube" = "Search artist on YouTube";
+"player.artist.youtubeShort" = "YouTube";
 "player.menu.addFavorite" = "Add to favorites";
 "player.menu.copyStreamURL" = "Copy stream URL";
 "player.menu.openWebsite" = "Open station website";

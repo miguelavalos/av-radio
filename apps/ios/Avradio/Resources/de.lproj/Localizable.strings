@@ -62,6 +62,8 @@
 "limits.upgrade.savedTracks.title" = "Limit für gespeicherte Songs erreicht";
 "limits.upgrade.spotify.message" = "Du hast die heutigen %d Spotify-Suchen genutzt. Pro hält Musiksuchen ohne tägliche Limits des lokalen Modus verfügbar.";
 "limits.upgrade.spotify.title" = "Spotify-Suchen sind begrenzt";
+"limits.upgrade.web.message" = "Du hast die heutigen %d Websuchen genutzt. Pro hält Künstler- und Musiksuchen ohne tägliche Limits des lokalen Modus verfügbar.";
+"limits.upgrade.web.title" = "Websuchen sind begrenzt";
 "limits.upgrade.youtube.message" = "Du hast die heutigen %d YouTube-Suchen genutzt. Pro hält Musiksuchen ohne tägliche Limits des lokalen Modus verfügbar.";
 "limits.upgrade.youtube.title" = "YouTube-Suchen sind begrenzt";
 "player.close.accessibility.hint" = "Schließt diesen Bildschirm";
@@ -71,6 +73,7 @@
 "player.empty" = "Wähle einen Sender aus Start oder Suche, um die Wiedergabe zu starten.";
 "player.fromStation" = "Von %@";
 "player.header.nowPlaying" = "Jetzt läuft";
+"player.artwork.flipToFront.accessibility.label" = "Zum Cover zurückkehren";
 "player.discovery.lyrics" = "Songtext suchen";
 "player.discovery.appleMusic" = "Auf Apple Music suchen";
 "player.discovery.remove" = "Entdeckung entfernen";
@@ -81,6 +84,8 @@
 "player.discovery.saveShort" = "Speichern";
 "player.discovery.saved" = "In Musik gespeichert";
 "player.discovery.savedShort" = "Gespeichert";
+"player.discovery.removed" = "Aus Musik entfernt";
+"player.discovery.removedShort" = "Entfernt";
 "player.discovery.share" = "Entdeckung teilen";
 "player.discovery.shareShort" = "Teilen";
 "player.discovery.shareText" = "Ich habe \"%@\" von %@ auf %@ mit AV Radio entdeckt.";
@@ -90,7 +95,17 @@
 "player.discovery.stateSaved" = "Gespeichert";
 "player.discovery.youtube" = "Auf YouTube suchen";
 "player.discovery.youtubeShort" = "Video";
+"player.discovery.videoShort" = "YouTube";
 "player.discovery.lyricsShort" = "Text";
+"player.artist.view" = "Künstler anzeigen";
+"player.artist.viewShort" = "Künstler";
+"player.artist.search" = "Künstler bei Google suchen";
+"player.artist.searchShort" = "Suchen";
+"player.artist.stationContext" = "Auf %@";
+"player.artist.web" = "Künstler im Web suchen";
+"player.artist.webShort" = "Web";
+"player.artist.youtube" = "Künstler auf YouTube suchen";
+"player.artist.youtubeShort" = "YouTube";
 "player.menu.addFavorite" = "Zu Favoriten hinzufügen";
 "player.menu.copyStreamURL" = "Stream-URL kopieren";
 "player.menu.openWebsite" = "Website des Senders öffnen";

@@ -30,6 +30,35 @@ final class SharedAppleSupportTests: XCTestCase {
         XCTAssertEqual(parsed.title, "La femme d'argent")
     }
 
+    func testTrackMetadataParserIdentifiesStationNamesAsNotSongs() {
+        XCTAssertTrue(AVRadioTrackMetadataParser.titleLooksLikeStationName("Rock FM", stationName: "ROCK FM"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.titleLooksLikeStationName("Los 40 Classic", stationName: "LOS40 Classic"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.titleLooksLikeStationName("Classic Rock", stationName: "RADIO BOB! Classic Rock"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.titleLooksLikeStationName("Dance Hits", stationName: "Capital Dance Hits UK"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.titleLooksLikeStationName("Alternative", stationName: "KEXP Alternative"))
+        XCTAssertFalse(AVRadioTrackMetadataParser.titleLooksLikeStationName("Riot!", stationName: "ROCK FM"))
+        XCTAssertFalse(AVRadioTrackMetadataParser.titleLooksLikeStationName("Coffee & TV", stationName: "ROCK FM"))
+        XCTAssertFalse(AVRadioTrackMetadataParser.titleLooksLikeStationName("One", stationName: "BBC Radio One"))
+    }
+
+    func testTrackMetadataParserIdentifiesBroadcastPlaceholdersAsNotSongs() {
+        XCTAssertTrue(AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata("LIVE", stationName: "KEXP"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata("On Air", stationName: "Radio Nova"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata("Radio Online", stationName: "Radio Nova"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata("En Directo", stationName: "Los 40 Classic"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata("Now Playing", stationName: "KEXP"))
+        XCTAssertFalse(AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata("Live Forever", stationName: "Rock FM"))
+        XCTAssertFalse(AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata("Radio Song", stationName: "Rock FM"))
+    }
+
+    func testTrackMetadataParserIdentifiesStationLikeArtistsAsNotArtists() {
+        XCTAssertTrue(AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata("ROCK FM", stationName: "Rock FM"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata("Radio Nova", stationName: "Radio Nova"))
+        XCTAssertTrue(AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata("Live Stream", stationName: "KEXP"))
+        XCTAssertFalse(AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata("Radiohead", stationName: "KEXP"))
+        XCTAssertFalse(AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata("R.E.M.", stationName: "Rock FM"))
+    }
+
     func testNowPlayingMetadataParsesICYStreamTitle() {
         let bytes = Array("StreamTitle='Massive Attack - Teardrop';\0\0".utf8)
         let track = AVRadioNowPlayingMetadata.parseICYMetadata(bytes)

@@ -47,7 +47,9 @@ struct DiscoveryArtistSummary: Identifiable, Equatable {
 
 enum AppShellMusicLibrary {
     static func visibleDiscoveries(_ discoveries: [DiscoveredTrack]) -> [DiscoveredTrack] {
-        discoveries.filter { !$0.isHidden }
+        discoveries.filter { discovery in
+            !discovery.isHidden && !looksLikeStationMetadata(discovery)
+        }
     }
 
     static func savedDiscoveries(_ discoveries: [DiscoveredTrack]) -> [DiscoveredTrack] {
@@ -164,5 +166,10 @@ enum AppShellMusicLibrary {
 
                 return first.trackCount > second.trackCount
             }
+    }
+
+    private static func looksLikeStationMetadata(_ discovery: DiscoveredTrack) -> Bool {
+        AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata(discovery.title, stationName: discovery.stationName)
+            || AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata(discovery.artist, stationName: discovery.stationName)
     }
 }

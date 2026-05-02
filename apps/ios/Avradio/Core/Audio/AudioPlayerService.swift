@@ -607,6 +607,13 @@ final class AudioPlayerService: NSObject, ObservableObject {
             currentTrackSource = .stream
         }
 
+        if AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata(resolvedTitle, stationName: currentStation?.name) {
+            resolvedTitle = nil
+            resolvedArtist = nil
+        } else if AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata(resolvedArtist, stationName: currentStation?.name) {
+            resolvedArtist = nil
+        }
+
         if resolvedTitle != currentTrackTitle || resolvedArtist != currentTrackArtist {
             currentTrackTitle = resolvedTitle
             currentTrackArtist = resolvedArtist
@@ -643,13 +650,18 @@ final class AudioPlayerService: NSObject, ObservableObject {
 
         let normalizedArtist = AVRadioTrackMetadataParser.sanitizeArtist(track.artist)
         guard let normalizedTitle = AVRadioTrackMetadataParser.sanitizeTitle(track.title, artist: normalizedArtist) else { return }
+        guard !AVRadioTrackMetadataParser.valueLooksLikeBroadcastMetadata(normalizedTitle, stationName: station.name) else { return }
 
-        if currentTrackTitle == normalizedTitle && currentTrackArtist == normalizedArtist {
+        let resolvedArtist = AVRadioTrackMetadataParser.artistLooksLikeBroadcastMetadata(normalizedArtist, stationName: station.name)
+            ? nil
+            : normalizedArtist
+
+        if currentTrackTitle == normalizedTitle && currentTrackArtist == resolvedArtist {
             return
         }
 
         currentTrackTitle = normalizedTitle
-        currentTrackArtist = normalizedArtist
+        currentTrackArtist = resolvedArtist
         currentTrackSource = .fallback
         persistCurrentNowPlayingState()
         resolveArtworkForCurrentTrack()

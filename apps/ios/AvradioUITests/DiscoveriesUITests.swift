@@ -14,9 +14,9 @@ final class DiscoveriesUITests: AvradioUITestCase {
 
         let discoveriesSection = app.otherElements["music.section.discoveries"]
         XCTAssertTrue(discoveriesSection.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["music.filter.saved"].exists)
-        XCTAssertTrue(app.buttons["music.filter.history"].exists)
-        XCTAssertFalse(app.buttons["music.filter.loved"].exists)
+        XCTAssertTrue(app.buttons["music.mode.songs"].exists)
+        XCTAssertTrue(app.buttons["music.mode.history"].exists)
+        XCTAssertTrue(app.buttons["music.mode.artists"].exists)
         XCTAssertTrue(app.staticTexts["Sweet Disposition"].exists)
         XCTAssertFalse(app.staticTexts["Midnight City"].exists)
 
@@ -42,7 +42,7 @@ final class DiscoveriesUITests: AvradioUITestCase {
         XCTAssertTrue(saveButton.waitForExistence(timeout: 5))
         saveButton.tap()
 
-        app.buttons["music.filter.saved"].tap()
+        app.buttons["music.mode.songs"].tap()
         XCTAssertTrue(app.staticTexts["Midnight City"].waitForExistence(timeout: 5))
 
         let unsaveButton = app.buttons["discoveryTrack.save.\(discoveryID)"].firstMatch
@@ -151,25 +151,31 @@ final class DiscoveriesUITests: AvradioUITestCase {
     }
 
     func testArtworkFlipsToTrackOptionsAndSavesDiscovery() {
+        let title = "Reckoner UI \(UUID().uuidString.prefix(8))"
         let app = launchApp(
             preferredTab: "player",
             extraEnvironment: [
                 "AVRADIO_DEMO_MODE": "1",
                 "AVRADIO_UI_TESTS_DISABLE_LIBRARY_SEED": "1",
                 "AVRADIO_UI_TEST_TRACK_ARTIST": "Radiohead",
-                "AVRADIO_UI_TEST_TRACK_TITLE": "Reckoner",
+                "AVRADIO_UI_TEST_TRACK_TITLE": title,
             ]
         )
 
         let artwork = waitForPlayerArtwork(in: app)
         artwork.tap()
 
-        XCTAssertTrue(app.staticTexts["Reckoner"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Radiohead"].exists)
         XCTAssertTrue(app.buttons["player.artwork.options.share"].exists)
-        XCTAssertFalse(app.buttons["player.artwork.options.love"].exists)
+        XCTAssertFalse(app.buttons["player.artwork.options.radioInfo"].exists)
 
-        app.buttons["player.artwork.options.discovery"].tap()
+        let saveButton = app.buttons["player.artwork.options.discovery"].firstMatch
+        saveButton.tap()
+
+        app.buttons["player.artwork.options.discovery"].firstMatch.tap()
+
+        app.buttons["player.artwork.options.discovery"].firstMatch.tap()
 
         closePlayer(in: app)
         app.buttons["tab.music"].tap()
@@ -177,8 +183,34 @@ final class DiscoveriesUITests: AvradioUITestCase {
 
         let discoveriesSection = app.otherElements["music.section.discoveries"]
         XCTAssertTrue(discoveriesSection.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Reckoner"].exists)
+        XCTAssertTrue(app.staticTexts[title].exists)
         XCTAssertTrue(app.staticTexts["Radiohead"].exists)
+    }
+
+    func testArtworkOptionsHandleLongMetadataAndNonActionTitleTapFlipsBack() {
+        let app = launchApp(
+            preferredTab: "player",
+            extraEnvironment: [
+                "AVRADIO_DEMO_MODE": "1",
+                "AVRADIO_UI_TESTS_DISABLE_LIBRARY_SEED": "1",
+                "AVRADIO_UI_TEST_TRACK_ARTIST": "Queens of the Stone Age",
+                "AVRADIO_UI_TEST_TRACK_TITLE": "You Think I Ain't Worth A Dollar, But I Feel Like A Millionaire",
+            ]
+        )
+
+        let artwork = waitForPlayerArtwork(in: app)
+        artwork.tap()
+
+        let longTitle = app.staticTexts["You Think I Ain't Worth A Dollar, But I Feel Like A Millionaire"].firstMatch
+        XCTAssertTrue(longTitle.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Queens of the Stone Age"].exists)
+        XCTAssertTrue(app.buttons["player.artwork.options.discovery"].exists)
+        XCTAssertTrue(app.buttons["player.artwork.options.artist"].exists)
+        XCTAssertTrue(app.buttons["player.artwork.options.artistYouTube"].exists)
+
+        app.buttons["player.artwork.options.songInfo"].tap()
+
+        XCTAssertTrue(waitForPlayerArtwork(in: app).waitForExistence(timeout: 5))
     }
 
     func testArtworkShowsRadioOptionsWhenTrackArtistIsMissing() {
@@ -196,9 +228,35 @@ final class DiscoveriesUITests: AvradioUITestCase {
 
         XCTAssertTrue(app.buttons["player.artwork.options.playPause"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["player.artwork.options.favorite"].exists)
+        XCTAssertTrue(app.buttons["player.artwork.options.radioInfo"].exists)
         XCTAssertFalse(app.buttons["player.artwork.options.discovery"].exists)
-        XCTAssertFalse(app.buttons["player.artwork.options.love"].exists)
+        XCTAssertFalse(app.buttons["player.artwork.options.artist"].exists)
         XCTAssertFalse(app.buttons["player.artwork.options.lyrics"].exists)
+    }
+
+    func testArtworkShowsRadioModeWhenMetadataLooksLikeBroadcast() {
+        let app = launchApp(
+            preferredTab: "player",
+            extraEnvironment: [
+                "AVRADIO_DEMO_MODE": "1",
+                "AVRADIO_UI_TESTS_DISABLE_LIBRARY_SEED": "1",
+                "AVRADIO_UI_TEST_TRACK_ARTIST": "Live Stream",
+                "AVRADIO_UI_TEST_TRACK_TITLE": "On Air",
+            ]
+        )
+
+        let artwork = waitForPlayerArtwork(in: app)
+        artwork.tap()
+
+        XCTAssertTrue(app.buttons["player.artwork.options.radioInfo"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["player.artwork.options.playPause"].exists)
+        XCTAssertTrue(app.buttons["player.artwork.options.favorite"].exists)
+        XCTAssertFalse(app.buttons["player.artwork.options.discovery"].exists)
+        XCTAssertFalse(app.buttons["player.artwork.options.share"].exists)
+        XCTAssertFalse(app.buttons["player.artwork.options.lyrics"].exists)
+        XCTAssertFalse(app.buttons["player.artwork.options.youtube"].exists)
+        XCTAssertFalse(app.buttons["player.artwork.options.artist"].exists)
+        XCTAssertFalse(app.buttons["player.artwork.options.artistYouTube"].exists)
     }
 
     func testDetectedTrackAppearsWithoutBeingMarkedInteresting() {
@@ -263,7 +321,7 @@ final class DiscoveriesUITests: AvradioUITestCase {
     }
 
     private func showDiscoveryHistory(in app: XCUIApplication) {
-        let historyButton = app.buttons["music.filter.history"].firstMatch
+        let historyButton = app.buttons["music.mode.history"].firstMatch
         XCTAssertTrue(historyButton.waitForExistence(timeout: 5))
         historyButton.tap()
     }

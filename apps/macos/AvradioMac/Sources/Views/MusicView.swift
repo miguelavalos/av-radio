@@ -197,7 +197,7 @@ struct MusicView: View {
     }
 
     private func openArtist(_ artist: String, youtube: Bool) {
-        let feature: LimitedFeature = youtube ? .youtubeSearch : .lyricsSearch
+        let feature: LimitedFeature = youtube ? .youtubeSearch : .webSearch
         if let url = AVRadioExternalSearchURL.web(query: artist, youtube: youtube) {
             guard useDailyFeature(feature, url.absoluteString) else { return }
             openURL(url)

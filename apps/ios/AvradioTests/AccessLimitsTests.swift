@@ -30,6 +30,7 @@ final class AccessLimitsTests: XCTestCase {
         XCTAssertEqual(limits.discoveredTracks, 25)
         XCTAssertEqual(limits.savedTracks, 10)
         XCTAssertEqual(limits.lyricsSearchesPerDay, 5)
+        XCTAssertEqual(limits.webSearchesPerDay, 5)
         XCTAssertEqual(limits.youtubeSearchesPerDay, 5)
         XCTAssertEqual(limits.appleMusicSearchesPerDay, 5)
         XCTAssertEqual(limits.spotifySearchesPerDay, 5)
@@ -45,6 +46,7 @@ final class AccessLimitsTests: XCTestCase {
         XCTAssertEqual(limits.discoveredTracks, 50)
         XCTAssertEqual(limits.savedTracks, 20)
         XCTAssertEqual(limits.lyricsSearchesPerDay, 10)
+        XCTAssertEqual(limits.webSearchesPerDay, 10)
         XCTAssertEqual(limits.youtubeSearchesPerDay, 10)
         XCTAssertEqual(limits.appleMusicSearchesPerDay, 10)
         XCTAssertEqual(limits.spotifySearchesPerDay, 10)
@@ -65,6 +67,7 @@ final class AccessLimitsTests: XCTestCase {
         XCTAssertEqual(limits.discoveredTracks, 1_000)
         XCTAssertEqual(limits.savedTracks, 1_000)
         XCTAssertNil(limits.lyricsSearchesPerDay)
+        XCTAssertNil(limits.webSearchesPerDay)
         XCTAssertNil(limits.youtubeSearchesPerDay)
         XCTAssertNil(limits.appleMusicSearchesPerDay)
         XCTAssertNil(limits.spotifySearchesPerDay)
@@ -99,6 +102,7 @@ final class AccessLimitsTests: XCTestCase {
         XCTAssertEqual(limits.limit(for: .savedTracks), limits.savedTracks)
         XCTAssertEqual(limits.limit(for: .discoveredTracks), limits.discoveredTracks)
         XCTAssertEqual(limits.limit(for: .lyricsSearch), limits.lyricsSearchesPerDay)
+        XCTAssertEqual(limits.limit(for: .webSearch), limits.webSearchesPerDay)
         XCTAssertEqual(limits.limit(for: .youtubeSearch), limits.youtubeSearchesPerDay)
         XCTAssertEqual(limits.limit(for: .appleMusicSearch), limits.appleMusicSearchesPerDay)
         XCTAssertEqual(limits.limit(for: .spotifySearch), limits.spotifySearchesPerDay)
@@ -378,6 +382,7 @@ final class AccessLimitsTests: XCTestCase {
 
         let musicActions: [LimitedFeature] = [
             .lyricsSearch,
+            .webSearch,
             .youtubeSearch,
             .appleMusicSearch,
             .spotifySearch
@@ -392,6 +397,7 @@ final class AccessLimitsTests: XCTestCase {
         controller.recordDailyFeatureUse(.youtubeSearch)
 
         XCTAssertEqual(controller.dailyLimitState(for: .lyricsSearch).remaining, 3)
+        XCTAssertEqual(controller.dailyLimitState(for: .webSearch).remaining, 5)
         XCTAssertEqual(controller.dailyLimitState(for: .youtubeSearch).remaining, 4)
         XCTAssertEqual(controller.dailyLimitState(for: .appleMusicSearch).remaining, 5)
         XCTAssertEqual(controller.dailyLimitState(for: .spotifySearch).remaining, 5)
@@ -511,6 +517,7 @@ final class AccessLimitsTests: XCTestCase {
         XCTAssertTrue(controller.capabilities.canManagePlan)
         XCTAssertEqual(controller.limits, .forMode(.signedInPro))
         XCTAssertNil(controller.dailyLimitState(for: .lyricsSearch).remaining)
+        XCTAssertNil(controller.dailyLimitState(for: .webSearch).remaining)
         XCTAssertNil(controller.dailyLimitState(for: .youtubeSearch).remaining)
         XCTAssertNil(controller.dailyLimitState(for: .appleMusicSearch).remaining)
         XCTAssertNil(controller.dailyLimitState(for: .spotifySearch).remaining)
@@ -711,6 +718,7 @@ private struct AccessLimitsContract: Decodable {
     let discoveredTracks: Int?
     let savedTracks: Int?
     let lyricsSearchesPerDay: Int?
+    let webSearchesPerDay: Int?
     let youtubeSearchesPerDay: Int?
     let appleMusicSearchesPerDay: Int?
     let spotifySearchesPerDay: Int?
@@ -723,6 +731,7 @@ private struct AccessLimitsContract: Decodable {
             discoveredTracks: discoveredTracks,
             savedTracks: savedTracks,
             lyricsSearchesPerDay: lyricsSearchesPerDay,
+            webSearchesPerDay: webSearchesPerDay,
             youtubeSearchesPerDay: youtubeSearchesPerDay,
             appleMusicSearchesPerDay: appleMusicSearchesPerDay,
             spotifySearchesPerDay: spotifySearchesPerDay,

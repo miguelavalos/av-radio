@@ -40,6 +40,8 @@ struct UpgradePromptContext: Identifiable, Equatable {
             featureName = "discovered tracks"
         case .lyricsSearch:
             featureName = "lyrics searches"
+        case .webSearch:
+            featureName = "web searches"
         case .youtubeSearch:
             featureName = "YouTube opens"
         case .appleMusicSearch:

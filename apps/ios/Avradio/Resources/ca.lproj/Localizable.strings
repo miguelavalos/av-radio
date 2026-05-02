@@ -62,6 +62,8 @@
 "limits.upgrade.savedTracks.title" = "Límit de cançons desades assolit";
 "limits.upgrade.spotify.message" = "Has fet servir les %d cerques de Spotify d'avui. Pro manté les cerques musicals disponibles sense límits diaris del mode local.";
 "limits.upgrade.spotify.title" = "Les cerques a Spotify són limitades";
+"limits.upgrade.web.message" = "Has fet servir les %d cerques web d'avui. Pro manté les cerques d'artistes i música disponibles sense límits diaris del mode local.";
+"limits.upgrade.web.title" = "Les cerques web són limitades";
 "limits.upgrade.youtube.message" = "Has fet servir les %d cerques de YouTube d'avui. Pro manté la cerca musical disponible sense límits diaris del mode local.";
 "limits.upgrade.youtube.title" = "Les cerques a YouTube són limitades";
 "player.close.accessibility.hint" = "Tanca aquesta pantalla";
@@ -71,6 +73,7 @@
 "player.empty" = "Tria una emissora a Inici o Cerca per començar la reproducció.";
 "player.fromStation" = "Des de %@";
 "player.header.nowPlaying" = "Ara sona";
+"player.artwork.flipToFront.accessibility.label" = "Tornar a la caràtula";
 "player.discovery.lyrics" = "Cerca la lletra";
 "player.discovery.appleMusic" = "Cerca a Apple Music";
 "player.discovery.remove" = "Elimina el descobriment";
@@ -81,6 +84,8 @@
 "player.discovery.saveShort" = "Desa";
 "player.discovery.saved" = "Desada a Música";
 "player.discovery.savedShort" = "Desada";
+"player.discovery.removed" = "Eliminada de Música";
+"player.discovery.removedShort" = "Eliminada";
 "player.discovery.share" = "Comparteix descobriment";
 "player.discovery.shareShort" = "Comparteix";
 "player.discovery.shareText" = "He descobert \"%@\" de %@ a %@ amb AV Radio.";
@@ -90,7 +95,17 @@
 "player.discovery.stateSaved" = "Desada";
 "player.discovery.youtube" = "Cerca a YouTube";
 "player.discovery.youtubeShort" = "Veure";
+"player.discovery.videoShort" = "YouTube";
 "player.discovery.lyricsShort" = "Lletra";
+"player.artist.view" = "Veure artista";
+"player.artist.viewShort" = "Artista";
+"player.artist.search" = "Cercar artista a Google";
+"player.artist.searchShort" = "Cercar";
+"player.artist.stationContext" = "A %@";
+"player.artist.web" = "Cercar artista al web";
+"player.artist.webShort" = "Web";
+"player.artist.youtube" = "Cercar artista a YouTube";
+"player.artist.youtubeShort" = "YouTube";
 "player.menu.addFavorite" = "Afegir als favorits";
 "player.menu.copyStreamURL" = "Copiar l'URL del stream";
 "player.menu.openWebsite" = "Obrir el web de l'emissora";
