@@ -154,6 +154,176 @@ final class AccessLimitsTests: XCTestCase {
         )
     }
 
+    func testLibrarySnapshotMergerKeepsFavoritesFromBothDevices() {
+        let local = librarySnapshot(
+            favorites: [
+                favoriteRecord(id: "skyrock", createdAt: "2026-04-30T10:00:00Z"),
+                favoriteRecord(id: "los-40", createdAt: "2026-04-30T10:01:00Z")
+            ],
+            updatedAt: "2026-04-30T10:01:00Z"
+        )
+        let remote = librarySnapshot(
+            favorites: [
+                favoriteRecord(id: "bbc-radio-1", createdAt: "2026-04-30T09:00:00Z"),
+                favoriteRecord(id: "somafm", createdAt: "2026-04-30T09:01:00Z")
+            ],
+            updatedAt: "2026-04-30T09:01:00Z"
+        )
+
+        let merged = AVRadioLibrarySnapshotMerger.merged(local: local, remote: remote)
+
+        XCTAssertEqual(
+            Set(merged.favorites.map(\.station.id)),
+            ["bbc-radio-1", "somafm", "skyrock", "los-40"]
+        )
+    }
+
+    func testLibrarySnapshotMergerDeduplicatesStationsWithDifferentIDsButSameStream() {
+        let local = librarySnapshot(
+            favorites: [
+                favoriteRecord(
+                    id: "demo-groove-salad",
+                    streamURL: "https://ice1.somafm.com/groovesalad-128-mp3",
+                    createdAt: "2026-04-30T09:00:00Z"
+                )
+            ],
+            updatedAt: "2026-04-30T09:00:00Z"
+        )
+        let remote = librarySnapshot(
+            favorites: [
+                favoriteRecord(
+                    id: "groove-salad",
+                    streamURL: "https://ice1.somafm.com/groovesalad-128-mp3",
+                    createdAt: "2026-04-30T10:00:00Z"
+                )
+            ],
+            updatedAt: "2026-04-30T10:00:00Z"
+        )
+
+        let merged = AVRadioLibrarySnapshotMerger.merged(local: local, remote: remote)
+
+        XCTAssertEqual(merged.favorites.count, 1)
+        XCTAssertEqual(merged.favorites.first?.station.id, "groove-salad")
+    }
+
+    func testLibrarySnapshotMergerKeepsFavoriteDeletionWhenItIsNewestChange() {
+        let local = librarySnapshot(
+            favorites: [
+                favoriteRecord(
+                    id: "groove-salad",
+                    streamURL: "https://ice1.somafm.com/groovesalad-128-mp3",
+                    deletedAt: "2026-04-30T10:30:00Z"
+                )
+            ],
+            updatedAt: "2026-04-30T10:30:00Z"
+        )
+        let remote = librarySnapshot(
+            favorites: [
+                favoriteRecord(
+                    id: "groove-salad",
+                    streamURL: "https://ice1.somafm.com/groovesalad-128-mp3",
+                    createdAt: "2026-04-30T10:00:00Z"
+                )
+            ],
+            updatedAt: "2026-04-30T10:00:00Z"
+        )
+
+        let merged = AVRadioLibrarySnapshotMerger.merged(local: local, remote: remote)
+
+        XCTAssertEqual(merged.favorites.count, 1)
+        XCTAssertEqual(merged.favorites.first?.deletedAt, "2026-04-30T10:30:00Z")
+    }
+
+    func testLibrarySnapshotMergerKeepsNewestRecentForSameStation() {
+        let local = librarySnapshot(
+            recents: [recentRecord(id: "los-40", lastPlayedAt: "2026-04-30T10:10:00Z")],
+            updatedAt: "2026-04-30T10:10:00Z"
+        )
+        let remote = librarySnapshot(
+            recents: [recentRecord(id: "los-40", lastPlayedAt: "2026-04-30T09:10:00Z")],
+            updatedAt: "2026-04-30T09:10:00Z"
+        )
+
+        let merged = AVRadioLibrarySnapshotMerger.merged(local: local, remote: remote)
+
+        XCTAssertEqual(merged.recents.count, 1)
+        XCTAssertEqual(merged.recents.first?.lastPlayedAt, "2026-04-30T10:10:00Z")
+    }
+
+    func testLibrarySnapshotMergerKeepsRecentDeletionWhenItIsNewestChange() {
+        let local = librarySnapshot(
+            recents: [recentRecord(id: "los-40", deletedAt: "2026-04-30T10:30:00Z")],
+            updatedAt: "2026-04-30T10:30:00Z"
+        )
+        let remote = librarySnapshot(
+            recents: [recentRecord(id: "los-40", lastPlayedAt: "2026-04-30T10:10:00Z")],
+            updatedAt: "2026-04-30T10:10:00Z"
+        )
+
+        let merged = AVRadioLibrarySnapshotMerger.merged(local: local, remote: remote)
+
+        XCTAssertEqual(merged.recents.count, 1)
+        XCTAssertEqual(merged.recents.first?.deletedAt, "2026-04-30T10:30:00Z")
+    }
+
+    func testLibrarySnapshotMergerKeepsNewestDiscoveryAction() {
+        let local = librarySnapshot(
+            discoveries: [
+                discoveryRecord(
+                    id: "los-40-track",
+                    playedAt: "2026-04-30T10:00:00Z",
+                    markedInterestedAt: "2026-04-30T10:05:00Z"
+                )
+            ],
+            updatedAt: "2026-04-30T10:05:00Z"
+        )
+        let remote = librarySnapshot(
+            discoveries: [
+                discoveryRecord(
+                    id: "los-40-track",
+                    playedAt: "2026-04-30T10:00:00Z",
+                    hiddenAt: "2026-04-30T10:10:00Z"
+                )
+            ],
+            updatedAt: "2026-04-30T10:10:00Z"
+        )
+
+        let merged = AVRadioLibrarySnapshotMerger.merged(local: local, remote: remote)
+
+        XCTAssertEqual(merged.discoveries.count, 1)
+        XCTAssertEqual(merged.discoveries.first?.hiddenAt, "2026-04-30T10:10:00Z")
+        XCTAssertNil(merged.discoveries.first?.markedInterestedAt)
+    }
+
+    func testLibrarySnapshotMergerKeepsDiscoveryDeletionWhenItIsNewestChange() {
+        let local = librarySnapshot(
+            discoveries: [
+                discoveryRecord(
+                    id: "los-40-track",
+                    playedAt: "2026-04-30T10:00:00Z",
+                    deletedAt: "2026-04-30T10:30:00Z"
+                )
+            ],
+            updatedAt: "2026-04-30T10:30:00Z"
+        )
+        let remote = librarySnapshot(
+            discoveries: [
+                discoveryRecord(
+                    id: "los-40-track",
+                    playedAt: "2026-04-30T10:00:00Z",
+                    markedInterestedAt: "2026-04-30T10:05:00Z"
+                )
+            ],
+            updatedAt: "2026-04-30T10:05:00Z"
+        )
+
+        let merged = AVRadioLibrarySnapshotMerger.merged(local: local, remote: remote)
+
+        XCTAssertEqual(merged.discoveries.count, 1)
+        XCTAssertEqual(merged.discoveries.first?.deletedAt, "2026-04-30T10:30:00Z")
+        XCTAssertNil(merged.discoveries.first?.markedInterestedAt)
+    }
+
     @MainActor
     func testDailyFeatureCountersBlockAtGuestLimit() {
         let userDefaults = isolatedUserDefaults()
@@ -316,6 +486,64 @@ final class AccessLimitsTests: XCTestCase {
         XCTAssertNil(controller.dailyLimitState(for: .appleMusicSearch).remaining)
     }
 
+    @MainActor
+    func testSignedInProAccountResolvesBackendPremiumAndCloudSyncCapabilities() async {
+        let user = AccountUser(id: "pro-user", displayName: "Pro User", emailAddress: "pro@example.com")
+        let controller = AccessController(
+            accountService: StubAccountService(user: user),
+            entitlementService: StubEntitlementService(access: .signedInPro),
+            userDefaults: isolatedUserDefaults(),
+            now: { self.fixedDate("2026-04-30T10:00:00Z") }
+        )
+
+        await controller.syncFromAccountProvider()
+
+        XCTAssertTrue(controller.isSignedIn)
+        XCTAssertFalse(controller.isLocalOnly)
+        XCTAssertEqual(controller.accountUser, user)
+        XCTAssertEqual(controller.accountSession?.user, user)
+        XCTAssertEqual(controller.planTier, .pro)
+        XCTAssertEqual(controller.accessMode, .signedInPro)
+        XCTAssertEqual(controller.capabilities, .forMode(.signedInPro))
+        XCTAssertTrue(controller.capabilities.canUseBackend)
+        XCTAssertTrue(controller.capabilities.canUseCloudSync)
+        XCTAssertTrue(controller.capabilities.canAccessPremiumFeatures)
+        XCTAssertTrue(controller.capabilities.canManagePlan)
+        XCTAssertEqual(controller.limits, .forMode(.signedInPro))
+        XCTAssertNil(controller.dailyLimitState(for: .lyricsSearch).remaining)
+        XCTAssertNil(controller.dailyLimitState(for: .youtubeSearch).remaining)
+        XCTAssertNil(controller.dailyLimitState(for: .appleMusicSearch).remaining)
+        XCTAssertNil(controller.dailyLimitState(for: .spotifySearch).remaining)
+        XCTAssertNil(controller.dailyLimitState(for: .discoveryShare).remaining)
+    }
+
+    @MainActor
+    func testSignOutFromProAccountReturnsToGuestLocalOnlyAccess() async throws {
+        let accountService = MutableStubAccountService(
+            user: AccountUser(id: "pro-user", displayName: "Pro User", emailAddress: "pro@example.com")
+        )
+        let controller = AccessController(
+            accountService: accountService,
+            entitlementService: StubEntitlementService(access: .signedInPro),
+            userDefaults: isolatedUserDefaults(),
+            now: { self.fixedDate("2026-04-30T10:00:00Z") }
+        )
+
+        await controller.syncFromAccountProvider()
+        XCTAssertEqual(controller.accessMode, .signedInPro)
+
+        try await controller.signOut()
+
+        XCTAssertFalse(controller.isSignedIn)
+        XCTAssertTrue(controller.isLocalOnly)
+        XCTAssertNil(controller.accountUser)
+        XCTAssertNil(controller.accountSession)
+        XCTAssertEqual(controller.planTier, .free)
+        XCTAssertEqual(controller.accessMode, .guest)
+        XCTAssertEqual(controller.capabilities, .forMode(.guest))
+        XCTAssertEqual(controller.limits, .forMode(.guest))
+    }
+
     private func isolatedUserDefaults() -> UserDefaults {
         let suiteName = "AccessLimitsTests.\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName)!
@@ -353,12 +581,14 @@ final class AccessLimitsTests: XCTestCase {
 
     private func librarySnapshot(
         favorites: [FavoriteStationRecord] = [],
+        recents: [RecentStationRecord] = [],
+        discoveries: [DiscoveredTrackRecord] = [],
         updatedAt: String
     ) -> AVRadioLibrarySnapshot {
         AVRadioLibrarySnapshot(
             favorites: favorites,
-            recents: [],
-            discoveries: [],
+            recents: recents,
+            discoveries: discoveries,
             settings: AppSettingsRecord(
                 preferredCountry: "",
                 preferredLanguage: "",
@@ -370,33 +600,77 @@ final class AccessLimitsTests: XCTestCase {
         )
     }
 
-    private func favoriteRecord(id: String = "station") -> FavoriteStationRecord {
+    private func favoriteRecord(
+        id: String = "station",
+        streamURL: String? = nil,
+        createdAt: String? = "2026-04-30T10:00:00Z",
+        deletedAt: String? = nil
+    ) -> FavoriteStationRecord {
         FavoriteStationRecord(
-            station: StationRecord(
-                id: id,
-                name: "Station \(id)",
-                country: "Spain",
-                countryCode: "ES",
-                state: nil,
-                language: "Spanish",
-                languageCodes: "es",
-                tags: "radio",
-                streamURL: "https://example.com/\(id).mp3",
-                faviconURL: nil,
-                bitrate: 128,
-                codec: "MP3",
-                homepageURL: nil,
-                votes: nil,
-                clickCount: nil,
-                clickTrend: nil,
-                isHLS: false,
-                hasExtendedInfo: false,
-                hasSSLError: false,
-                lastCheckOKAt: nil,
-                geoLatitude: nil,
-                geoLongitude: nil
-            ),
-            createdAt: "2026-04-30T10:00:00Z"
+            station: stationRecord(id: id, streamURL: streamURL),
+            createdAt: createdAt,
+            deletedAt: deletedAt
+        )
+    }
+
+    private func recentRecord(
+        id: String = "station",
+        lastPlayedAt: String? = "2026-04-30T10:00:00Z",
+        deletedAt: String? = nil
+    ) -> RecentStationRecord {
+        RecentStationRecord(
+            station: stationRecord(id: id),
+            lastPlayedAt: lastPlayedAt,
+            deletedAt: deletedAt
+        )
+    }
+
+    private func discoveryRecord(
+        id: String,
+        playedAt: String,
+        markedInterestedAt: String? = nil,
+        hiddenAt: String? = nil,
+        deletedAt: String? = nil
+    ) -> DiscoveredTrackRecord {
+        DiscoveredTrackRecord(
+            discoveryID: id,
+            title: "Song \(id)",
+            artist: "Artist \(id)",
+            stationID: "station-\(id)",
+            stationName: "Station \(id)",
+            artworkURL: nil,
+            stationArtworkURL: nil,
+            playedAt: playedAt,
+            markedInterestedAt: markedInterestedAt,
+            hiddenAt: hiddenAt,
+            deletedAt: deletedAt
+        )
+    }
+
+    private func stationRecord(id: String = "station", streamURL: String? = nil) -> StationRecord {
+        StationRecord(
+            id: id,
+            name: "Station \(id)",
+            country: "Spain",
+            countryCode: "ES",
+            state: nil,
+            language: "Spanish",
+            languageCodes: "es",
+            tags: "radio",
+            streamURL: streamURL ?? "https://example.com/\(id).mp3",
+            faviconURL: nil,
+            bitrate: 128,
+            codec: "MP3",
+            homepageURL: nil,
+            votes: nil,
+            clickCount: nil,
+            clickTrend: nil,
+            isHLS: false,
+            hasExtendedInfo: false,
+            hasSSLError: false,
+            lastCheckOKAt: nil,
+            geoLatitude: nil,
+            geoLongitude: nil
         )
     }
 }
@@ -500,4 +774,37 @@ private struct StubEntitlementService: EntitlementService {
     func restorePurchases(for user: AccountUser) async throws -> RestorePurchasesOutcome {
         .restored
     }
+}
+
+@MainActor
+private final class MutableStubAccountService: AVAppsAccountService {
+    private var user: AccountUser?
+
+    init(user: AccountUser?) {
+        self.user = user
+    }
+
+    var isAvailable: Bool { true }
+    var currentUser: AccountUser? { user }
+
+    func getToken() async throws -> String? {
+        nil
+    }
+
+    func signInWithApple() async throws {}
+
+    func signInWithGoogle() async throws {}
+
+    func signOut() async throws {
+        user = nil
+    }
+}
+
+private extension ResolvedAccess {
+    static let signedInPro = ResolvedAccess(
+        planTier: .pro,
+        accessMode: .signedInPro,
+        capabilities: .forMode(.signedInPro),
+        limits: .forMode(.signedInPro)
+    )
 }

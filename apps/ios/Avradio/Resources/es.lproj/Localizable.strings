@@ -116,7 +116,9 @@
 "profile.account.subtitle.signedIn" = "Abre el portal de cuenta de AV para gestionar tus datos y vuelve aquí si necesitas cerrar sesión.";
 "profile.account.title" = "Gestionar cuenta";
 "profile.actions.clearData" = "Borrar datos locales";
+"profile.actions.clearSyncedLibrary" = "Borrar biblioteca sincronizada";
 "profile.actions.clearingData" = "Borrando datos locales…";
+"profile.actions.clearingSyncedLibrary" = "Borrando biblioteca sincronizada…";
 "profile.actions.continue" = "Continuar con Apple o Google";
 "profile.actions.signOut" = "Cerrar sesión de AV Apps Account";
 "profile.actions.signingOut" = "Cerrando sesión…";
@@ -126,6 +128,9 @@
 "profile.alert.clearData.confirm" = "Borrar";
 "profile.alert.clearData.message" = "Se eliminarán de este dispositivo los favoritos, los recientes y los ajustes guardados en el dispositivo.";
 "profile.alert.clearData.title" = "¿Borrar datos locales?";
+"profile.alert.clearSyncedLibrary.confirm" = "Borrar biblioteca sincronizada";
+"profile.alert.clearSyncedLibrary.message" = "Se eliminarán tus favoritos, recientes, canciones guardadas y ajustes sincronizados de AV Radio en todos tus dispositivos. No afecta a tu cuenta ni a tu suscripción Pro.";
+"profile.alert.clearSyncedLibrary.title" = "¿Borrar biblioteca sincronizada?";
 "profile.alert.close" = "Cerrar";
 "profile.alert.signOutFailed.title" = "No se pudo cerrar la sesión";
 "profile.alert.subscription.title" = "Suscripción";

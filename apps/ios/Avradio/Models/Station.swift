@@ -156,6 +156,23 @@ final class FavoriteStation {
 }
 
 @Model
+final class LibrarySyncTombstone {
+    @Attribute(.unique) var resourceKey: String
+    var resource: String
+    var identityKey: String
+    var payloadJSON: String
+    var deletedAt: Date
+
+    init(resource: String, identityKey: String, payloadJSON: String, deletedAt: Date = .now) {
+        self.resourceKey = "\(resource):\(identityKey)"
+        self.resource = resource
+        self.identityKey = identityKey
+        self.payloadJSON = payloadJSON
+        self.deletedAt = deletedAt
+    }
+}
+
+@Model
 final class RecentStation {
     @Attribute(.unique) var stationID: String
     var name: String

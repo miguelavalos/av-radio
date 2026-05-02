@@ -116,7 +116,9 @@
 "profile.account.subtitle.signedIn" = "Obre el portal del compte AV per gestionar les teves dades i torna aquí si necessites tancar la sessió.";
 "profile.account.title" = "Gestionar compte";
 "profile.actions.clearData" = "Esborrar dades locals";
+"profile.actions.clearSyncedLibrary" = "Esborrar biblioteca sincronitzada";
 "profile.actions.clearingData" = "Esborrant dades locals…";
+"profile.actions.clearingSyncedLibrary" = "Esborrant biblioteca sincronitzada…";
 "profile.actions.continue" = "Continuar amb Apple o Google";
 "profile.actions.signOut" = "Tancar sessió d'AV Apps Account";
 "profile.actions.signingOut" = "Tancant sessió…";
@@ -126,6 +128,9 @@
 "profile.alert.clearData.confirm" = "Esborrar";
 "profile.alert.clearData.message" = "S'eliminaran d'aquest dispositiu els favorits, els recents i els ajustos desats al dispositiu.";
 "profile.alert.clearData.title" = "Esborrar dades locals?";
+"profile.alert.clearSyncedLibrary.confirm" = "Esborrar biblioteca sincronitzada";
+"profile.alert.clearSyncedLibrary.message" = "S'eliminaran els favorits, recents, cançons desades i ajustos sincronitzats d'AV Radio en tots els teus dispositius. Això no afecta el compte ni la subscripció Pro.";
+"profile.alert.clearSyncedLibrary.title" = "Esborrar biblioteca sincronitzada?";
 "profile.alert.close" = "Tancar";
 "profile.alert.signOutFailed.title" = "No s'ha pogut tancar la sessió";
 "profile.alert.subscription.title" = "Subscripció";

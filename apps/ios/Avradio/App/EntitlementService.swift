@@ -257,6 +257,9 @@ final class PlatformBackedEntitlementService: EntitlementService {
         guard let user else { return .guest }
 
         let fallbackAccess = await fallback.refreshAccess(for: user)
+        if Self.shouldUseUITestAccessOverride {
+            return fallbackAccess
+        }
         guard apiClient.isConfigured() else {
             return fallbackAccess
         }
@@ -299,6 +302,12 @@ final class PlatformBackedEntitlementService: EntitlementService {
         }
 
         return backendAccess
+    }
+
+    private static var shouldUseUITestAccessOverride: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        return environment["AVRADIO_UI_TESTS"] == "1" &&
+            environment["AVRADIO_UI_TESTS_ACCOUNT_MODE"] != nil
     }
 }
 

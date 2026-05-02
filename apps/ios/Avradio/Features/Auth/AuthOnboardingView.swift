@@ -205,18 +205,31 @@ private struct FeatureCallout: View {
 
 private struct BrandHeaderBadge: View {
     var body: some View {
-        Image("OnboardingWordmark")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 192, height: 40)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .background(AvradioTheme.brandWhite, in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        HStack(spacing: 10) {
+            Image("BrandMark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 36, height: 36)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                }
+
+            HStack(spacing: 4) {
+                Text("AV")
+                    .foregroundStyle(AvradioTheme.textInverse.opacity(0.72))
+
+                Text("Radio")
+                    .foregroundStyle(AvradioTheme.highlight)
             }
-            .shadow(color: .black.opacity(0.12), radius: 26, y: 10)
+            .font(.system(size: 22, weight: .bold))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("AV Radio")
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .shadow(color: .black.opacity(0.22), radius: 18, y: 10)
     }
 }
 

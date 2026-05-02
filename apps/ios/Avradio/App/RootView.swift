@@ -79,33 +79,6 @@ struct RootView: View {
                 isShowingAccountOnboarding = false
             }
         }
-        .alert(
-            L10n.string("sync.conflict.title"),
-            isPresented: Binding(
-                get: { libraryStore.cloudSyncStatus == .conflict },
-                set: { isPresented in
-                    if !isPresented {
-                        libraryStore.clearCloudSyncStatus()
-                    }
-                }
-            )
-        ) {
-            Button(L10n.string("sync.conflict.refresh"), role: .none) {
-                Task {
-                    await refreshCloudSyncConflict()
-                }
-            }
-            Button(L10n.string("sync.conflict.keepDevice"), role: .destructive) {
-                Task {
-                    await libraryStore.overwriteCloudLibraryWithLocalData()
-                }
-            }
-            Button(L10n.string("common.cancel"), role: .cancel) {
-                libraryStore.clearCloudSyncStatus()
-            }
-        } message: {
-            Text(L10n.string("sync.conflict.message"))
-        }
     }
 
     private var shouldShowOnboarding: Bool {
@@ -164,15 +137,6 @@ struct RootView: View {
 
         libraryStore.setAppDataService(appDataService)
         await libraryStore.refreshCloudLibraryIfNeeded()
-    }
-
-    private func refreshCloudSyncConflict() async {
-        if launchContext.isUITesting, launchContext.uiTestCloudSyncStatus == "conflict" {
-            libraryStore.setCloudSyncStatusForUITests(.synced(.now))
-            return
-        }
-
-        await refreshLibrarySync()
     }
 
     private func markAutomaticGuestOnboardingSeenIfNeeded() {

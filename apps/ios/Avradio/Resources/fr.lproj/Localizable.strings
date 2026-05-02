@@ -116,7 +116,9 @@
 "profile.account.subtitle.signedIn" = "Ouvrez le portail de compte AV pour gérer vos informations, puis revenez ici si vous devez vous déconnecter.";
 "profile.account.title" = "Gérer le compte";
 "profile.actions.clearData" = "Effacer les données locales";
+"profile.actions.clearSyncedLibrary" = "Effacer la bibliothèque synchronisée";
 "profile.actions.clearingData" = "Effacement des données locales…";
+"profile.actions.clearingSyncedLibrary" = "Effacement de la bibliothèque synchronisée…";
 "profile.actions.continue" = "Continuer avec Apple ou Google";
 "profile.actions.signOut" = "Se déconnecter d'AV Apps Account";
 "profile.actions.signingOut" = "Déconnexion…";
@@ -126,6 +128,9 @@
 "profile.alert.clearData.confirm" = "Effacer";
 "profile.alert.clearData.message" = "Les favoris, les récents et les réglages enregistrés sur l'appareil seront supprimés de cet appareil.";
 "profile.alert.clearData.title" = "Effacer les données locales ?";
+"profile.alert.clearSyncedLibrary.confirm" = "Effacer la bibliothèque synchronisée";
+"profile.alert.clearSyncedLibrary.message" = "Vos favoris, récents, titres enregistrés et réglages synchronisés AV Radio seront supprimés sur tous vos appareils. Cela n'affecte pas votre compte ni votre abonnement Pro.";
+"profile.alert.clearSyncedLibrary.title" = "Effacer la bibliothèque synchronisée ?";
 "profile.alert.close" = "Fermer";
 "profile.alert.signOutFailed.title" = "Impossible de se déconnecter";
 "profile.alert.subscription.title" = "Abonnement";

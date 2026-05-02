@@ -43,6 +43,115 @@ enum AVRadioLibrarySyncPlanner {
     }
 }
 
+enum AVRadioLibrarySnapshotMerger {
+    static func merged(local: AVRadioLibrarySnapshot, remote: AVRadioLibrarySnapshot) -> AVRadioLibrarySnapshot {
+        AVRadioLibrarySnapshot(
+            favorites: mergedFavorites(local.favorites, remote.favorites),
+            recents: mergedRecents(local.recents, remote.recents),
+            discoveries: mergedDiscoveries(local.discoveries, remote.discoveries),
+            settings: newestSettings(local.settings, remote.settings)
+        )
+    }
+
+    private static func mergedFavorites(
+        _ local: [FavoriteStationRecord],
+        _ remote: [FavoriteStationRecord]
+    ) -> [FavoriteStationRecord] {
+        newestByKey(local + remote, key: { stationIdentityKey($0.station) }, date: favoriteUpdateDate)
+            .sorted { favoriteUpdateDate($0) < favoriteUpdateDate($1) }
+    }
+
+    private static func mergedRecents(
+        _ local: [RecentStationRecord],
+        _ remote: [RecentStationRecord]
+    ) -> [RecentStationRecord] {
+        newestByKey(local + remote, key: { stationIdentityKey($0.station) }, date: recentUpdateDate)
+            .sorted { recentUpdateDate($0) > recentUpdateDate($1) }
+    }
+
+    private static func mergedDiscoveries(
+        _ local: [DiscoveredTrackRecord],
+        _ remote: [DiscoveredTrackRecord]
+    ) -> [DiscoveredTrackRecord] {
+        newestByKey(local + remote, key: { $0.discoveryID }, date: discoveryUpdateDate)
+            .sorted { discoveryUpdateDate($0) > discoveryUpdateDate($1) }
+    }
+
+    private static func newestSettings(_ local: AppSettingsRecord, _ remote: AppSettingsRecord) -> AppSettingsRecord {
+        date(local.updatedAt) >= date(remote.updatedAt) ? local : remote
+    }
+
+    private static func newestByKey<Record>(
+        _ records: [Record],
+        key: (Record) -> String,
+        date: (Record) -> String
+    ) -> [Record] {
+        var values: [String: Record] = [:]
+        for record in records {
+            let recordKey = key(record)
+            guard let current = values[recordKey] else {
+                values[recordKey] = record
+                continue
+            }
+
+            if Self.date(date(record)) >= Self.date(date(current)) {
+                values[recordKey] = record
+            }
+        }
+
+        return Array(values.values)
+    }
+
+    private static func discoveryUpdateDate(_ discovery: DiscoveredTrackRecord) -> String {
+        [
+            discovery.playedAt,
+            discovery.markedInterestedAt,
+            discovery.hiddenAt,
+            discovery.deletedAt
+        ]
+        .compactMap { $0 }
+        .max { date($0) < date($1) } ?? discovery.playedAt
+    }
+
+    private static func favoriteUpdateDate(_ favorite: FavoriteStationRecord) -> String {
+        [favorite.createdAt, favorite.deletedAt]
+            .compactMap { $0 }
+            .max { date($0) < date($1) } ?? "1970-01-01T00:00:00.000Z"
+    }
+
+    private static func recentUpdateDate(_ recent: RecentStationRecord) -> String {
+        [recent.lastPlayedAt, recent.deletedAt]
+            .compactMap { $0 }
+            .max { date($0) < date($1) } ?? "1970-01-01T00:00:00.000Z"
+    }
+
+    static func stationIdentityKey(_ station: StationRecord) -> String {
+        if let streamURL = normalizedIdentityValue(station.streamURL) {
+            return "stream:\(streamURL)"
+        }
+
+        if let homepageURL = normalizedIdentityValue(station.homepageURL), let name = normalizedIdentityValue(station.name) {
+            return "homepage-name:\(homepageURL):\(name)"
+        }
+
+        return "id:\(station.id)"
+    }
+
+    private static func normalizedIdentityValue(_ value: String?) -> String? {
+        guard let normalized = value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+              !normalized.isEmpty
+        else {
+            return nil
+        }
+
+        return normalized
+    }
+
+    private static func date(_ value: String) -> Date {
+        AVRadioDateCoding.date(from: value)
+    }
+}
+
 enum AVRadioAppDataError: Error {
     case conflict
 }
@@ -87,12 +196,26 @@ struct AVRadioLibrarySnapshot: Codable, Equatable {
 
 struct FavoriteStationRecord: Codable, Equatable {
     let station: StationRecord
-    let createdAt: String
+    let createdAt: String?
+    let deletedAt: String?
+
+    init(station: StationRecord, createdAt: String? = nil, deletedAt: String? = nil) {
+        self.station = station
+        self.createdAt = createdAt
+        self.deletedAt = deletedAt
+    }
 }
 
 struct RecentStationRecord: Codable, Equatable {
     let station: StationRecord
-    let lastPlayedAt: String
+    let lastPlayedAt: String?
+    let deletedAt: String?
+
+    init(station: StationRecord, lastPlayedAt: String? = nil, deletedAt: String? = nil) {
+        self.station = station
+        self.lastPlayedAt = lastPlayedAt
+        self.deletedAt = deletedAt
+    }
 }
 
 struct DiscoveredTrackRecord: Codable, Equatable {
@@ -106,6 +229,33 @@ struct DiscoveredTrackRecord: Codable, Equatable {
     let playedAt: String
     let markedInterestedAt: String?
     let hiddenAt: String?
+    let deletedAt: String?
+
+    init(
+        discoveryID: String,
+        title: String,
+        artist: String?,
+        stationID: String,
+        stationName: String,
+        artworkURL: String?,
+        stationArtworkURL: String?,
+        playedAt: String,
+        markedInterestedAt: String? = nil,
+        hiddenAt: String? = nil,
+        deletedAt: String? = nil
+    ) {
+        self.discoveryID = discoveryID
+        self.title = title
+        self.artist = artist
+        self.stationID = stationID
+        self.stationName = stationName
+        self.artworkURL = artworkURL
+        self.stationArtworkURL = stationArtworkURL
+        self.playedAt = playedAt
+        self.markedInterestedAt = markedInterestedAt
+        self.hiddenAt = hiddenAt
+        self.deletedAt = deletedAt
+    }
 }
 
 struct AppSettingsRecord: Codable, Equatable {

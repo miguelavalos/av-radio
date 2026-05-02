@@ -116,7 +116,9 @@
 "profile.account.subtitle.signedIn" = "Open the AV account portal to manage your account details, then come back here to sign out if needed.";
 "profile.account.title" = "Manage account";
 "profile.actions.clearData" = "Clear local data";
+"profile.actions.clearSyncedLibrary" = "Clear synced library";
 "profile.actions.clearingData" = "Clearing local data…";
+"profile.actions.clearingSyncedLibrary" = "Clearing synced library…";
 "profile.actions.continue" = "Continue with Apple or Google";
 "profile.actions.signOut" = "Sign out of AV Apps Account";
 "profile.actions.signingOut" = "Signing out…";
@@ -126,6 +128,9 @@
 "profile.alert.clearData.confirm" = "Clear";
 "profile.alert.clearData.message" = "Favorites, recents, and on-device settings will be removed from this device.";
 "profile.alert.clearData.title" = "Clear local data?";
+"profile.alert.clearSyncedLibrary.confirm" = "Clear synced library";
+"profile.alert.clearSyncedLibrary.message" = "Your AV Radio favorites, recents, saved songs, and synced settings will be removed on all your devices. This does not affect your account or Pro subscription.";
+"profile.alert.clearSyncedLibrary.title" = "Clear synced library?";
 "profile.alert.close" = "Close";
 "profile.alert.signOutFailed.title" = "Couldn't sign out";
 "profile.alert.subscription.title" = "Subscription";

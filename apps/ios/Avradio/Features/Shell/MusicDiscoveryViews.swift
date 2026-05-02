@@ -314,7 +314,7 @@ struct DiscoveryArtistCard: View {
 
     @ViewBuilder
     private var artwork: some View {
-        if let artworkURL = summary.artworkURL {
+        if let artworkURL = summary.displayArtworkURL {
             AsyncImage(url: artworkURL) { phase in
                 switch phase {
                 case .success(let image):
@@ -339,6 +339,113 @@ struct DiscoveryArtistCard: View {
             .overlay {
                 Image(systemName: "person.fill")
                     .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(AvradioTheme.highlight)
+            }
+    }
+}
+
+struct DiscoveryArtistRow: View {
+    let summary: DiscoveryArtistSummary
+    let openArtist: () -> Void
+    let openYouTube: () -> Void
+    let openAppleMusic: () -> Void
+    let openSpotify: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: openArtist) {
+                HStack(spacing: 12) {
+                    artwork
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(summary.name)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(AvradioTheme.textPrimary)
+                            .lineLimit(1)
+
+                        Text(L10n.plural(
+                            singular: "shell.library.discoveries.artistSongs.one",
+                            plural: "shell.library.discoveries.artistSongs.other",
+                            count: summary.trackCount,
+                            summary.trackCount
+                        ))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AvradioTheme.highlight)
+                        .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(AvradioTheme.textSecondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                Button(L10n.string("shell.music.artist.viewSongs"), action: openArtist)
+                Button(L10n.string("player.discovery.youtube"), action: openYouTube)
+                Button(L10n.string("player.discovery.appleMusic"), action: openAppleMusic)
+                Button(L10n.string("player.discovery.spotify"), action: openSpotify)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(AvradioTheme.textPrimary)
+                    .rotationEffect(.degrees(90))
+                    .frame(width: 34, height: 34)
+                    .background(AvradioTheme.mutedSurface.opacity(0.85), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.string("common.more"))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(AvradioTheme.mutedSurface.opacity(0.64))
+                .overlay(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(AvradioTheme.highlight)
+                        .frame(width: 3)
+                        .padding(.vertical, 12)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(AvradioTheme.borderSubtle, lineWidth: 1)
+                }
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("discoveryArtistRow.\(summary.id)")
+    }
+
+    @ViewBuilder
+    private var artwork: some View {
+        if let artworkURL = summary.displayArtworkURL {
+            AsyncImage(url: artworkURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                default:
+                    fallbackArtwork
+                }
+            }
+            .frame(width: 46, height: 46)
+            .clipShape(Circle())
+        } else {
+            fallbackArtwork
+        }
+    }
+
+    private var fallbackArtwork: some View {
+        Circle()
+            .fill(AvradioTheme.cardSurface)
+            .frame(width: 46, height: 46)
+            .overlay {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(AvradioTheme.highlight)
             }
     }

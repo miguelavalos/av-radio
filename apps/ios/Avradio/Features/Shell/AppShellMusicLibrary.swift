@@ -31,12 +31,17 @@ enum MusicLibraryMode: String, CaseIterable, Identifiable {
 struct DiscoveryArtistSummary: Identifiable, Equatable {
     let name: String
     let trackCount: Int
-    let artworkURL: URL?
+    let artistArtworkURL: URL?
+    let fallbackArtworkURL: URL?
 
     var id: String {
         name
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: L10n.locale)
             .lowercased()
+    }
+
+    var displayArtworkURL: URL? {
+        artistArtworkURL ?? fallbackArtworkURL
     }
 }
 
@@ -148,7 +153,8 @@ enum AppShellMusicLibrary {
                 DiscoveryArtistSummary(
                     name: artist,
                     trackCount: discoveries.count,
-                    artworkURL: discoveries.compactMap(\.resolvedArtworkURL).first
+                    artistArtworkURL: nil,
+                    fallbackArtworkURL: discoveries.compactMap(\.resolvedArtworkURL).first
                 )
             }
             .sorted { first, second in

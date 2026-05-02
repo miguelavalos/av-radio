@@ -19,6 +19,8 @@ final class LibraryStore: ObservableObject {
 
     private let context: ModelContext
     private var appDataService: AVRadioAppDataService?
+    private let tombstoneEncoder = JSONEncoder()
+    private let tombstoneDecoder = JSONDecoder()
     private var isApplyingRemoteSnapshot = false
     private var pushTask: Task<Void, Never>?
 
@@ -58,13 +60,19 @@ final class LibraryStore: ObservableObject {
     }
 
     func isFavorite(_ station: Station) -> Bool {
-        favorites.contains { $0.stationID == station.id }
+        let identityKey = Self.stationIdentityKey(for: station)
+        return favorites.contains {
+            $0.stationID == station.id || Self.stationIdentityKey(for: Station(favorite: $0)) == identityKey
+        }
     }
 
     func toggleFavorite(for station: Station) {
-        if let existing = favorites.first(where: { $0.stationID == station.id }) {
+        let identityKey = Self.stationIdentityKey(for: station)
+        if let existing = favorites.first(where: { $0.stationID == station.id || Self.stationIdentityKey(for: Station(favorite: $0)) == identityKey }) {
+            rememberFavoriteDeletion(for: Station(favorite: existing))
             context.delete(existing)
         } else {
+            removeTombstone(resource: "favorites", identityKey: identityKey)
             context.insert(FavoriteStation(station: station))
         }
 
@@ -238,12 +246,14 @@ final class LibraryStore: ObservableObject {
     }
 
     func removeDiscovery(_ discovery: DiscoveredTrack) {
+        rememberDiscoveryDeletion(for: discovery)
         context.delete(discovery)
         saveAndRefresh()
     }
 
     func clearDiscoveries() {
         for discovery in discoveries {
+            rememberDiscoveryDeletion(for: discovery)
             context.delete(discovery)
         }
 
@@ -300,14 +310,17 @@ final class LibraryStore: ObservableObject {
 
     func clearLocalData() {
         for favorite in favorites {
+            rememberFavoriteDeletion(for: Station(favorite: favorite))
             context.delete(favorite)
         }
 
         for recent in recents {
+            rememberRecentDeletion(for: Station(recent: recent))
             context.delete(recent)
         }
 
         for discovery in discoveries {
+            rememberDiscoveryDeletion(for: discovery)
             context.delete(discovery)
         }
 
@@ -342,7 +355,14 @@ final class LibraryStore: ObservableObject {
                 remoteDocument: remoteDocument
             ) {
             case .pullRemote(let remoteSnapshot):
-                applyRemoteSnapshot(remoteSnapshot)
+                let mergedSnapshot = AVRadioLibrarySnapshotMerger.merged(
+                    local: localSnapshot,
+                    remote: remoteSnapshot
+                )
+                applyRemoteSnapshot(mergedSnapshot)
+                if mergedSnapshot != remoteSnapshot {
+                    try await appDataService.pushLibrary(mergedSnapshot)
+                }
             case .pushLocal:
                 try await appDataService.pushLibrary(localSnapshot)
             case .noContent, .alreadyCurrent:
@@ -389,12 +409,14 @@ final class LibraryStore: ObservableObject {
 
     private func trimRecents(limit: Int) {
         for item in AVRadioCollectionRules.overflow(in: recents, limit: limit, sortedBy: { $0.lastPlayedAt > $1.lastPlayedAt }) {
+            rememberRecentDeletion(for: Station(recent: item))
             context.delete(item)
         }
     }
 
     private func trimDiscoveries(limit: Int) {
         for item in AVRadioCollectionRules.overflow(in: discoveries, limit: limit, sortedBy: { $0.playedAt > $1.playedAt }) {
+            rememberDiscoveryDeletion(for: item)
             context.delete(item)
         }
     }
@@ -419,10 +441,24 @@ final class LibraryStore: ObservableObject {
         pushTask = Task { [snapshot] in
             do {
                 cloudSyncStatus = .syncing
-                try await appDataService.pushLibrary(snapshot)
+                let remoteDocument = try await appDataService.pullLibrary()
+                let snapshotToPush: AVRadioLibrarySnapshot
+                if let remoteSnapshot = remoteDocument.snapshot {
+                    snapshotToPush = AVRadioLibrarySnapshotMerger.merged(
+                        local: snapshot,
+                        remote: remoteSnapshot
+                    )
+                } else {
+                    snapshotToPush = snapshot
+                }
+
+                try await appDataService.pushLibrary(snapshotToPush)
+                if snapshotToPush != snapshot {
+                    applyRemoteSnapshot(snapshotToPush)
+                }
                 cloudSyncStatus = .synced(.now)
             } catch AVRadioAppDataError.conflict {
-                cloudSyncStatus = .conflict
+                await refreshCloudLibraryIfNeeded()
             } catch {
                 cloudSyncStatus = .failed
             }
@@ -436,14 +472,14 @@ final class LibraryStore: ObservableObject {
                     station: Station(favorite: $0).appDataRecord,
                     createdAt: AVRadioAppDataService.isoString(from: $0.createdAt)
                 )
-            },
+            } + tombstoneRecords(resource: "favorites", type: FavoriteStationRecord.self),
             recents: recents.map {
                 RecentStationRecord(
                     station: Station(recent: $0).appDataRecord,
                     lastPlayedAt: AVRadioAppDataService.isoString(from: $0.lastPlayedAt)
                 )
-            },
-            discoveries: discoveries.map(\.appDataRecord),
+            } + tombstoneRecords(resource: "recents", type: RecentStationRecord.self),
+            discoveries: discoveries.map(\.appDataRecord) + tombstoneRecords(resource: "discoveries", type: DiscoveredTrackRecord.self),
             settings: AppSettingsRecord(
                 preferredCountry: settings.preferredCountry,
                 preferredLanguage: settings.preferredLanguage,
@@ -459,6 +495,7 @@ final class LibraryStore: ObservableObject {
         let timestamps =
             favorites.map(\.createdAt) +
             recents.map(\.lastPlayedAt) +
+            tombstones().map(\.deletedAt) +
             discoveries.flatMap { discovery in
                 [
                     discovery.playedAt,
@@ -486,25 +523,59 @@ final class LibraryStore: ObservableObject {
             context.delete(discovery)
         }
 
+        for tombstone in tombstones() {
+            context.delete(tombstone)
+        }
+
         for favorite in snapshot.favorites {
+            if let deletedAt = favorite.deletedAt {
+                rememberTombstone(
+                    resource: "favorites",
+                    identityKey: AVRadioLibrarySnapshotMerger.stationIdentityKey(favorite.station),
+                    payload: favorite,
+                    deletedAt: Self.date(from: deletedAt)
+                )
+                continue
+            }
+
             context.insert(
                 FavoriteStation(
                     station: Station(record: favorite.station),
-                    createdAt: Self.date(from: favorite.createdAt)
+                    createdAt: favorite.createdAt.map(Self.date(from:)) ?? .distantPast
                 )
             )
         }
 
         for recent in snapshot.recents {
+            if let deletedAt = recent.deletedAt {
+                rememberTombstone(
+                    resource: "recents",
+                    identityKey: AVRadioLibrarySnapshotMerger.stationIdentityKey(recent.station),
+                    payload: recent,
+                    deletedAt: Self.date(from: deletedAt)
+                )
+                continue
+            }
+
             context.insert(
                 RecentStation(
                     station: Station(record: recent.station),
-                    lastPlayedAt: Self.date(from: recent.lastPlayedAt)
+                    lastPlayedAt: recent.lastPlayedAt.map(Self.date(from:)) ?? .distantPast
                 )
             )
         }
 
         for discovery in snapshot.discoveries {
+            if let deletedAt = discovery.deletedAt {
+                rememberTombstone(
+                    resource: "discoveries",
+                    identityKey: discovery.discoveryID,
+                    payload: discovery,
+                    deletedAt: Self.date(from: deletedAt)
+                )
+                continue
+            }
+
             context.insert(DiscoveredTrack(record: discovery))
         }
 
@@ -521,5 +592,106 @@ final class LibraryStore: ObservableObject {
 
     private static func date(from value: String) -> Date {
         AVRadioDateCoding.date(from: value)
+    }
+
+    private func rememberFavoriteDeletion(for station: Station) {
+        let deletedAt = Date.now
+        rememberTombstone(
+            resource: "favorites",
+            identityKey: Self.stationIdentityKey(for: station),
+            payload: FavoriteStationRecord(
+                station: station.appDataRecord,
+                deletedAt: AVRadioAppDataService.isoString(from: deletedAt)
+            ),
+            deletedAt: deletedAt
+        )
+    }
+
+    private func rememberRecentDeletion(for station: Station) {
+        let deletedAt = Date.now
+        rememberTombstone(
+            resource: "recents",
+            identityKey: Self.stationIdentityKey(for: station),
+            payload: RecentStationRecord(
+                station: station.appDataRecord,
+                deletedAt: AVRadioAppDataService.isoString(from: deletedAt)
+            ),
+            deletedAt: deletedAt
+        )
+    }
+
+    private func rememberDiscoveryDeletion(for discovery: DiscoveredTrack) {
+        let deletedAt = Date.now
+        rememberTombstone(
+            resource: "discoveries",
+            identityKey: discovery.discoveryID,
+            payload: DiscoveredTrackRecord(
+                discoveryID: discovery.discoveryID,
+                title: discovery.title,
+                artist: discovery.artist,
+                stationID: discovery.stationID,
+                stationName: discovery.stationName,
+                artworkURL: discovery.artworkURL,
+                stationArtworkURL: discovery.stationArtworkURL,
+                playedAt: AVRadioAppDataService.isoString(from: discovery.playedAt),
+                markedInterestedAt: discovery.markedInterestedAt.map(AVRadioAppDataService.isoString(from:)),
+                hiddenAt: discovery.hiddenAt.map(AVRadioAppDataService.isoString(from:)),
+                deletedAt: AVRadioAppDataService.isoString(from: deletedAt)
+            ),
+            deletedAt: deletedAt
+        )
+    }
+
+    private func rememberTombstone<Payload: Encodable>(
+        resource: String,
+        identityKey: String,
+        payload: Payload,
+        deletedAt: Date
+    ) {
+        guard let payloadJSON = try? String(data: tombstoneEncoder.encode(payload), encoding: .utf8) else {
+            return
+        }
+
+        let resourceKey = "\(resource):\(identityKey)"
+        if let existing = tombstones().first(where: { $0.resourceKey == resourceKey }) {
+            existing.payloadJSON = payloadJSON
+            existing.deletedAt = deletedAt
+        } else {
+            context.insert(
+                LibrarySyncTombstone(
+                    resource: resource,
+                    identityKey: identityKey,
+                    payloadJSON: payloadJSON,
+                    deletedAt: deletedAt
+                )
+            )
+        }
+    }
+
+    private func removeTombstone(resource: String, identityKey: String) {
+        let resourceKey = "\(resource):\(identityKey)"
+        for tombstone in tombstones() where tombstone.resourceKey == resourceKey {
+            context.delete(tombstone)
+        }
+    }
+
+    private func tombstoneRecords<Record: Decodable>(resource: String, type: Record.Type) -> [Record] {
+        tombstones()
+            .filter { $0.resource == resource }
+            .compactMap { tombstone in
+                guard let data = tombstone.payloadJSON.data(using: .utf8) else {
+                    return nil
+                }
+
+                return try? tombstoneDecoder.decode(Record.self, from: data)
+            }
+    }
+
+    private func tombstones() -> [LibrarySyncTombstone] {
+        (try? context.fetch(FetchDescriptor<LibrarySyncTombstone>())) ?? []
+    }
+
+    private static func stationIdentityKey(for station: Station) -> String {
+        AVRadioLibrarySnapshotMerger.stationIdentityKey(station.appDataRecord)
     }
 }

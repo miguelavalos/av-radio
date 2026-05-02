@@ -50,9 +50,9 @@ struct ProfileScreen: View {
         }
         .scrollIndicators(.hidden)
         .background(AvradioTheme.shellBackground.ignoresSafeArea())
-        .alert(L10n.string("profile.alert.clearData.title"), isPresented: $isShowingClearLocalDataAlert) {
+        .alert(clearLibraryAlertTitle, isPresented: $isShowingClearLocalDataAlert) {
             Button(L10n.string("profile.alert.clearData.cancel"), role: .cancel) {}
-            Button(L10n.string("profile.alert.clearData.confirm"), role: .destructive) {
+            Button(clearLibraryConfirmTitle, role: .destructive) {
                 isClearingLocalData = true
                 libraryStore.clearLocalData()
                 if accessController.accessMode == .guest {
@@ -61,7 +61,7 @@ struct ProfileScreen: View {
                 isClearingLocalData = false
             }
         } message: {
-            Text(L10n.string("profile.alert.clearData.message"))
+            Text(clearLibraryAlertMessage)
         }
         .alert(L10n.string("profile.alert.signOutFailed.title"), isPresented: $isShowingSignOutError) {
             Button(L10n.string("profile.alert.close"), role: .cancel) {}
@@ -316,8 +316,8 @@ struct ProfileScreen: View {
 
             ProfileDangerButton(
                 title: isClearingLocalData
-                    ? L10n.string("profile.actions.clearingData")
-                    : L10n.string("profile.actions.clearData"),
+                    ? clearLibraryLoadingTitle
+                    : clearLibraryActionTitle,
                 action: { isShowingClearLocalDataAlert = true }
             )
             .disabled(isClearingLocalData)
@@ -454,6 +454,40 @@ struct ProfileScreen: View {
                 ?? accessController.accountUser?.id
                 ?? L10n.string("profile.subtitle.accountFallback")
         }
+    }
+
+    private var shouldClearSyncedLibrary: Bool {
+        accessController.capabilities.canUseCloudSync
+    }
+
+    private var clearLibraryActionTitle: String {
+        shouldClearSyncedLibrary
+            ? L10n.string("profile.actions.clearSyncedLibrary")
+            : L10n.string("profile.actions.clearData")
+    }
+
+    private var clearLibraryLoadingTitle: String {
+        shouldClearSyncedLibrary
+            ? L10n.string("profile.actions.clearingSyncedLibrary")
+            : L10n.string("profile.actions.clearingData")
+    }
+
+    private var clearLibraryAlertTitle: String {
+        shouldClearSyncedLibrary
+            ? L10n.string("profile.alert.clearSyncedLibrary.title")
+            : L10n.string("profile.alert.clearData.title")
+    }
+
+    private var clearLibraryAlertMessage: String {
+        shouldClearSyncedLibrary
+            ? L10n.string("profile.alert.clearSyncedLibrary.message")
+            : L10n.string("profile.alert.clearData.message")
+    }
+
+    private var clearLibraryConfirmTitle: String {
+        shouldClearSyncedLibrary
+            ? L10n.string("profile.alert.clearSyncedLibrary.confirm")
+            : L10n.string("profile.alert.clearData.confirm")
     }
 
     private var accountSummaryDetail: String {

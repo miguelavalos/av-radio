@@ -1498,33 +1498,13 @@ private struct MusicScreen: View {
                 } else {
                     switch musicMode {
                     case .songs:
-                        if !filteredArtistSummaries.isEmpty {
-                            discoverySubsectionTitle(L10n.string("shell.library.discoveries.artists.title"))
-
-                            ScrollView(.horizontal) {
-                                HStack(spacing: 10) {
-                                    ForEach(filteredArtistSummaries) { artist in
-                                        DiscoveryArtistCard(
-                                            summary: artist,
-                                            openArtist: { openArtistSongs(artist.name) },
-                                            openYouTube: { openArtistSearch(artist.name, youtube: true) },
-                                            openAppleMusic: { openAppleMusicArtistSearch(artist.name) },
-                                            openSpotify: { openSpotifyArtistSearch(artist.name) }
-                                        )
-                                    }
-                                }
-                                .padding(.vertical, 2)
-                            }
-                            .scrollIndicators(.hidden)
-                        }
-
                         discoverySongsHeader
                         discoveryTrackList
                     case .artists:
                         discoveryArtistsHeader
-                        LazyVGrid(columns: artistGridColumns, spacing: 10) {
+                        VStack(spacing: 10) {
                             ForEach(filteredArtistSummaries) { artist in
-                                DiscoveryArtistCard(
+                                DiscoveryArtistRow(
                                     summary: artist,
                                     openArtist: { openArtistSongs(artist.name) },
                                     openYouTube: { openArtistSearch(artist.name, youtube: true) },
@@ -1570,12 +1550,6 @@ private struct MusicScreen: View {
 
             discoveryActions
         }
-    }
-
-    private var artistGridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 156, maximum: 220), spacing: 10)
-        ]
     }
 
     private func openArtistSongs(_ artistName: String) {

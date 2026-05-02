@@ -8,6 +8,7 @@ struct PersistenceController {
     init(inMemory: Bool = false) {
         let schema = Schema([
             FavoriteStation.self,
+            LibrarySyncTombstone.self,
             RecentStation.self,
             DiscoveredTrack.self,
             AppSettings.self,

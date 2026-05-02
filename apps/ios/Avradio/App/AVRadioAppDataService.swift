@@ -141,6 +141,14 @@ final class AVRadioAppDataService {
         _ resource: AVRadioAppDataResource,
         entries: [Entry]
     ) async throws {
+        try await pushResource(resource, entries: entries, allowsConflictRetry: true)
+    }
+
+    private func pushResource<Entry: Codable>(
+        _ resource: AVRadioAppDataResource,
+        entries: [Entry],
+        allowsConflictRetry: Bool
+    ) async throws {
         let envelope = AppDataEnvelopePayload(
             appId: AVRadioAppDataConstants.appId,
             resource: resource.rawValue,
@@ -165,7 +173,15 @@ final class AVRadioAppDataService {
                 headers: headers
             )
         } catch AVAppsAPIClientError.requestFailed(let statusCode) where statusCode == 409 {
-            throw AVRadioAppDataError.conflict
+            guard allowsConflictRetry else {
+                throw AVRadioAppDataError.conflict
+            }
+
+            _ = try await pullResource(resource, entryType: Entry.self)
+            try await pushResource(resource, entries: entries, allowsConflictRetry: false)
+            return
+        } catch {
+            throw error
         }
         rememberSyncVersion(for: resource, revision: response.revision, etag: response.etag)
     }

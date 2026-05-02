@@ -116,7 +116,9 @@
 "profile.account.subtitle.signedIn" = "Öffne das AV-Kontoportal, um deine Kontodaten zu verwalten, und komme hierher zurück, wenn du dich abmelden musst.";
 "profile.account.title" = "Konto verwalten";
 "profile.actions.clearData" = "Lokale Daten löschen";
+"profile.actions.clearSyncedLibrary" = "Synchronisierte Mediathek löschen";
 "profile.actions.clearingData" = "Lokale Daten werden gelöscht…";
+"profile.actions.clearingSyncedLibrary" = "Synchronisierte Mediathek wird gelöscht…";
 "profile.actions.continue" = "Mit Apple oder Google fortfahren";
 "profile.actions.signOut" = "Von AV Apps Account abmelden";
 "profile.actions.signingOut" = "Abmeldung…";
@@ -126,6 +128,9 @@
 "profile.alert.clearData.confirm" = "Löschen";
 "profile.alert.clearData.message" = "Favoriten, Zuletzt gehört und auf dem Gerät gespeicherte Einstellungen werden von diesem Gerät entfernt.";
 "profile.alert.clearData.title" = "Lokale Daten löschen?";
+"profile.alert.clearSyncedLibrary.confirm" = "Synchronisierte Mediathek löschen";
+"profile.alert.clearSyncedLibrary.message" = "Deine AV Radio Favoriten, zuletzt gehörten Sender, gespeicherten Songs und synchronisierten Einstellungen werden auf allen Geräten entfernt. Konto und Pro-Abonnement bleiben bestehen.";
+"profile.alert.clearSyncedLibrary.title" = "Synchronisierte Mediathek löschen?";
 "profile.alert.close" = "Schließen";
 "profile.alert.signOutFailed.title" = "Abmeldung nicht möglich";
 "profile.alert.subscription.title" = "Abonnement";
