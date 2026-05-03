@@ -1,5 +1,13 @@
 # AV Radio
 
+> Migrated: AV Radio has moved to **AV Tunesys**.
+>
+> Active repository: https://github.com/miguelavalos/av-tunesys
+>
+> Active product site: https://av-tunesys.avalsys.com
+>
+> This repository is kept only for historical reference. New work should happen in `av-tunesys`.
+
 Open-source native product repo for AV Radio.
 
 This repository contains the AV Radio clients for iOS, Android, and macOS, together with local playback and persistence flows, account-facing UI, and development-time premium/access configuration. Premium value, shared entitlement authority, and account platform logic still converge in private infrastructure outside this repository.
